@@ -1,0 +1,15 @@
+{
+    "name": "timemanagementapp.synconics",
+    "description": "Time Management (Alpha - Work In Progress)",
+    "architecture": "@CLICK_ARCH@",
+    "title": "Time Management (Alpha - Work In Progress)",
+    "hooks": {
+        "timemanagementapp": {
+            "apparmor": "timemanagementapp.apparmor",
+            "desktop":  "timemanagementapp.desktop"
+        }
+    },
+    "version": "0.1.0",
+    "maintainer": "Synconics Technologies Pvt. Ltd. <contact@synconics.com>",
+    "framework" : "@CLICK_FRAMEWORK@"
+}
