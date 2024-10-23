@@ -1,7 +1,7 @@
 [Desktop Entry]
 _Name=Time Management (Alpha - Work In Progress)
 Exec=qmlscene %U qml/Main.qml
-Icon=assets/timesheets_small_logo.png
+Icon=assets/timeManagemetLogo.png
 Terminal=false
 Type=Application
 X-Lomiri-Touch=true

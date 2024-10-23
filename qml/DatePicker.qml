@@ -28,7 +28,7 @@ ListView {
  // private
     property date selectedDate: new Date()
     function isDesktop() {
-        if(Screen.width > 1200){
+        if(Screen.width > 1300){
             return true;
         }else{
             return false;

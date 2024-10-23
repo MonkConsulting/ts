@@ -128,23 +128,32 @@ def fetch_options_sub_projects(selectedProject):
     )
     return partners
 
-def fetch_projects(selected_url, username, password_filled, database_dict):
-    
+def fetch_projects(selected_url, username, password_filled, database_dict, last_modified=False):
     response = login_odoo(selected_url, username, password_filled, database_dict)
     models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(url))
+    domain = [['parent_id', '=', False]]
+    if last_modified:
+        formatted_date = datetime.strptime(last_modified[:-1], '%Y-%m-%dT%H:%M:%S.%f')
+        domain.append(['write_date', '>=', formatted_date.strftime('%Y-%m-%d %H:%M:%S')])
     projects = models.execute_kw(db, uid, password,
-        'project.project', 'search_read', [[['parent_id', '=', False]]])
+        'project.project', 'search_read', [domain])
+    domain = [['parent_id', '!=', False]]
+    if last_modified:
+        formatted_date = datetime.strptime(last_modified[:-1], '%Y-%m-%dT%H:%M:%S.%f')
+        domain.append(['write_date', '>=', formatted_date.strftime('%Y-%m-%d %H:%M:%S')])
     projects.extend(models.execute_kw(db, uid, password,
-            'project.project', 'search_read', [[['parent_id', '!=', False]]]))
-    # logging.info('\n\n projects %s' % projects)
+            'project.project', 'search_read', [domain]))
     return projects
 
-def fetch_activity_type(selected_url, username, password_filled, database_dict):
+def fetch_activity_type(selected_url, username, password_filled, database_dict, last_modified=False):
     response = login_odoo(selected_url, username, password_filled, database_dict)
     models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(url))
+    domain = []
+    if last_modified:
+        formatted_date = datetime.strptime(last_modified[:-1], '%Y-%m-%dT%H:%M:%S.%f')
+        domain.insert(0, ['write_date', '>=', formatted_date.strftime('%Y-%m-%d %H:%M:%S')])
     activity_types = models.execute_kw(db, uid, password,
-        'mail.activity.type', 'search_read', [])
-    logging.info('\n\n activity_types >>>>>>>>>>>>>>>>>>>>>>. %s' % activity_types)
+        'mail.activity.type', 'search_read', [domain])
     return activity_types
 
 def create_timesheets(selected_url, username, password_filled, database_dict, timesheet_entries):
@@ -182,12 +191,29 @@ def create_activities(selected_url, username, password_filled, database_dict, ac
     models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(url))
     records_list = []
     for entry in activity_entries:
+        if not entry.get('due_date'):
+            continue
         record_date = datetime.strptime(entry.get('due_date'), '%m/%d/%Y').strftime('%Y-%m-%d')
         if not isinstance(entry.get('odoo_record_id'), int) or not isinstance(entry.get('odoo_record_id'), float):
-            res_model = models.execute_kw(db, uid, password,
-                'ir.model', 'search_read', [[['model', '=', 'res.partner']]])
-            res_id = models.execute_kw(db, uid, password,
-                'res.users', 'search_read', [[['id', '=', int(entry.get('user_id'))]]])
+            models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(selected_url))
+            model = 'res.partner'
+            res_id = False
+            if int(entry.get('link_id', 0)) == 1:
+                model = 'project.project'
+                res_id = int(entry.get('project_id'))
+            elif int(entry.get('link_id', 0)) == 2:
+                model = 'project.task'
+                res_id = int(entry.get('task_id'))
+            elif int(entry.get('link_id', 0)) == 3:
+                model = entry.get('res_model')
+                res_id = int(entry.get('res_id'))
+            else:
+                user_name = models.execute_kw(db, uid, password,
+                                          'res.users', 'read',
+                                          [int(entry.get('user_id'))],
+                                          {'fields': ['partner_id']})
+                res_id = user_name[0]['partner_id'][0]
+            returned_default = models.execute_kw(db, uid, password, 'mail.activity', 'default_get', [['res_model', 'res_model_id']], {'context': {'default_res_model': model}})
             record_id = models.execute_kw(db, uid, password, 'mail.activity', 'create',
                             [
                             {'date_deadline': record_date, 
@@ -195,28 +221,39 @@ def create_activities(selected_url, username, password_filled, database_dict, ac
                             'summary': entry.get('summary'), 
                             'note': entry.get('notes'), 
                             'user_id': int(entry.get('user_id')),
-                            'res_model_id': res_model[0].get('id'),
-                            'res_id': res_id[0].get('partner_id')[0]
+                            'res_model_id': returned_default['res_model_id'],
+                            'res_id': res_id
                             }])
             records_list.append({'local_record_id': entry.get('local_record_id'),
                      'odoo_record_id': record_id})
     return records_list
 
-def fetch_tasks(selected_url, username, password_filled, database_dict):
+def fetch_tasks(selected_url, username, password_filled, database_dict, last_modified=False):
     response = login_odoo(selected_url, username, password_filled, database_dict)
     models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(url))
+    domain = [['parent_id', '=', False]]
+    if last_modified:
+        formatted_date = datetime.strptime(last_modified[:-1], '%Y-%m-%dT%H:%M:%S.%f')
+        domain.append(['write_date', '>=', formatted_date.strftime('%Y-%m-%d %H:%M:%S')])
     tasks = models.execute_kw(db, uid, password,
-        'project.task', 'search_read', [[['parent_id', '=', False]]])
+        'project.task', 'search_read', [domain])
+    domain = [['parent_id', '!=', False]]
+    if last_modified:
+        formatted_date = datetime.strptime(last_modified[:-1], '%Y-%m-%dT%H:%M:%S.%f')
+        domain.append(['write_date', '>=', formatted_date.strftime('%Y-%m-%d %H:%M:%S')])
     tasks.extend(models.execute_kw(db, uid, password,
-            'project.task', 'search_read', [[['parent_id', '!=', False]]]))
+            'project.task', 'search_read', [domain]))
     return tasks
 
-def fetch_contacts(selected_url, username, password_filled, database_dict):
+def fetch_contacts(selected_url, username, password_filled, database_dict, last_modified=False):
     response = login_odoo(selected_url, username, password_filled, database_dict)
     models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(url))
-    contacts = models.execute_kw(db, uid, password,
-        'res.users', 'search_read', [])
-    logging.info('\n\n contacts >>>>>>>>>>>>>>>>>>>>>>>>> %s' % contacts)
+    domain = []
+    if last_modified:
+        formatted_date = datetime.strptime(last_modified[:-1], '%Y-%m-%dT%H:%M:%S.%f')
+        domain.append(['write_date', '>=', formatted_date.strftime('%Y-%m-%d %H:%M:%S')])
+    contacts = models.execute_kw(db, uid, password, 'res.users', 'search', [domain])
+    contacts = models.execute_kw(db, uid, password, 'res.users', 'read', [contacts], {'fields': ['name']})
     return contacts
 
 # def update_projects(selected_url, username, password_filled, database_dict):
@@ -262,6 +299,22 @@ def fetch_options_sub_tasks(selected_task):
         {'fields': ['name']}
     )
     return partners
+
+def fetch_activities(selected_url, username, password_filled, database_dict, last_modified=False):
+    response = login_odoo(selected_url, username, password_filled, database_dict)
+    models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(url))
+    domain = ['|', ['user_id', '=', uid], ['create_uid', '=', uid]]
+    if last_modified:
+        formatted_date = datetime.strptime(last_modified[:-1], '%Y-%m-%dT%H:%M:%S.%f')
+        domain.insert(0, ['write_date', '>=', formatted_date.strftime('%Y-%m-%d %H:%M:%S')])
+        # domain.insert(0, ['write_date', '>=', datetime.fromisoformat(last_modified).strftime('%Y-%m-%d %H:%M:%S')])
+    activities_search = models.execute_kw(db, uid, password,
+        'mail.activity', 'search',
+        [domain])
+    activities = models.execute_kw(db, uid, password,
+        'mail.activity', 'read', [activities_search],
+        {'fields': ['date_deadline', 'activity_type_id', 'summary', 'note', 'res_model', 'res_id', 'user_id']})
+    return activities
 
 def save_timesheet_entries(timesheet_entries):
 

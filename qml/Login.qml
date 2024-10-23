@@ -46,6 +46,7 @@ Item {
                 id INTEGER PRIMARY KEY AUTOINCREMENT,\
                 name TEXT NOT NULL,\
                 link TEXT NOT NULL,\
+                last_modified datetime,\
                 database TEXT NOT NULL,\
                 username TEXT NOT NULL\
             )');
@@ -95,26 +96,20 @@ Item {
             }
         });
     }
-    function isDesktop() {
-        if(Screen.width > 1200){
-            return true;
-        }else{
-            return false;
-        }
-    }
+
    
     // Login form components
     Rectangle {
         width: Screen.width
         height: Screen.height
-        color: "#121944"
+        color: "#FFFFFF"
         anchors.centerIn: parent
 
         Image {
             id: logo
-            source: "images/timesheets_large_logo.png" // Path to your logo image
-            width: isDesktop() ? 200 : 500
-            height: isDesktop() ? 200 : 500
+            source: "images/timeManagemetLogo.png" // Path to your logo image
+            width: isDesktop() ? 200 : phoneLarg()?350:500
+            height: isDesktop() ? 200 :phoneLarg()?330: 500
             anchors.top: parent.top
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.margins: 20
