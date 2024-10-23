@@ -44,15 +44,7 @@ Item {
     function filterProjects(searchText) {
         console.log("Filtering projects with: ", searchText);
     }
-    function isDesktop() {
-        if(Screen.width > 1200){
-            return true;
-        }else{
-            return false;
-        }
-    }
-    // This function updates the star images based on the selected priority
-       
+ 
 
 
     Rectangle {
@@ -65,69 +57,123 @@ Item {
         anchors.right: parent.right
         anchors.rightMargin: isDesktop()?10 : 20
         color: "#ffffff"
-        Column {
-            anchors.top: parent.top
-            anchors.topMargin: isDesktop()?20 : 100
+        // Column {
+        //     anchors.top: parent.top
+        //     anchors.topMargin: isDesktop()?20 : 100
+        //     width: parent.width
+        //     id: tabsHeader
+
+        //     TabBar {
+        //         width: parent.width
+        //         TabButton {
+        //             text: "Sub-tasks"
+        //             onClicked: {
+        //                 subTaskTab.visible = true
+        //                 timesheetTab.visible = false
+        //             }
+
+        //             background: Rectangle {
+        //                 color: subTaskButton.checked ? "#3498db" : "#bdc3c7" // Blue when checked, Gray otherwise
+        //                 border.color: "#2980b9"
+        //             }
+        //         }
+        //         TabButton {
+        //             text: "Timesheet"
+        //             onClicked: {
+        //                 subTaskTab.visible = false
+        //                 timesheetTab.visible = true
+        //             }
+        //             background: Rectangle {
+        //                 color: subTaskButton.checked ? "#3498db" : "#bdc3c7" // Blue when checked, Gray otherwise
+        //                 border.color: "#2980b9"
+        //             }
+        //         }
+        //     }
+
+        //     Rectangle {
+        //         id: subTaskTab
+        //         visible: true  
+        //         width: parent.width
+        //         height: parent.height * 0.5
+        //         color: "#f5f5f5"
+        //         Text {
+        //             text: "Sub-tasks content goes here"
+        //             anchors.centerIn: parent
+        //             font.pixelSize: isDesktop() ? 18 : 40
+        //         }
+        //     }
+
+        //     Rectangle {
+        //         id: c
+        //         visible: false // Hidden by default
+        //         width: parent.width
+        //         height: parent.height * 0.5
+        //         color: "#f5f5f5"
+        //         Text {
+        //             text: "Timesheet content goes here"
+        //             anchors.centerIn: parent
+        //             font.pixelSize: isDesktop() ? 18 : 40
+        //         }
+        //         // Add your dynamic timesheet content here (e.g., Repeater for timesheet entries)
+        //     }
+        // }
+        Row {
+            id: newActivity
             width: parent.width
-            id: tabsHeader
+            anchors.top: parent.top
+            // anchors.top: parent.top
+            anchors.topMargin: isDesktop()?50 : 100
+            // anchors.topMargin: isDesktop() ? 100 : 200
+            spacing: isDesktop() ? 20 : 40  
+            anchors.left: parent.left
+            anchors.leftMargin: isDesktop() ? 70 : 20
+            anchors.right: parent.right
+            anchors.rightMargin: isDesktop() ? 10 : 20
+            anchors.horizontalCenter: parent.horizontalCenter
 
-            TabBar {
-                width: parent.width
-                TabButton {
-                    text: "Sub-tasks"
-                    onClicked: {
-                        subTaskTab.visible = true
-                        timesheetTab.visible = false
-                    }
-
-                    background: Rectangle {
-                        color: subTaskButton.checked ? "#3498db" : "#bdc3c7" // Blue when checked, Gray otherwise
-                        border.color: "#2980b9"
-                    }
-                }
-                TabButton {
-                    text: "Timesheet"
-                    onClicked: {
-                        subTaskTab.visible = false
-                        timesheetTab.visible = true
-                    }
-                    background: Rectangle {
-                        color: subTaskButton.checked ? "#3498db" : "#bdc3c7" // Blue when checked, Gray otherwise
-                        border.color: "#2980b9"
-                    }
-                }
+            //
+            Label {
+                text: "Create Activities"
+                font.pixelSize: isDesktop() ? 20 : 40
+                anchors.verticalCenter: parent.verticalCenter
+                font.bold: true
+                color: "#121944"
+                
+                width: parent.width * 0.7  
             }
-
             Rectangle {
-                id: subTaskTab
-                visible: true  
-                width: parent.width
-                height: parent.height * 0.5
-                color: "#f5f5f5"
-                Text {
-                    text: "Sub-tasks content goes here"
-                    anchors.centerIn: parent
-                    font.pixelSize: isDesktop() ? 18 : 40
-                }
+                width: 1
+                height: 1
+                color: "transparent"
+                anchors.horizontalCenter: parent.horizontalCenter
             }
-
-            Rectangle {
-                id: c
-                visible: false // Hidden by default
-                width: parent.width
-                height: parent.height * 0.5
-                color: "#f5f5f5"
-                Text {
-                    text: "Timesheet content goes here"
-                    anchors.centerIn: parent
-                    font.pixelSize: isDesktop() ? 18 : 40
+            Button {
+                width: isDesktop() ? 120 : 240
+                height: isDesktop() ? 40 : 80
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.right: parent.right  
+                background: Rectangle {
+                    color: "#121944"
+                    radius: isDesktop() ? 5 : 10
+                    border.color: "#87ceeb"
+                    border.width: 2
+                    anchors.fill: parent
                 }
-                // Add your dynamic timesheet content here (e.g., Repeater for timesheet entries)
+                contentItem: Text {
+                    text: "Back"
+                    color: "#ffffff"
+                    font.pixelSize: isDesktop() ? 20 : 40
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                onClicked: {
+                stackView.push(activityLists);;  
+                }
             }
         }
 
         Row {
-            anchors.top: tabsHeader.bottom
+            anchors.top: newActivity.bottom
             anchors.topMargin: 20
             spacing: isDesktop() ? 100 : 200
             anchors.verticalCenterOffset: -height * 1.5
@@ -137,10 +183,11 @@ Item {
                     anchors.horizontalCenter = parent.horizontalCenter; // Apply only for desktop
                 }
             }
+            
             Column {
                 spacing: isDesktop() ? 20 : 40
                 width: 60
-                Label { text: "Account" 
+                Label { text: "Instance" 
                 width: 150
                 height: isDesktop() ? 25 : 80
                 font.pixelSize: isDesktop() ? 18 : 40
@@ -229,7 +276,7 @@ Item {
                         id: accountInput
                         Text {
                             id: accountplaceholder
-                            text: "Account"                                            
+                            text: "Instance"                                            
                             font.pixelSize:isDesktop() ? 18 : 40
                             color: "#aaa"
                             anchors.fill: parent
@@ -485,7 +532,7 @@ Item {
                         id: parentInput
                         Text {
                             id: parentplaceholder
-                            text: "Project"                                            
+                            text: "Parent Task"                                            
                             font.pixelSize:isDesktop() ? 18 : 40
                             color: "#aaa"
                             anchors.fill: parent

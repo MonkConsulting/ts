@@ -9,7 +9,7 @@
             "desktop":  "timemanagementapp.desktop"
         }
     },
-    "version": "0.1.0",
+    "version": "0.1.1",
     "maintainer": "Synconics Technologies Pvt. Ltd. <contact@synconics.com>",
     "framework" : "@CLICK_FRAMEWORK@"
 }

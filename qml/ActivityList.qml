@@ -26,10 +26,13 @@ Item {
     property int currentRecordId: 0
     property int editselectedAccountUserId: 0
     property int editselectedActivityTypeId: 0
+    property int eidtselectedUserId: 0
     property bool isActivityEdit: false
     property bool isEditActivityClicked: false
     property var filterActivityListData: []
-
+    property int selectededitlinkUserId: 0 
+    property int selectededitprojectUserId: 0
+    property int selectededittaskUserId: 0
     function queryData() {
         var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
         db.transaction(function (tx) {
@@ -75,32 +78,102 @@ Item {
         return activity_type_list;
     }
 
-    function isDesktop() {
-        if(Screen.width > 1200){
-            return true;
-        }else{
-            return false;
-        }
-    }
 
     ListModel {
         id: activityListModel
     }
     
-    function editActivityData(data){
-        var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    // function editActivityData(data){
+    //     var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
 
-        db.transaction(function(tx) {
-            // Update the record in the database
-            tx.executeSql('UPDATE mail_activity_app SET \
-                account_id = ?, activity_type_id = ?, summary = ?, due_date = ?, \
-                notes = ? WHERE id = ?',
-                [data.updatedAccount, data.updatedActivity, data.updatedSummary, 
-                data.updatedDate,data.updatedNote, data.rowId]  
-            );
-            queryData()
-        });
+    //     db.transaction(function(tx) {
+    //         // Update the record in the database
+    //         tx.executeSql('UPDATE mail_activity_app SET \
+    //             account_id = ?, activity_type_id = ?, summary = ?,user_id = ?, due_date = ?, \
+    //             notes = ?,resModel = ?, resId = ?, task_id = ?, project_id = ?, link_id = ?, WHERE id = ?',
+    //             [data.updatedAccount, data.updatedActivity, data.updatedSummary, data.updatedUserId,
+    //             data.updatedDate,data.updatedNote,data.resModel,data.resId,data.task_id,data.project_id,data.link_id, data.rowId]  
+    //         );
+    //         queryData()
+            
+    //     });
     
+    // }
+    function editActivityData(data) {
+    var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+
+    db.transaction(function(tx) {
+        // Update the record in the database
+        tx.executeSql('UPDATE mail_activity_app SET \
+            account_id = ?, activity_type_id = ?, summary = ?, user_id = ?, due_date = ?, \
+            notes = ?, resModel = ?, resId = ?, task_id = ?, project_id = ?, link_id = ? \
+            WHERE id = ?',
+            [data.updatedAccount, data.updatedActivity, data.updatedSummary, data.updatedUserId,
+            data.updatedDate, data.updatedNote, data.resModel, data.resId, data.task_id, 
+            data.project_id, data.link_id, data.rowId]  // Parameters to replace placeholders
+        );
+        queryData();  // Refresh data or perform another action after updating
+    });
+}
+
+    function fetch_current_users(selectedAccountUserId) {
+        var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+        var activity_type_list = []
+        db.transaction(function (tx) {
+            var instance_users = tx.executeSql('select * from res_users_app where account_id = ?', [selectedAccountUserId])
+            console.log('\n\n instance_users.rows.length', instance_users.rows.length)
+            var all_users = tx.executeSql('select * from res_users_app')
+            for (var user = 0; user < all_users.rows.length; user++) {
+                console.log('\n\n current_user', all_users.rows.item(user).account_id)
+            }
+            for (var instance_user = 0; instance_user < instance_users.rows.length; instance_user++) {
+                activity_type_list.push({'id': instance_users.rows.item(instance_user).id, 'name': instance_users.rows.item(instance_user).name});
+            }
+        })
+        return activity_type_list;
+    }
+
+    ListModel {
+        id: editlinkList
+        ListElement { itemId: 0; name: "" }   // Option 1: Blank
+        ListElement { itemId: 1; name: "Project" }  // Option 2: Project
+        ListElement { itemId: 2; name: "Task" }   // Option 3: Task
+        ListElement { itemId: 3; name: "Other" }   // Option 4: Other
+    }
+    function projects_get(selectedAccountUserId) {
+        console.log(selectedAccountUserId,"//////////////")
+        var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+        var projectList = []
+        db.transaction(function(tx) {
+            if(workpersonaSwitchState){
+                var result = tx.executeSql('SELECT * FROM project_project_app where account_id = ?', [selectedAccountUserId]);
+            }else{
+                var result = tx.executeSql('SELECT * FROM project_project_app WHERE account_id IS NULL');
+            }
+            for (var i = 0; i < result.rows.length; i++) {
+                var child_projects = tx.executeSql('SELECT count(*) FROM project_project_app where account_id = ?', [result.rows.item(i).id]);
+                projectList.push({'id': result.rows.item(i).id, 'name': result.rows.item(i).name, 'projectkHasSubProject': true ? child_projects.rows.item(0).count > 0 : false})
+            }
+        })
+        return projectList;
+    }
+    function tasks_list_get(selectedAccountUserId) {
+        var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+        var tasks_list = []
+        db.transaction(function(tx) {
+            if(workpersonaSwitchState){
+                var result = tx.executeSql('SELECT * FROM project_task_app where account_id = ?', [selectedAccountUserId]);
+            }else{
+                var result = tx.executeSql('SELECT * FROM project_task_app where account_id IS NULL AND account_id = ?', [selectedAccountUserId]);
+            }
+            for (var i = 0; i < result.rows.length; i++) {
+                var child_tasks = tx.executeSql('SELECT count(*) FROM project_task_app where parent_id = ?', [result.rows.item(i).id]);
+                // tasksListModel.append({'id': result[i].id, 'name': result[i].name, 'taskHasSubTask': true ? child_tasks.rows.item(0).count > 0 : false})
+                tasks_list.push({'id': result.rows.item(i).id, 'name': result.rows.item(i).name, 'taskHasSubTask': true ? child_tasks.rows.item(0).count > 0 : false})
+                // projectList.push({'id': result.rows.item(i).id, 'name': result.rows.item(i).name})
+            }
+        })
+        return tasks_list;    
     }
 
     Rectangle {
@@ -130,7 +203,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 font.bold: true
                 color: "#121944"
-                width: parent.width * (isDesktop() ? 0.453   : 0.2)  
+                width: parent.width * (isDesktop() ? 0.453   : phoneLarg() ? 0.35 : 0.2)  
             }
             
             Rectangle {
@@ -161,7 +234,7 @@ Item {
                     anchors.fill: parent
                 }
                 contentItem: Text {
-                    text: "New"
+                    text: " + "
                     color: "#ffffff"
                     font.pixelSize: isDesktop() ? 20 : 40
                     horizontalAlignment: Text.AlignHCenter
@@ -192,6 +265,8 @@ Item {
                 contentHeight: column.height
                 clip: true
                 property string edit_id: ""
+                visible: isDesktop() ? true : phoneLarg()? true : rightPanel.visible? false : true
+
 
 
                 Column {
@@ -271,8 +346,10 @@ Item {
                 id: rightPanel
                 z: 1
                 visible: false
-                width: isDesktop() ? parent.width /2 : parent.width
+                width: isDesktop() ? parent.width /2 : phoneLarg()? parent.width /2 : parent.width
                 height: parent.height
+                anchors.top: parent.top
+                anchors.topMargin: phoneLarg()? -165 :0
                 color: "#EFEFEF"
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
@@ -284,26 +361,59 @@ Item {
                             var result = tx.executeSql('SELECT * FROM mail_activity_app WHERE id = ?', [rowId]);
                             if (result.rows.length > 0) {
                                 var rowData = result.rows.item(0);
-                                console.log(JSON.stringify(rowData, null, 2), "////rowData////")
                                 
-                                var activityId = rowData.activity_type_id;
-                                var accountId = rowData.account_id;
-
+                                var activityId = rowData.activity_type_id || 0; // Default to 0 if null/undefined
+                                var accountId = rowData.account_id || 0; // Default to 0 if null/undefined
+                                var usermenuId = rowData.user_id || 0;
+                                var projectId = rowData.project_id || 0;
+                                var taskId = rowData.task_id || 0;
                                 // Fetch activity and account data
                                 var account = tx.executeSql('SELECT name FROM users WHERE id = ?', [accountId]);
                                 var activity = tx.executeSql('SELECT name FROM mail_activity_type_app WHERE id = ?', [activityId]);
-
+                                var usermenu = tx.executeSql('SELECT name FROM res_users_app WHERE id = ?', [usermenuId]);
+                                var project = tx.executeSql('SELECT name FROM project_project_app WHERE id = ?', [projectId]);
+                                var task = tx.executeSql('SELECT name FROM project_task_app WHERE id = ?', [taskId]);
                                 // Set values to inputs and properties editselectedAccountUserId
-                                accountInput.text = account.rows.item(0).name;
+                                accountInput.text = account.rows.length > 0 ? account.rows.item(0).name || "" : "";
                                 editselectedAccountUserId = accountId;
-                                activityTypeInput.text = activity.rows.item(0).name;
+
+                                activityTypeInput.text = activity.rows.length > 0 ? activity.rows.item(0).name || "" : "";
                                 editselectedActivityTypeId = activityId;
-                                summaryInput.text = rowData.summary;
+
+                                edituserInput.text = usermenu.rows.length > 0 ? usermenu.rows.item(0).name || "" : "";
+                                eidtselectedUserId = usermenuId;
+
+                                summaryInput.text = rowData.summary || ""; // Default to empty string if null/undefined
+                                selectededitlinkUserId = rowData.link_id
+                                if(selectededitlinkUserId === 0){
+                                    editlinkInput.text = ""
+                                }
+                                if(selectededitlinkUserId === 1){
+                                    editlinkInput.text = "Project"
+                                }
+                                if(selectededitlinkUserId === 2){
+                                    editlinkInput.text = "Task"
+                                }
+                                if(selectededitlinkUserId === 3){
+                                    editlinkInput.text = "Other"
+                                }
+                                if (project.rows.length > 0) {
+                                    editprojectInput.text = project.rows.item(0).name;
+                                    selectededitprojectUserId = rowData.project_id
+                                }
+                                // editprojectInput.text = project.rows.length > 0 ? project.rows.item(0).name || "" : "";
+                                if (task.rows.length > 0) {
+                                    edittaskInput.text = task.rows.item(0).name;
+                                    selectededittaskUserId = rowData.task_id
+                                }
+
+                                editresModelInput.text =rowData.resModel
+                                editresIdInput.text =rowData.resId
                                 
-                                // Format date
-                                var dueDate = new Date(rowData.due_date);
-                                datetimeInput.text = formatDate(dueDate);
-                                notesInput.text = rowData.notes;
+                                var dueDate = rowData.due_date ? new Date(rowData.due_date) : null;
+                                datetimeInput.text = dueDate ? formatDate(dueDate) : "";
+
+                                notesInput.text = rowData.notes || ""
                             }
                         });
                         function formatDate(date) {
@@ -318,6 +428,13 @@ Item {
                     anchors.fill: parent
                     spacing: 20
                     // timesheetFlickable.edit_id = row get id
+                    Rectangle {
+                        width: parent.width
+                        height: implicitHeight  // Height will adjust based on the content inside
+                        anchors.top: parent.top
+                        anchors.topMargin: 5
+                        z: 1
+                        color: "#ccc"
                     Row {
                         width: parent.width
                         anchors.top: parent.top
@@ -380,10 +497,16 @@ Item {
                                 const editData = {
                                     updatedAccount: editselectedAccountUserId,
                                     updatedActivity: editselectedActivityTypeId,
+                                    updatedUserId: eidtselectedUserId,
                                     updatedSummary: summaryInput.text,
                                     updatedDate: datetimeInput.text,
                                     updatedNote: notesInput.text,
-                                    rowId: rowId
+                                    rowId: rowId,
+                                    project_id:selectededitprojectUserId,
+                                    task_id:selectededittaskUserId,
+                                    link_id:selectededitlinkUserId,
+                                    resModel:editresModelInput.text,
+                                    resId:editresIdInput.text
                                 }
                                 editActivityData(editData)
                                 isEditActivityClicked = true
@@ -401,56 +524,108 @@ Item {
                                 }
                             }
                         }
-                    }
+                    }}
+                    Flickable {
+                        id: flickableContainer
+                        width: parent.width
+                        // height: phoneLarg() ? parent.height - 50 : parent.height  // Adjust height for large phones
+                        height: parent.height  // Set the height to match the parent or a fixed value
+                        contentHeight: activityItemedit.childrenRect.height + (isDesktop()?0:100)  // The total height of the content inside Flickable
+                        anchors.fill: parent
+                        flickableDirection: Flickable.VerticalFlick  // Allow only vertical scrolling
+                        anchors.top: parent.top
+                        anchors.topMargin: isDesktop() ? 85 : phoneLarg()? 100 : 120
+                        
+
+                        // Make sure to enable clipping so the content outside the viewable area is not displayed
+                        clip: true
                     Item {
                         id: activityItemedit
-                        height: parent.height
+                        height: activityItemedit.childrenRect.height + 100
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.top: parent.top
-                        anchors.topMargin: isDesktop() ? 100 : 120
+                        anchors.leftMargin: phoneLarg()? 20:0
+                        anchors.topMargin: isDesktop() ? 0 : phoneLarg()? 0 : 120                        
                             Row {
-                                spacing: isDesktop() ? 100 : 200
+                                spacing: isDesktop() ? 100 : phoneLarg()? 260 :220
                                 anchors.verticalCenterOffset: -height * 1.5
                                 anchors.left: parent.left
                                 anchors.leftMargin: 20
-                                
-                                    Component.onCompleted: {
-                                    if (isDesktop()) {
+                                Component.onCompleted: {
+                                    if (isDesktop() || phoneLarg()) {
                                         anchors.horizontalCenter = parent.horizontalCenter; // Apply only for desktop
-                                    }
-                                }
-
+                                    }   
+                                }                           
                                 Column {
                                     spacing: isDesktop() ? 20 : 40
                                     width: isDesktop() ?40:80
                                     Label { text: "Instance" 
                                     width: 150
-                                    height: isDesktop() ? 25 : 80
+                                    height: isDesktop() ? 25 : phoneLarg()?50:80
                                     visible: workpersonaSwitchState
                                     font.pixelSize: isDesktop() ? 18 : 40
                                     }
                                     Label { text: "Activity Type" 
                                         width: 150
-                                        height: isDesktop() ? 25 : 80
+                                        height: isDesktop() ? 25 :phoneLarg()?50: 80
                                         font.pixelSize: isDesktop() ? 18 : 40
                                         }
+                                    Label { text: "Assigned To" 
+                                        width: 150
+                                        height: isDesktop() ? 25 : phoneLarg()?50:80
+                                        font.pixelSize: isDesktop() ? 18 : 40
+                                    }    
                                     Label { text: "Summary" 
                                     width: 150
-                                    height: isDesktop() ? 25 : 80
+                                    height: isDesktop() ? 25 : phoneLarg()?50:80
                                     font.pixelSize: isDesktop() ? 18 : 40
                                     }
                                     
                                     Label { text: "Due Date" 
                                     width: 150
-                                    height: isDesktop() ? 25 : 80
+                                    height: isDesktop() ? 25 : phoneLarg()?50:80
                                     font.pixelSize: isDesktop() ? 18 : 40
 
                                     }
                                     Label { text: "Notes" 
                                     width: 150
-                                    height: isDesktop() ? 25 : 80
+                                    height: isDesktop() ? 25 : phoneLarg()?50:80
                                     font.pixelSize: isDesktop() ? 18 : 40}
+                                    Label { text: "Link To" 
+                                    width: 150
+                                    height: isDesktop() ? 25 : phoneLarg()?50:80
+                                    font.pixelSize: isDesktop() ? 18 : 40
+
+                                    }
+                                    Label { text: "Project Id" 
+                                    width: 150
+                                    height: isDesktop() ? 25 : phoneLarg()?50:80
+                                    font.pixelSize: isDesktop() ? 18 : 40
+                                    visible: selectededitlinkUserId === 1
+
+                                    }
+                                    Label { text: "Task Id" 
+                                    width: 150
+                                    height: isDesktop() ? 25 : phoneLarg()?50:80
+                                    font.pixelSize: isDesktop() ? 18 : 40
+                                    visible: selectededitlinkUserId === 2
+
+                                    }
+                                    Label { text: "Res Model" 
+                                    width: 150
+                                    height: isDesktop() ? 25 : phoneLarg()?50:80
+                                    font.pixelSize: isDesktop() ? 18 : 40
+                                    visible: selectededitlinkUserId === 3
+
+                                    }
+                                    Label { text: "Res Id" 
+                                    width: 150
+                                    height: isDesktop() ? 25 : phoneLarg()?50:80
+                                    font.pixelSize: isDesktop() ? 18 : 40
+                                    visible: selectededitlinkUserId === 3
+
+                                    }
                                 }
 
                                 Column {
@@ -464,7 +639,7 @@ Item {
                                     Rectangle {
                                         width: isDesktop() ? 430 : 700
                                         visible: workpersonaSwitchState
-                                        height: isDesktop() ? 25 : 80
+                                        height: isDesktop() ? 25 : phoneLarg()?50:80
                                         color: "transparent"
 
                                         // Border at the bottom
@@ -525,7 +700,7 @@ Item {
 
                                                     MenuItem {
                                                         width: parent.width
-                                                        height: isDesktop() ? 40 : 80
+                                                        height: isDesktop() ? 40 : phoneLarg()?50:80
                                                         property int accountId: model.id  // Custom property for ID
                                                         property string accuntName: model.name || ''
                                                         Text {
@@ -566,7 +741,7 @@ Item {
 
                                     Rectangle {
                                         width: isDesktop() ? 430 : 700
-                                        height: isDesktop() ? 25 : 80
+                                        height: isDesktop() ? 25 : phoneLarg()?50:80
                                         color: "transparent"
 
                                         // Border at the bottom
@@ -626,7 +801,7 @@ Item {
 
                                                     MenuItem {
                                                         width: parent.width
-                                                        height: isDesktop() ? 40 : 80
+                                                        height: isDesktop() ? 40 : phoneLarg()?50:80
                                                         property int activityTypeId: model.id
                                                         property string activityTypeName: model.name || ''
                                                         Text {
@@ -664,7 +839,105 @@ Item {
 
                                     Rectangle {
                                         width: isDesktop() ? 430 : 700
-                                        height: isDesktop() ? 25 : 80
+                                        height: isDesktop() ? 25 : phoneLarg()?50:80
+                                        color: "transparent"
+
+                                        // Border at the bottom
+                                        Rectangle {
+                                            width: parent.width
+                                            height: isDesktop() ? 1 : 2
+                                            color: "black"  // Border color
+                                            anchors.bottom: parent.bottom
+                                            anchors.left: parent.left
+                                            anchors.right: parent.right
+                                        }
+
+                                        ListModel {
+                                            id: editaccountUsersList
+                                            // Example data
+                                        }
+
+                                        TextInput {
+                                            width: parent.width
+                                            height: parent.height
+                                            font.pixelSize: isDesktop() ? 18 : 40
+                                            anchors.fill: parent
+                                            // anchors.margins: 5                                                        
+                                            id: edituserInput
+                                            Text {
+                                                id: edituserplaceholder
+                                                text: "Assignee"                                            
+                                                font.pixelSize:isDesktop() ? 18 : 40
+                                                color: "#aaa"
+                                                anchors.fill: parent
+                                                verticalAlignment: Text.AlignVCenter
+                                                
+                                            }
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                onClicked: {
+                                                    editaccountUsersList.clear();
+                                                    console.log('\n\n selectedAccountUserId', selectedAccountUserId)
+                                                    var result = fetch_current_users(editselectedAccountUserId);
+                                                    for (var i = 0; i < result.length; i++) {
+                                                        editaccountUsersList.append({'id': result[i].id, 'name': result[i].name})
+                                                    }
+                                                    usermenu.open();
+                                                }
+                                            }
+
+                                            Menu {
+                                                id: usermenu
+                                                x: edituserInput.x
+                                                y: edituserInput.y + edituserInput.height
+                                                width: edituserInput.width
+
+
+                                                Repeater {
+                                                    model: editaccountUsersList
+
+                                                    MenuItem {
+                                                        width: parent.width
+                                                        height: isDesktop() ? 40 : phoneLarg()?45:80
+                                                        property int edituserId: model.id
+                                                        property string edituserName: model.name || ''
+                                                        Text {
+                                                            text: edituserName
+                                                            font.pixelSize: isDesktop() ? 18 : 40
+                                                            bottomPadding: 5
+                                                            topPadding: 5
+                                                            color: "#000"
+                                                            anchors.verticalCenter: parent.verticalCenter
+                                                            anchors.left: parent.left
+                                                            anchors.leftMargin: 10
+                                                            wrapMode: Text.WordWrap
+                                                            elide: Text.ElideRight   
+                                                            maximumLineCount: 2      
+                                                        }
+
+                                                        onClicked: {
+                                                            eidtselectedUserId = edituserId
+                                                            edituserInput.text = edituserName
+                                                            usermenu.close()
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            onTextChanged: {
+                                                if (edituserInput.text.length > 0) {
+                                                    edituserplaceholder.visible = false
+                                                } else {
+                                                    edituserplaceholder.visible = true
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        width: isDesktop() ? 430 : 700
+                                        height: isDesktop() ? 25 : phoneLarg()?50:80
                                         color: "transparent"
 
                                         Rectangle {
@@ -735,7 +1008,7 @@ Item {
 
                                     Rectangle {
                                         width: isDesktop() ? 430 : 700
-                                        height: isDesktop() ? 25 : 80
+                                        height: isDesktop() ? 25 : phoneLarg()?50:80
                                         color: "transparent"
 
                                         // Border at the bottom
@@ -813,7 +1086,7 @@ Item {
                                     
                                     Rectangle {
                                         width: isDesktop() ? 430 : 700
-                                        height: isDesktop() ? 25 : 80
+                                        height: isDesktop() ? 25 : phoneLarg()?50:80
                                         color: "transparent"
 
                                         Rectangle {
@@ -881,7 +1154,417 @@ Item {
                                             }
                                         }
                                     }
+                                   
+
+                                    // link
                                     Rectangle {
+                                        width: isDesktop() ? 430 : 700
+                                        height: isDesktop() ? 25 : phoneLarg()?50:80
+                                        color: "transparent"
+
+                                        // Border at the bottom
+                                        Rectangle {
+                                            width: parent.width
+                                            height: isDesktop() ? 1 : 2
+                                            color: "black"  // Border color
+                                            anchors.bottom: parent.bottom
+                                            anchors.left: parent.left
+                                            anchors.right: parent.right
+                                        }
+
+                                    
+                                        TextInput {
+                                            width: parent.width
+                                            height: parent.height
+                                            font.pixelSize: isDesktop() ? 18 : 40
+                                            anchors.fill: parent
+                                            id: editlinkInput
+
+                                            // Placeholder text
+                                            Text {
+                                                id: editlinkplaceholder
+                                                text: "Link to project or task"                                            
+                                                font.pixelSize: isDesktop() ? 18 : 40
+                                                color: "#aaa"
+                                                anchors.fill: parent
+                                                verticalAlignment: Text.AlignVCenter
+                                            }
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                onClicked: {
+                                                    menueditlink.open()
+                                                }
+                                            }
+
+                                            Menu {
+                                                id: menueditlink
+                                                x: editlinkInput.x
+                                                y: editlinkInput.y + editlinkInput.height
+                                                width: editlinkInput.width  // Match width with TextField
+
+                                                Repeater {
+                                                    model: editlinkList
+
+                                                    MenuItem {
+                                                        width: parent.width
+                                                        height: isDesktop() ? 40 : phoneLarg()?50: 80
+                                                        property int editlinkId: model.itemId || 0  // Fallback to 0 if model.id is undefined
+                                                        property string editlinkName: model.name || ''
+                                                        
+                                                        Text {
+                                                            text: editlinkName
+                                                            font.pixelSize: isDesktop() ? 18 : 40
+                                                            color: "#000"
+                                                            anchors.verticalCenter: parent.verticalCenter
+                                                            anchors.left: parent.left
+                                                            anchors.leftMargin: 10                                                 
+                                                            wrapMode: Text.WordWrap
+                                                            elide: Text.ElideRight   
+                                                            maximumLineCount: 2      
+                                                        }
+
+                                                        // When the menu item is clicked, update the TextInput and close the menu
+                                                        onClicked: {
+                                                            editlinkInput.text = editlinkName  // Set the selected name to the TextInput
+                                                            selectededitlinkUserId = editlinkId  // Store the selected ID (if needed)
+                                                            console.log(editlinkId,"selectededitlinkUserId: " + selectededitlinkUserId);  // Debugging check
+
+                                                            menueditlink.close()  // Close the menu
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            // Placeholder visibility logic
+                                            onTextChanged: {
+                                                editlinkplaceholder.visible = editlinkInput.text.length === 0
+                                            }
+                                        }
+                                    }
+                                     // project
+                                    Rectangle {
+                                        width: isDesktop() ? 430 : 700
+                                        height: isDesktop() ? 25 : phoneLarg()?50:80
+                                        color: "transparent"
+                                        visible: selectededitlinkUserId === 1
+
+                                        // Border at the bottom
+                                        Rectangle {
+                                            width: parent.width
+                                            height: isDesktop() ? 1 : 2
+                                            color: "black"  // Border color
+                                            anchors.bottom: parent.bottom
+                                            anchors.left: parent.left
+                                            anchors.right: parent.right
+                                        }
+
+                                        ListModel {
+                                            id: editprojectList
+                                            // Example data
+                                        }
+
+                                        TextInput {
+                                            width: parent.width
+                                            height: parent.height
+                                            font.pixelSize: isDesktop() ? 18 : 40
+                                            anchors.fill: parent
+                                            // anchors.margins: 5                                                        
+                                            id: editprojectInput
+                                            Text {
+                                                id: editprojectplaceholder
+                                                text: "Project"                                            
+                                                font.pixelSize:isDesktop() ? 18 :40
+                                                color: "#aaa"
+                                                anchors.fill: parent
+                                                verticalAlignment: Text.AlignVCenter
+                                                
+                                            }
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                onClicked: {
+                                                    editprojectList.clear();
+                                                    if(editselectedAccountUserId != 0){
+                                                        var result = projects_get(editselectedAccountUserId); 
+                                                            if(result){
+                                                                for (var i = 0; i < result.length; i++) {
+                                                                    editprojectList.append(result[i]);
+                                                                }
+                                                            }
+                                                    }
+                                                                menueditproject.open();
+                                                }
+                                            }
+
+                                            Menu {
+                                                id: menueditproject
+                                                x: editprojectInput.x
+                                                y: editprojectInput.y + editprojectInput.height
+                                                width: editprojectInput.width  // Match width with TextField
+
+
+                                                Repeater {
+                                                    model: editprojectList
+
+                                                    MenuItem {
+                                                        width: parent.width
+                                                        height: isDesktop() ? 40 : phoneLarg()?50: 80
+                                                        property int editprojectId: model.id  // Custom property for ID
+                                                        property string editprojectName: model.name || ''
+                                                        Text {
+                                                            text: editprojectName
+                                                            font.pixelSize: isDesktop() ? 18 :40
+                                                            bottomPadding: 5
+                                                            topPadding: 5
+                                                            //anchors.centerIn: parent
+                                                            color: "#000"
+                                                            anchors.verticalCenter: parent.verticalCenter
+                                                            anchors.left: parent.left
+                                                            anchors.leftMargin: 10                                                 
+                                                            wrapMode: Text.WordWrap
+                                                            elide: Text.ElideRight   
+                                                            maximumLineCount: 2      
+                                                        }
+
+                                                        onClicked: {
+                                                            editprojectInput.text = editprojectName
+                                                            selectededitprojectUserId = editprojectId
+                                                            menueditproject.close()
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            onTextChanged: {
+                                                if (editprojectInput.text.length > 0) {
+                                                    editprojectplaceholder.visible = false
+                                                } else {
+                                                    editprojectplaceholder.visible = true
+                                                }
+                                            }
+                                        }
+                                    }
+                                     // task
+                                    Rectangle {
+                                        width: isDesktop() ? 430 : 700
+                                        height: isDesktop() ? 25 : phoneLarg()?50:80
+                                        color: "transparent"
+                                        visible: selectededitlinkUserId === 2
+
+                                        // Border at the bottom
+                                        Rectangle {
+                                            width: parent.width
+                                            height: isDesktop() ? 1 : 2
+                                            color: "black"  // Border color
+                                            anchors.bottom: parent.bottom
+                                            anchors.left: parent.left
+                                            anchors.right: parent.right
+                                        }
+
+                                        ListModel {
+                                            id: edittaskList
+                                            // Example data
+                                        }
+
+                                        TextInput {
+                                            width: parent.width
+                                            height: parent.height
+                                            font.pixelSize: isDesktop() ? 18 : 40
+                                            anchors.fill: parent
+                                            // anchors.margins: 5                                                        
+                                            id: edittaskInput
+                                            Text {
+                                                id: edittaskplaceholder
+                                                text: "editTask"                                            
+                                                font.pixelSize:isDesktop() ? 18 : 40
+                                                color: "#aaa"
+                                                anchors.fill: parent
+                                                verticalAlignment: Text.AlignVCenter
+                                                
+                                            }
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                onClicked: {
+                                                    var result = tasks_list_get(editselectedAccountUserId); 
+                                                        if(result){
+                                                            edittaskList.clear();
+                                                            for (var i = 0; i < result.length; i++) {
+                                                                edittaskList.append(result[i]);
+                                                            }
+                                                            menuedittask.open();
+                                                        }
+                                                }
+                                            }
+
+                                            Menu {
+                                                id: menuedittask
+                                                x: edittaskInput.x
+                                                y: edittaskInput.y + edittaskInput.height
+                                                width: edittaskInput.width  // Match width with TextField
+
+
+                                                Repeater {
+                                                    model: edittaskList
+
+                                                    MenuItem {
+                                                        width: parent.width
+                                                        height: isDesktop() ? 40 : phoneLarg()?50: 80
+                                                        property int edittaskId: model.id  // Custom property for ID
+                                                        property string edittaskName: model.name || ''
+                                                        Text {
+                                                            text: edittaskName
+                                                            font.pixelSize: isDesktop() ? 18 : 40
+                                                            bottomPadding: 5
+                                                            topPadding: 5
+                                                            //anchors.centerIn: parent
+                                                            color: "#000"
+                                                            anchors.verticalCenter: parent.verticalCenter
+                                                            anchors.left: parent.left
+                                                            anchors.leftMargin: 10                                                 
+                                                            wrapMode: Text.WordWrap
+                                                            elide: Text.ElideRight   
+                                                            maximumLineCount: 2      
+                                                        }
+
+                                                        onClicked: {
+                                                            // activityTypeInput.text = ''
+                                                            // selectedActivityTypeId = 0
+                                                            // subeditTaskInput.text = ''
+                                                            // selectedSubeditTaskId = 0
+                                                            // hasSubeditTask = false
+                                                            edittaskInput.text = edittaskName
+                                                            selectededittaskUserId = edittaskId
+                                                            menuedittask.close()
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            onTextChanged: {
+                                                if (edittaskInput.text.length > 0) {
+                                                    edittaskplaceholder.visible = false
+                                                } else {
+                                                    edittaskplaceholder.visible = true
+                                                }
+                                            }
+                                        }
+                                    }
+                                     // res model
+                                    Rectangle {
+                                        width: isDesktop() ? 430 : 700
+                                        height: isDesktop() ? 25 : phoneLarg()?45:80
+                                        color: "transparent"
+                                        visible: selectededitlinkUserId === 3
+
+                                        Rectangle {
+                                            width: parent.width
+                                            height: isDesktop() ? 1 : 2
+                                            color: "black"
+                                            anchors.bottom: parent.bottom
+                                            anchors.left: parent.left
+                                            anchors.right: parent.right
+                                        }
+
+                                        Flickable {
+                                            id: flickableeditresModel
+                                            width: parent.width
+                                            height: parent.height
+                                            contentWidth: editresModelInput.width
+                                            clip: true  
+                                            interactive: true  
+                                            property int previousCursorPosition: 0
+                                            onContentWidthChanged: {
+                                                if (editresModelInput.cursorPosition > previousCursorPosition) {
+                                                    contentX = contentWidth - width;  
+                                                }
+                                                else if (editresModelInput.cursorPosition < previousCursorPosition) {
+                                                    contentX = Math.max(0, editresModelInput.cursorRectangle.x - 20); 
+                                                }
+                                                previousCursorPosition = editresModelInput.cursorPosition;
+                                            }
+
+                                            TextInput {
+                                                id: editresModelInput
+                                                width: Math.max(parent.width, texteditresModelMetrics.width)  
+                                                height: parent.height
+                                                font.pixelSize: isDesktop() ? 18 : 40
+                                                wrapMode: Text.NoWrap  
+                                                anchors.fill: parent
+
+                                                Text {
+                                                    id: editresModelplaceholder
+                                                    text: "Res Model"
+                                                    color: "#aaa"
+                                                    font.pixelSize: isDesktop() ? 18 :40
+                                                    anchors.fill: parent
+                                                    verticalAlignment: Text.AlignVCenter
+                                                    visible: editresModelInput.text.length === 0
+                                                }
+
+                                                onFocusChanged: {
+                                                    editresModelplaceholder.visible = !focus && editresModelInput.text.length === 0
+                                                }
+                                                property real textWidth: texteditresModelMetrics.width
+                                                TextMetrics {
+                                                    id: texteditresModelMetrics
+                                                    font: editresModelInput.font
+                                                    text: editresModelInput.text
+                                                }
+
+                                                onTextChanged: {
+                                                    contentWidth = texteditresModelMetrics.width;
+                                                }
+
+                                                onCursorPositionChanged: {
+                                                    flickableeditresModel.contentX = Math.max(0, editresModelInput.cursorRectangle.x - flickableeditresModel.width + 20);
+                                                }
+                                            }
+                                        }
+                                    }
+                                     // res ID       
+                                    Rectangle {
+                                        width: isDesktop() ? 430 : 700
+                                        height: isDesktop() ? 25 : phoneLarg()?50:80
+                                        color: "transparent"
+                                        visible: selectededitlinkUserId === 3
+
+                                        Rectangle {
+                                            width: parent.width
+                                            height: isDesktop() ? 1 : 2
+                                            color: "black"
+                                            anchors.bottom: parent.bottom
+                                            anchors.left: parent.left
+                                            anchors.right: parent.right
+                                        }
+
+                                        TextInput {
+                                            id: editresIdInput
+                                            width: parent.width
+                                            height: parent.height
+                                            font.pixelSize: isDesktop() ? 18 :40
+                                            anchors.fill: parent
+                                            Text {
+                                                    id: editresIdInputplaceholder
+                                                    text: "Res Id"
+                                                    color: "#aaa"
+                                                    font.pixelSize: isDesktop() ? 18 :40
+                                                    anchors.fill: parent
+                                                    verticalAlignment: Text.AlignVCenter
+                                                    visible: editresIdInput.text.length === 0
+                                                }
+
+                                            onTextChanged: {
+                                                editresIdInputplaceholder.visible = editresIdInput.text.length === 0
+
+                                                // Remove any non-numeric characters
+                                                editresIdInput.text = editresIdInput.text.replace(/[^0-9]/g, "");
+                                            }
+                                        }
+
+                                    }
+                                     Rectangle {
                                         width: parent.width
                                         height: 50
                                         anchors.left: parent.left
@@ -903,6 +1586,7 @@ Item {
 
                                 }
                             }
+                    }
                     }
         
                     

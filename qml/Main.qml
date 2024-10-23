@@ -99,11 +99,25 @@ ApplicationWindow {
     }
 
     function isDesktop() {
-        if(Screen.width > 1200){
-            return true;
+        if(Screen.width > 1200 ){
+            if(Screen.width > 2000 && Screen.height < 1200){
+                return false;
+            }else{
+                return true;
+            }
         }else{
             return false;
         }
+    }
+    function phoneLarg(){
+        if(!isDesktop()){
+            if(Screen.width > 1300){
+                return true;
+            }else{
+                return false;
+            }
+        }
+        return false;
     }
     ListModel {
     id: treeModel
@@ -226,17 +240,14 @@ ApplicationWindow {
         db.transaction(function(tx) {
             var unitAmount = 0
             if (data.isManualTimeRecord) {
-                console.log(data.manualSpentHours,"in////")
                 unitAmount = convTimeFloat(data.manualSpentHours)
             } else {
-                console.log(data.spenthours,"out/////")
                 unitAmount = convTimeFloat(data.spenthours)
             }
-            console.log(data.manualSpentHours,".///////",data.spenthours)
             tx.executeSql('INSERT INTO account_analytic_line_app \
                 (account_id, record_date, project_id, task_id, name, \
                 unit_amount, last_modified) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                 [data.instance_id, data.dateTime, data.project, data.subTask == 0 ? data.task : data.subTask, data.description, unitAmount, new Date()]);
+                 [data.instance_id, data.dateTime, data.project, data.subTask == 0 ? data.task : data.subTask, data.description, unitAmount, new Date().toISOString()]);
         });
 
     }
@@ -244,7 +255,6 @@ ApplicationWindow {
     ListModel {
         id: filteredTimesheetList
     }
-
 
     function timesheetlistData(query) {
         var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
@@ -338,84 +348,84 @@ ApplicationWindow {
             treeModel.setProperty(index, "expanded", true);
         }
     }
-function groupByUserData(filtered) {
-    let filter = false
-    if(filtered){
-        filter = true
-        var groupedData = groupByUser(filtered);  // Group data by user
-    }else{
-        var groupedData = groupByUser(timesheetList);  // Group data by user
-    }
-    treeModel.clear();  // Clear existing tree model
+    function groupByUserData(filtered) {
+        let filter = false
+        if(filtered){
+            filter = true
+            var groupedData = groupByUser(filtered);  // Group data by user
+        }else{
+            var groupedData = groupByUser(timesheetList);  // Group data by user
+        }
+        treeModel.clear();  // Clear existing tree model
 
-    // Loop over each user in the grouped data
-    for (let user_id in groupedData) {
-        let userGroup = groupedData[user_id];
-        treeModel.append({
-            type: "parent",
-            user_id: user_id,
-            user_name: userGroup.user_name,
-            count: userGroup.tasks.length,  // Set the count of tasks (children) for this user
-            expanded: filter ? true : false  // Start collapsed
-        });
-        userGroup.tasks.forEach(task => {
+        // Loop over each user in the grouped data
+        for (let user_id in groupedData) {
+            let userGroup = groupedData[user_id];
             treeModel.append({
-                type: "child",
-                id: task.id,
-                user_name: task.user_name,
-                task_id: task.task_id,
-                date: task.date,
-                project_id: task.project_id,
-                description: task.description,
-                spenthours: task.spenthours,
-                visible: filter ? true : false  // Children are hidden by default
+                type: "parent",
+                user_id: user_id,
+                user_name: userGroup.user_name,
+                count: userGroup.tasks.length,  // Set the count of tasks (children) for this user
+                expanded: filter ? true : false  // Start collapsed
             });
+            userGroup.tasks.forEach(task => {
+                treeModel.append({
+                    type: "child",
+                    id: task.id,
+                    user_name: task.user_name,
+                    task_id: task.task_id,
+                    date: task.date,
+                    project_id: task.project_id,
+                    description: task.description,
+                    spenthours: task.spenthours,
+                    visible: filter ? true : false  // Children are hidden by default
+                });
+            });
+        }
+    }
+
+
+    function groupByUser(data) {
+        let grouped = {};
+
+        data.forEach(item => {
+            if (!grouped[item.user_id]) {
+                grouped[item.user_id] = {
+                    user_name: item.user_name,
+                    tasks: []
+                };
+            }
+            grouped[item.user_id].tasks.push(item);  // Add tasks to the corresponding user group
+        });
+
+        return grouped;  // Return the grouped data
+    }
+    function deletetimesheetData(recordId, index) {
+        var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+
+        db.transaction(function(tx) {
+            var result = tx.executeSql('DELETE FROM tasksLists WHERE id = ?', [parseInt(recordId)]);
+            const task = treeModel.get(index);
+            if (task.type === "child") {
+                const parentIndex = findParentIndex(index);
+                if (parentIndex !== -1) {
+                    treeModel.remove(index);
+                    for (let i = 0; i < timesheetList.length; i++) {
+                        if (timesheetList[i].id === recordId) {
+                            timesheetList.splice(i, 1);  // Remove the task from the array
+                            break;  
+                        }
+                    }
+                    const parentTask = treeModel.get(parentIndex);
+                    parentTask.count--;
+                    treeModel.setProperty(parentIndex, "count", parentTask.count);
+                    if (parentTask.count === 0) {
+                            treeModel.remove(parentIndex);  // Remove parent if it has no children
+                        }
+                }
+            }
         });
     }
-}
-
-
-function groupByUser(data) {
-    let grouped = {};
-
-    data.forEach(item => {
-        if (!grouped[item.user_id]) {
-            grouped[item.user_id] = {
-                user_name: item.user_name,
-                tasks: []
-            };
-        }
-        grouped[item.user_id].tasks.push(item);  // Add tasks to the corresponding user group
-    });
-
-    return grouped;  // Return the grouped data
-}
-function deletetimesheetData(recordId, index) {
-    var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-
-    db.transaction(function(tx) {
-        var result = tx.executeSql('DELETE FROM tasksLists WHERE id = ?', [parseInt(recordId)]);
-        const task = treeModel.get(index);
-        if (task.type === "child") {
-            const parentIndex = findParentIndex(index);
-            if (parentIndex !== -1) {
-                treeModel.remove(index);
-                for (let i = 0; i < timesheetList.length; i++) {
-                    if (timesheetList[i].id === recordId) {
-                        timesheetList.splice(i, 1);  // Remove the task from the array
-                        break;  
-                    }
-                }
-                const parentTask = treeModel.get(parentIndex);
-                parentTask.count--;
-                treeModel.setProperty(parentIndex, "count", parentTask.count);
-                if (parentTask.count === 0) {
-                        treeModel.remove(parentIndex);  // Remove parent if it has no children
-                    }
-            }
-        }
-    });
-}
 
     function findParentIndex(childIndex) {
         for (let i = childIndex - 1; i >= 0; i--) {
@@ -463,7 +473,7 @@ function deletetimesheetData(recordId, index) {
                 name = ?, unit_amount = ?, last_modified = ? WHERE id = ?',
                 [data.updatedAccount, data.updatedDate, data.updatedProject, 
                 data.subtask == 0 ? data.updatedTask : data.subTask, data.updatedDescription, 
-                data.updatedSpentHours, new Date(), data.rowId]  // Pass the `id` of the row you want to edit here
+                data.updatedSpentHours, new Date().toISOString(), data.rowId]  // Pass the `id` of the row you want to edit here
             );
             timesheetlistData()
 
@@ -630,7 +640,7 @@ function deletetimesheetData(recordId, index) {
                 Label {
                     text: "Time Management"
                     color: "white"
-                    font.pixelSize: isDesktop() ? 20 : 30
+                    font.pixelSize: isDesktop() ? 20 : 40
                     anchors.centerIn: parent // Center the label in the parent rectangle
                 }
             }
@@ -674,32 +684,76 @@ function deletetimesheetData(recordId, index) {
                     id: hamburgerButtonmenu
                     x: parent.width - 100
                     y: hamburgerButton.y + hamburgerButton.height + 12
-                    // width: Screen.width - 100
-                    width: isDesktop() ? 250 : 400
-                    height: isDesktop() ? 200 : 500
-                    // height: Screen.height
+                    width: isDesktop() ? 250 : Screen.width - 100
+                    // width: isDesktop() ? 250 : 400
+                    // height: isDesktop() ? 200 : 500
+                    height: isDesktop() ? 200 : Screen.height
                     
                     background: Rectangle {
                         color: "#121944" 
                         radius: 4
-                        border.color: "transparent"
-                        // width: Screen.width + 10  
-                                               }
+                        border.color: "#121944"
+                        width: Screen.width + 10  
+                        
+                        // spacing:20
+                        }
+
+                        Rectangle {
+                            visible: isDesktop() ? false: true
+                            id: closeButton
+                            width: isDesktop() ?0:150
+                            height: isDesktop() ?0:150
+                            color: "transparent"  // Close button background color
+                            anchors.left: parent.left
+                            anchors.top: parent.top
+                            radius: 5
+                            border.color: "#121944"
+                            Image {
+                                source: "images/cross_wait.svg" // Replace with your image path
+                                anchors.centerIn: parent
+                                width: isDesktop() ?0:100
+                                height: isDesktop() ?0:100
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    hamburgerButtonmenu.visible = false  // Hide the menu on click
+                                }
+                            }
+                        }
                         MenuItem {
                         width: parent.width
-                        height: isDesktop() ? 35 : 70
+                        height: isDesktop() ? 37 : 100
                         
                         background: Rectangle {
                             color: "#121944" 
                             radius: 4
-                            border.color: "#121944" 
-                            // width: 500
-                            
+                            // border.color: "#ffffff" 
+                            anchors.top: parent.top
+                            anchors.left: parent.left
+                            anchors.leftMargin: 20
+                            width: parent.width
+                            Rectangle {
+                                visible: isDesktop() ? false: true
+                                anchors.top: parent.top
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                height: 2  // Border height
+                                color: "#ffffff"  // Border color
+                            }
+                            Rectangle {
+                                visible: isDesktop() ? false: true
+                                anchors.bottom: parent.bottom
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                height: 2  // Border height
+                                color: "#ffffff"  // Border color
+                            }
                             }
 
                         Text {
                             text: "Projects"
-                            font.pixelSize: isDesktop() ? 18 : 30
+                            font.pixelSize: isDesktop() ? 18 : 40
                             anchors.centerIn: parent
                             anchors.horizontalCenter: parent.horizontalCenter
                             color: "#fff"
@@ -713,17 +767,28 @@ function deletetimesheetData(recordId, index) {
 
                     MenuItem {
                         width: parent.width
-                        height: isDesktop() ? 35 : 70
+                        height: isDesktop() ? 35 : 100
                         
                         background: Rectangle {
                             color: "#121944" 
                             radius: 4
-                            border.color: "#121944" 
+                            anchors.left: parent.left
+                            anchors.leftMargin: 20
+                            width: parent.width
+                            
+                            Rectangle {
+                                visible: isDesktop() ? false: true
+                                anchors.bottom: parent.bottom
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                height: 2  // Border height
+                                color: "#ffffff"  // Border color
+                            }
                         }
 
                         Text {
                             text: "Tasks"
-                            font.pixelSize: isDesktop() ? 18 : 30
+                            font.pixelSize: isDesktop() ? 18 : 40
                             anchors.centerIn: parent
                             anchors.horizontalCenter: parent.horizontalCenter
                             color: "#fff"
@@ -736,17 +801,28 @@ function deletetimesheetData(recordId, index) {
 
                     MenuItem {
                         width: parent.width
-                        height: isDesktop() ? 35 : 70
+                        height: isDesktop() ? 35 : 100
                         // color: "#121944"
                         background: Rectangle {
                             color: "#121944" // Background color of the MenuItem
                             radius: 4
-                            border.color: "#121944" // Optional: remove border if needed
+                            anchors.left: parent.left
+                            anchors.leftMargin: 20
+                            width: parent.width
+                            
+                            Rectangle {
+                                visible: isDesktop() ? false: true
+                                anchors.bottom: parent.bottom
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                height: 2  // Border height
+                                color: "#ffffff"  // Border color
+                            }
                         }
 
                         Text {
                             text: "Timesheets"
-                            font.pixelSize: isDesktop() ? 18 : 30
+                            font.pixelSize: isDesktop() ? 18 : 40
                             anchors.centerIn: parent
                             anchors.horizontalCenter: parent.horizontalCenter
                             color: "#fff"
@@ -762,17 +838,28 @@ function deletetimesheetData(recordId, index) {
                     }
                     MenuItem {
                         width: parent.width
-                        height: isDesktop() ? 35 : 70
+                        height: isDesktop() ? 35 : 100
                         // color: "#121944"
                         background: Rectangle {
                             color: "#121944" // Background color of the MenuItem
                             radius: 4
-                            border.color: "#121944" // Optional: remove border if needed
+                            anchors.left: parent.left
+                            anchors.leftMargin: 20
+                            width: parent.width
+                            
+                            Rectangle {
+                                visible: isDesktop() ? false: true
+                                anchors.bottom: parent.bottom
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                height: 2  // Border height
+                                color: "#ffffff"  // Border color
+                            }
                         }
 
                         Text {
                             text: "Stages Project"
-                            font.pixelSize: isDesktop() ? 18 : 30
+                            font.pixelSize: isDesktop() ? 18 : 40
                             anchors.centerIn: parent
                             anchors.horizontalCenter: parent.horizontalCenter
                             color: "#fff"
@@ -787,17 +874,28 @@ function deletetimesheetData(recordId, index) {
                     }
                     MenuItem {
                         width: parent.width
-                        height: isDesktop() ? 35 : 70
+                        height: isDesktop() ? 35 : 100
                         // color: "#121944"
                         background: Rectangle {
                             color: "#121944" // Background color of the MenuItem
                             radius: 4
-                            border.color: "#121944" // Optional: remove border if needed
+                            anchors.left: parent.left
+                            anchors.leftMargin: 20
+                            width: parent.width
+                            
+                            Rectangle {
+                                visible: isDesktop() ? false: true
+                                anchors.bottom: parent.bottom
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                height: 2  // Border height
+                                color: "#ffffff"  // Border color
+                            }
                         }
 
                         Text {
                             text: "Stages Task"
-                            font.pixelSize: isDesktop() ? 18 : 30
+                            font.pixelSize: isDesktop() ? 18 : 40
                             anchors.centerIn: parent
                             anchors.horizontalCenter: parent.horizontalCenter
                             color: "#fff"
@@ -829,6 +927,8 @@ function deletetimesheetData(recordId, index) {
                         storedElapsedTime = 0;
                         running = false;
                         stackView.push(listPage);
+                        horizontalPanel.activeImageIndex = 1
+                        verticalPanel.activeImageIndex = 1              
                         penalOpen= true
                         headermainOpen= true
                         
@@ -869,6 +969,8 @@ function deletetimesheetData(recordId, index) {
             id: manageAccounts
             Item {
                 ManageAccounts {
+                    anchors.top: parent.top
+                    anchors.topMargin: 100
                     anchors.centerIn: parent
                     onLogInPage: {
                         stackView.push(loginPage, {'user_name': username, 'account_name': name, 'selected_database': db, 'selected_link': link})
@@ -951,7 +1053,7 @@ function deletetimesheetData(recordId, index) {
                             anchors.leftMargin: 20
                             Image {
                                 id: logo
-                                source: "images/timesheets_small_logo.png" // Path to your logo image
+                                source: "images/timeManagemetLogo.png" // Path to your logo image
                                 width: 100 // Width of the logo
                                 height: 100 // Height of the logo
                                 anchors.top: parent.top
@@ -1056,7 +1158,8 @@ function deletetimesheetData(recordId, index) {
                         anchors.topMargin: isDesktop() ? 80 : 120
                         anchors.left: parent.left
                         anchors.leftMargin: isDesktop()?70 : 20
-                        anchors.rightMargin: 20
+                        anchors.right: parent.right
+                        anchors.rightMargin: isDesktop()?10 : 20
                         anchors.bottom: parent.bottom
                         anchors.bottomMargin: isDesktop()?0:100
                         Row {
@@ -1113,6 +1216,8 @@ function deletetimesheetData(recordId, index) {
                                 contentHeight: column.height 
                                 clip: true 
                                 property string edit_id: ""
+                                visible: isDesktop() ? true : phoneLarg()? true : rightPanel.visible? false : true
+
 
 
                                 Column {
@@ -1266,10 +1371,13 @@ function deletetimesheetData(recordId, index) {
                                 id: rightPanel
                                 z: 1
                                 visible: false
-                                width: isDesktop() ? parent.width /2 : parent.width
+                                width: isDesktop() ? parent.width /2 : phoneLarg()? parent.width /2 : parent.width
                                 height: parent.height
+                                anchors.top: parent.top
+                                anchors.topMargin: phoneLarg()? -165 :0
                                 color: "#EFEFEF"
                                 anchors.right: parent.right
+                                anchors.bottom: parent.bottom
 
                                 function loadProjectData() {
                                     var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
@@ -1430,7 +1538,7 @@ function deletetimesheetData(recordId, index) {
                                         
 
                                         Row {
-                                            spacing: isDesktop() ? 100 : 200
+                                            spacing: isDesktop() ? 100 : phoneLarg()? 260 :220
                                             anchors.verticalCenterOffset: -height * 1.5
                                             anchors.left: parent.left
                                             anchors.leftMargin: 23
@@ -1443,46 +1551,46 @@ function deletetimesheetData(recordId, index) {
 
                                             Column {
                                                 spacing: isDesktop() ? 20 : 40
-                                                width: isDesktop() ?40:80
+                                                width: isDesktop() ?40:phoneLarg()?50:80
                                                 Label { text: "Account" 
                                                 width: 150
                                                 visible: workpersonaSwitchState
-                                                height: isDesktop() ? 25 : 80
+                                                height: isDesktop() ? 25 : phoneLarg()?50:80
                                                 font.pixelSize: isDesktop() ? 18 : 40
                                                 }
                                                 Label { text: "Date" 
                                                     width: 150
-                                                    height: isDesktop() ? 25 : 80
+                                                    height: isDesktop() ? 25 : phoneLarg()?50:80
                                                     font.pixelSize: isDesktop() ? 18 : 40
                                                     }
                                                 Label { text: "Project" 
                                                 width: 150
-                                                height: isDesktop() ? 25 : 80
+                                                height: isDesktop() ? 25 : phoneLarg()?50:80
                                                 font.pixelSize: isDesktop() ? 18 : 40
                                                 }
                                                 
                                                 Label { text: "Sub Project" 
                                                 width: 150
-                                                height: isDesktop() ? 25 : 80
+                                                height: isDesktop() ? 25 : phoneLarg()?50:80
                                                 font.pixelSize: isDesktop() ? 18 : 40
 
                                                 visible: hasSubProject}
                                                 Label { text: "Task" 
                                                 width: 150
-                                                height: isDesktop() ? 25 : 80
+                                                height: isDesktop() ? 25 : phoneLarg()?50:80
                                                 font.pixelSize: isDesktop() ? 18 : 40}
                                                 Label { text: "Sub Task" 
                                                 width: 150
-                                                height: isDesktop() ? 25 : 80
+                                                height: isDesktop() ? 25 : phoneLarg()?50:80
                                                 font.pixelSize: isDesktop() ? 18 : 40
                                                 visible: hasSubTask}
                                                 Label { text: "Description" 
                                                 width: 150
-                                                height: isDesktop() ? 25 : 80
+                                                height: isDesktop() ? 25 : phoneLarg()?50:80
                                                 font.pixelSize: isDesktop() ? 18 : 40}
                                                 Label { text: "Spent Hours" 
                                                 width: 150
-                                                height: isDesktop() ? 25 : 80
+                                                height: isDesktop() ? 25 : phoneLarg()?50:80
                                                 font.pixelSize: isDesktop() ? 18 : 40}
                                             }
 
@@ -1496,7 +1604,7 @@ function deletetimesheetData(recordId, index) {
 
                                                 Rectangle {
                                                     width: isDesktop() ? 420 : 700
-                                                    height: isDesktop() ? 25 : 80
+                                                    height: isDesktop() ? 25 : phoneLarg()?50:80
                                                     color: "transparent"
                                                     visible: workpersonaSwitchState
 
@@ -1558,7 +1666,7 @@ function deletetimesheetData(recordId, index) {
 
                                                                 MenuItem {
                                                                     width: parent.width
-                                                                    height: isDesktop() ? 40 : 80
+                                                                    height: isDesktop() ? 40 : phoneLarg()?50:80
                                                                     property int editaccountId: model.id  // Custom property for ID
                                                                     property string editaccuntName: model.name || ''
                                                                     Text {
@@ -1602,7 +1710,7 @@ function deletetimesheetData(recordId, index) {
 
                                                 Rectangle {
                                                     width: isDesktop() ? 420 : 700
-                                                    height: isDesktop() ? 25 : 80
+                                                    height: isDesktop() ? 25 : phoneLarg()?50:80
                                                     color: "transparent"
 
 
@@ -1671,7 +1779,7 @@ function deletetimesheetData(recordId, index) {
 
                                                         // Set the current date when the component is completed
                                                         Component.onCompleted: {
-                                                            var currentDate = new Date();
+                                                            var currentDate = new Date().toISOString();
                                                             datetimeInput.text = formatDate(currentDate);
                                                         }
 
@@ -1680,7 +1788,7 @@ function deletetimesheetData(recordId, index) {
 
                                                 Rectangle {
                                                     width: isDesktop() ? 420 : 700
-                                                    height: isDesktop() ? 25 : 80
+                                                    height: isDesktop() ? 25 : phoneLarg()?50:80
                                                     color: "transparent"
 
                                                     // Border at the bottom
@@ -1752,7 +1860,7 @@ function deletetimesheetData(recordId, index) {
 
                                                                 MenuItem {
                                                                     width: parent.width
-                                                                    height: isDesktop() ? 40 : 80
+                                                                    height: isDesktop() ? 40 : phoneLarg()?50:80
                                                                     property int editprojectId: model.id  // Custom property for ID
                                                                     property string editprojectName: model.name || ''
                                                                     Text {
@@ -1799,7 +1907,7 @@ function deletetimesheetData(recordId, index) {
                                                 
                                                 Rectangle {
                                                     width: isDesktop() ? 420 : 700
-                                                    height: isDesktop() ? 25 : 80
+                                                    height: isDesktop() ? 25 : phoneLarg()?50:80
                                                     visible: hasSubProject
                                                     color: "transparent"
 
@@ -1868,7 +1976,7 @@ function deletetimesheetData(recordId, index) {
 
                                                                 MenuItem {
                                                                     width: parent.width
-                                                                    height: 80
+                                                                    height: phoneLarg()?50:80
                                                                     property int projectId: model.id  // Custom property for ID
                                                                     property string projectName: model.name || ''
                                                                     Text {
@@ -1912,7 +2020,7 @@ function deletetimesheetData(recordId, index) {
 
                                                 Rectangle {
                                                     width: isDesktop() ? 420 : 700
-                                                    height: isDesktop() ? 25 : 80
+                                                    height: isDesktop() ? 25 : phoneLarg()?50:80
                                                     color: "transparent"
 
                                                     Rectangle {
@@ -1978,7 +2086,7 @@ function deletetimesheetData(recordId, index) {
 
                                                                 MenuItem {
                                                                     width: parent.width
-                                                                    height: isDesktop() ? 40 : 80
+                                                                    height: isDesktop() ? 40 : phoneLarg()?50:80
                                                                     property int taskId: model.id  // Custom property for ID
                                                                     property string taskName: model.name || ''
                                                                     // property bool taskHasSubTask: true ? model.child_ids.length > 0 : false
@@ -2023,7 +2131,7 @@ function deletetimesheetData(recordId, index) {
 
                                                 Rectangle {
                                                     width: isDesktop() ? 420 : 700
-                                                    height: isDesktop() ? 25 : 80
+                                                    height: isDesktop() ? 25 : phoneLarg()?50:80
                                                     color: "transparent"
                                                     visible: hasSubTask
 
@@ -2083,7 +2191,7 @@ function deletetimesheetData(recordId, index) {
 
                                                                 MenuItem {
                                                                     width: parent.width
-                                                                    height: isDesktop() ? 40 : 80
+                                                                    height: isDesktop() ? 40 : phoneLarg()?50:80
                                                                     property int subTaskId: model.id  // Custom property for ID
                                                                     property string subTaskName: model.name || ''
                                                                     Text {
@@ -2120,7 +2228,7 @@ function deletetimesheetData(recordId, index) {
 
                                                 Rectangle {
                                                     width: isDesktop() ? 420 : 700
-                                                    height: isDesktop() ? 25 : 80
+                                                    height: isDesktop() ? 25 : phoneLarg()?50:80
                                                     color: "transparent"
 
                                                     Rectangle {
@@ -2191,7 +2299,7 @@ function deletetimesheetData(recordId, index) {
 
                                                 Rectangle {
                                                     width: isDesktop() ? 420 : 700
-                                                    height: isDesktop() ? 25 : 80
+                                                    height: isDesktop() ? 25 : phoneLarg()?50:80
 
                                                     color: "transparent"
 
@@ -2294,6 +2402,17 @@ function deletetimesheetData(recordId, index) {
             }
         }
 
+        // Task List Tabs
+        Component {
+            id: taskForm
+            Item {
+                objectName: "taskForm"
+                Taskform {
+                    // anchors.centerIn: parent
+                }
+            }
+        }
+
         // Timesheet Form Tabs
         Component {
             id: listPage
@@ -2313,15 +2432,15 @@ function deletetimesheetData(recordId, index) {
                         id: main_title
                         anchors.top: parent.top  // Anchored to the bottom of header_main
                         width: parent.width
-                        height: isDesktop() ? 60 : 80
+                        height: isDesktop() ? 60 : phoneLarg()? 45:phoneLarg()?50:80
                         // color: "#121944"
-                        anchors.topMargin: isDesktop() ? 15 : 150
+                        anchors.topMargin: isDesktop() ? 15 : phoneLarg()? 50:150
                         anchors.left: parent.left
                         anchors.right: parent.right
                         Text {
                             text: "Hello," + selected_username 
                             anchors.centerIn: parent
-                            font.pixelSize: isDesktop() ? 20 : 40
+                            font.pixelSize: isDesktop() ? 20 : phoneLarg()? 30:40
                             color: "#000"
                         }
                     }
@@ -2331,67 +2450,64 @@ function deletetimesheetData(recordId, index) {
                         height: parent.height
                         anchors.left: parent.left
                         anchors.right: parent.right
-                        anchors.topMargin: isDesktop() ? 25 : 80
+                        anchors.topMargin: isDesktop() ? 25 : phoneLarg()? 35:80
                         anchors.top: main_title.bottom
-                        anchors.leftMargin: 30
+                        // anchors.leftMargin: 30
 
                         Row {
-                            spacing: isDesktop() ? 100 : 200
+                            spacing: isDesktop() ? 100 : phoneLarg()? 150:200
                             anchors.verticalCenterOffset: -height * 1.5
+                            anchors.horizontalCenter: parent.horizontalCenter; // Apply only for desktop
                             
-                             Component.onCompleted: {
-                                if (isDesktop()) {
-                                    anchors.horizontalCenter = parent.horizontalCenter; // Apply only for desktop
-                                }
-                            }
+                            
 
                             Column {
-                                spacing: isDesktop() ? 20 : 40
+                                spacing: isDesktop() ? 20 : phoneLarg()? 30:40
                                 width: 60
                                 Label { text: "Instance" 
                                 visible: workpersonaSwitchState
                                 width: 150
-                                height: isDesktop() ? 25 : 80
-                                font.pixelSize: isDesktop() ? 18 : 40
+                                height: isDesktop() ? 25 : phoneLarg()? 45:80
+                                font.pixelSize: isDesktop() ? 18 : phoneLarg()? 30:40
                                 }
                                 Label { text: "Date" 
                                     width: 150
-                                    height: isDesktop() ? 25 : 80
-                                    font.pixelSize: isDesktop() ? 18 : 40
+                                height: isDesktop() ? 25 : phoneLarg()? 45:80
+                                    font.pixelSize: isDesktop() ? 18 : phoneLarg()? 30:40
                                     }
                                 Label { text: "Project" 
                                 width: 150
-                                height: isDesktop() ? 25 : 80
-                                font.pixelSize: isDesktop() ? 18 : 40
+                                height: isDesktop() ? 25 : phoneLarg()? 45:80
+                                font.pixelSize: isDesktop() ? 18 : phoneLarg()? 30:40
                                 }
                                 
                                 Label { text: "Sub Project" 
                                 width: 150
-                                height: isDesktop() ? 25 : 80
-                                font.pixelSize: isDesktop() ? 18 : 40
+                                height: isDesktop() ? 25 : phoneLarg()? 45:80
+                                font.pixelSize: isDesktop() ? 18 : phoneLarg()? 30:40
 
                                 visible: hasSubProject}
                                 Label { text: "Task" 
                                 width: 150
-                                height: isDesktop() ? 25 : 80
-                                font.pixelSize: isDesktop() ? 18 : 40}
+                                height: isDesktop() ? 25 : phoneLarg()? 45:80
+                                font.pixelSize: isDesktop() ? 18 : phoneLarg()? 30:40}
                                 Label { text: "Sub Task" 
                                 width: 150
-                                height: isDesktop() ? 25 : 80
-                                font.pixelSize: isDesktop() ? 18 : 40
+                                height: isDesktop() ? 25 : phoneLarg()? 45:80
+                                font.pixelSize: isDesktop() ? 18 : phoneLarg()? 30:40
                                 visible: hasSubTask}
                                 Label { text: "Description" 
                                 width: 150
-                                height: isDesktop() ? 25 : 80
-                                font.pixelSize: isDesktop() ? 18 : 40}
+                                height: isDesktop() ? 25 : phoneLarg()? 45:80
+                                font.pixelSize: isDesktop() ? 18 : phoneLarg()? 30:40}
                                 Label { text: "Spent Hours" 
                                 width: 150
-                                height: isDesktop() ? 25 : 80
-                                font.pixelSize: isDesktop() ? 18 : 40}
+                                height: isDesktop() ? 25 : phoneLarg()? 45:80
+                                font.pixelSize: isDesktop() ? 18 : phoneLarg()? 30:40}
                             }
 
                             Column {
-                                spacing: isDesktop() ? 20 : 40
+                                spacing: isDesktop() ? 20 : phoneLarg()? 30:40
                                 Component.onCompleted: {
                                 if (!isDesktop()) {
                                     width: 350
@@ -2404,7 +2520,7 @@ function deletetimesheetData(recordId, index) {
                                 Rectangle {
                                     width: isDesktop() ? 500 : 750
                                     visible: workpersonaSwitchState
-                                    height: isDesktop() ? 25 : 80
+                                    height: isDesktop() ? 25 : phoneLarg()? 45:80
                                     color: "transparent"
 
                                     // Border at the bottom
@@ -2425,14 +2541,14 @@ function deletetimesheetData(recordId, index) {
                                     TextInput {
                                         width: parent.width
                                         height: parent.height
-                                        font.pixelSize: isDesktop() ? 18 : 40
+                                        font.pixelSize: isDesktop() ? 18 : phoneLarg()? 30:40
                                         anchors.fill: parent
                                         // anchors.margins: 5                                                        
                                         id: accountInput
                                         Text {
                                             id: accountplaceholder
                                             text: "Instance"                                            
-                                            font.pixelSize:isDesktop() ? 18 : 40
+                                            font.pixelSize:isDesktop() ? 18 : phoneLarg()? 30:40
                                             color: "#aaa"
                                             anchors.fill: parent
                                             verticalAlignment: Text.AlignVCenter
@@ -2464,12 +2580,12 @@ function deletetimesheetData(recordId, index) {
 
                                                 MenuItem {
                                                     width: parent.width
-                                                    height: isDesktop() ? 40 : 80
+                                                    height: isDesktop() ? 40 : phoneLarg()? 45:80
                                                     property int accountId: model.id  // Custom property for ID
                                                     property string accuntName: model.name || ''
                                                     Text {
                                                         text: accuntName
-                                                        font.pixelSize: isDesktop() ? 18 : 40
+                                                        font.pixelSize: isDesktop() ? 18 : phoneLarg()? 30:40
                                                         bottomPadding: 5
                                                         topPadding: 5
                                                         //anchors.centerIn: parent
@@ -2508,7 +2624,7 @@ function deletetimesheetData(recordId, index) {
 
                                 Rectangle {
                                     width: isDesktop() ? 500 : 750
-                                    height: isDesktop() ? 25 : 80
+                                    height: isDesktop() ? 25 : phoneLarg()? 45:80
                                     color: "transparent"
 
 
@@ -2523,13 +2639,13 @@ function deletetimesheetData(recordId, index) {
                                     TextInput {
                                         width: parent.width
                                         height: parent.height
-                                        font.pixelSize: isDesktop() ? 18 : 50
+                                        font.pixelSize: isDesktop() ? 18 : phoneLarg()? 35:50
                                         anchors.fill: parent
                                         id: datetimeInput
                                         Text {
                                             id: datetimeplaceholder
                                             text: "Date"
-                                            font.pixelSize: isDesktop() ? 18 : 30
+                                            font.pixelSize: isDesktop() ? 18 : phoneLarg()? 20:30
                                             color: "#aaa"
                                             anchors.fill: parent
                                             verticalAlignment: Text.AlignVCenter
@@ -2537,8 +2653,8 @@ function deletetimesheetData(recordId, index) {
 
                                         Dialog {
                                             id: calendarDialog
-                                            width: isDesktop() ? 0 : 700
-                                            height: isDesktop() ? 0 : 650
+                                            width: isDesktop() ? 0 : phoneLarg()? 550: 700 
+                                            height: isDesktop() ? 0 : phoneLarg()? 450:650
                                             padding: 0
                                             margins: 0
                                             visible: false
@@ -2547,6 +2663,7 @@ function deletetimesheetData(recordId, index) {
                                                 id: datePicker
                                                 onClicked: {
                                                     datetimeInput.text = Qt.formatDate(date, 'M/d/yyyy').toString()
+                                                    calendarDialog.visible = false;
                                                 }
                                             }
                                         }
@@ -2586,7 +2703,7 @@ function deletetimesheetData(recordId, index) {
 
                                 Rectangle {
                                     width: isDesktop() ? 500 : 750
-                                    height: isDesktop() ? 25 : 80
+                                    height: isDesktop() ? 25 : phoneLarg()? 45:80
                                     color: "transparent"
 
                                     // Border at the bottom
@@ -2607,14 +2724,14 @@ function deletetimesheetData(recordId, index) {
                                     TextInput {
                                         width: parent.width
                                         height: parent.height
-                                        font.pixelSize: isDesktop() ? 18 : 40
+                                        font.pixelSize: isDesktop() ? 18 : phoneLarg()? 30:40
                                         anchors.fill: parent
                                         // anchors.margins: 5                                                        
                                         id: projectInput
                                         Text {
                                             id: projectplaceholder
                                             text: "Project"                                            
-                                            font.pixelSize:isDesktop() ? 18 : 40
+                                            font.pixelSize:isDesktop() ? 18 : phoneLarg()? 30:40
                                             color: "#aaa"
                                             anchors.fill: parent
                                             verticalAlignment: Text.AlignVCenter
@@ -2656,12 +2773,12 @@ function deletetimesheetData(recordId, index) {
 
                                                 MenuItem {
                                                     width: parent.width
-                                                    height: isDesktop() ? 40 : 80
+                                                    height: isDesktop() ? 40 :phoneLarg()? 45: 80
                                                     property int projectId: model.id  // Custom property for ID
                                                     property string projectName: model.name || ''
                                                     Text {
                                                         text: projectName
-                                                        font.pixelSize: isDesktop() ? 18 : 40
+                                                        font.pixelSize: isDesktop() ? 18 : phoneLarg()? 30:40
                                                         bottomPadding: 5
                                                         topPadding: 5
                                                         //anchors.centerIn: parent
@@ -2703,7 +2820,7 @@ function deletetimesheetData(recordId, index) {
 
                                 Rectangle {
                                     width: isDesktop() ? 500 : 750
-                                    height: isDesktop() ? 25 : 80
+                                    height: isDesktop() ? 25 : phoneLarg()? 45:80
                                     visible: hasSubProject
                                     color: "transparent"
 
@@ -2816,7 +2933,7 @@ function deletetimesheetData(recordId, index) {
 
                                 Rectangle {
                                     width: isDesktop() ? 500 : 750
-                                    height: isDesktop() ? 25 : 80
+                                    height: isDesktop() ? 25 : phoneLarg()? 45:80
                                     color: "transparent"
 
                                     Rectangle {
@@ -2836,7 +2953,7 @@ function deletetimesheetData(recordId, index) {
                                     TextInput {
                                         width: parent.width
                                         height: parent.height
-                                        font.pixelSize: isDesktop() ? 18 : 40
+                                        font.pixelSize: isDesktop() ? 18 : phoneLarg()? 30:40
                                         anchors.fill: parent
                                         // anchors.margins: isDesktop() ? 0 : 10
                                         id: taskInput
@@ -2845,7 +2962,7 @@ function deletetimesheetData(recordId, index) {
                                             id: taskplaceholder
                                             text: "Task"
                                             color: "#aaa"
-                                            font.pixelSize: isDesktop() ? 18 : 40
+                                            font.pixelSize: isDesktop() ? 18 : phoneLarg()? 30:40
                                             anchors.fill: parent
                                             verticalAlignment: Text.AlignVCenter
                                         }
@@ -2882,13 +2999,13 @@ function deletetimesheetData(recordId, index) {
 
                                                 MenuItem {
                                                     width: parent.width
-                                                    height: isDesktop() ? 40 : 80
+                                                    height: isDesktop() ? 40 : phoneLarg()? 45:80
                                                     property int taskId: model.id  // Custom property for ID
                                                     property string taskName: model.name || ''
                                                     // property bool taskHasSubTask: true ? model.child_ids.length > 0 : false
                                                     Text {
                                                         text: taskName
-                                                        font.pixelSize: isDesktop() ? 18 : 40
+                                                        font.pixelSize: isDesktop() ? 18 : phoneLarg()? 30:40
                                                         bottomPadding: 5
                                                         topPadding: 5                                                    
                                                         color: "#000"
@@ -2923,7 +3040,7 @@ function deletetimesheetData(recordId, index) {
 
                                 Rectangle {
                                     width: isDesktop() ? 500 : 750
-                                    height: isDesktop() ? 25 : 80
+                                    height: isDesktop() ? 25 : phoneLarg()? 45:80
                                     color: "transparent"
                                     visible: hasSubTask
 
@@ -2944,7 +3061,7 @@ function deletetimesheetData(recordId, index) {
                                     TextInput {
                                         width: parent.width
                                         height: parent.height
-                                        font.pixelSize: isDesktop() ? 18 : 40
+                                        font.pixelSize: isDesktop() ? 18 : phoneLarg()? 30:40
                                         anchors.fill: parent
                                         // anchors.margins: 10
                                         id: subTaskInput
@@ -2954,7 +3071,7 @@ function deletetimesheetData(recordId, index) {
                                             id: subtaskplaceholder
                                             text: "Sub Task"
                                             color: "#aaa"
-                                            font.pixelSize: isDesktop() ? 18 : 40                                       
+                                            font.pixelSize: isDesktop() ? 18 : phoneLarg()? 30:40                                       
                                             anchors.fill: parent
                                             verticalAlignment: Text.AlignVCenter
                                         }
@@ -2983,12 +3100,12 @@ function deletetimesheetData(recordId, index) {
 
                                                 MenuItem {
                                                     width: parent.width
-                                                    height: isDesktop() ? 40 : 80
+                                                    height: isDesktop() ? 40 : phoneLarg()? 45:80
                                                     property int subTaskId: model.id  // Custom property for ID
                                                     property string subTaskName: model.name || ''
                                                     Text {
                                                         text: subTaskName
-                                                        font.pixelSize: isDesktop() ? 18 : 40
+                                                        font.pixelSize: isDesktop() ? 18 : phoneLarg()? 30:40
                                                         bottomPadding: 5
                                                         topPadding: 5
                                                         color: "#000"
@@ -3020,7 +3137,7 @@ function deletetimesheetData(recordId, index) {
 
                                 Rectangle {
                                     width: isDesktop() ? 500 : 750
-                                    height: isDesktop() ? 25 : 80
+                                    height: isDesktop() ? 25 : phoneLarg()? 45:80
                                     color: "transparent"
 
                                     Rectangle {
@@ -3054,7 +3171,7 @@ function deletetimesheetData(recordId, index) {
                                             id: descriptionInput
                                             width: Math.max(parent.width, textMetrics.width)  
                                             height: parent.height
-                                            font.pixelSize: isDesktop() ? 18 : 40
+                                            font.pixelSize: isDesktop() ? 18 : phoneLarg()? 30:40
                                             wrapMode: Text.NoWrap  
                                             anchors.fill: parent
 
@@ -3062,7 +3179,7 @@ function deletetimesheetData(recordId, index) {
                                                 id: descriptionplaceholder
                                                 text: "Description"
                                                 color: "#aaa"
-                                                font.pixelSize: isDesktop() ? 18 : 40
+                                                font.pixelSize: isDesktop() ? 18 : phoneLarg()? 30:40
                                                 anchors.fill: parent
                                                 verticalAlignment: Text.AlignVCenter
                                                 visible: descriptionInput.text.length === 0
@@ -3092,7 +3209,7 @@ function deletetimesheetData(recordId, index) {
                                 TextInput {
                                     width: 300
                                     height: 50
-                                    font.pixelSize: isDesktop() ? 30 : 50
+                                    font.pixelSize: isDesktop() ? 30 : phoneLarg()? 35:50
                                     id: spenthoursInput
                                     text: formatTime(elapsedTime)
                                     validator: RegExpValidator { regExp: /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/ }
@@ -3101,7 +3218,7 @@ function deletetimesheetData(recordId, index) {
 
                                 Rectangle {
                                     width: isDesktop() ? 500 : 750
-                                    height: isDesktop() ? 25 : 80
+                                    height: isDesktop() ? 25 : phoneLarg()? 45:80
 
                                     color: "transparent"
                                     visible: isManualTime
@@ -3117,7 +3234,7 @@ function deletetimesheetData(recordId, index) {
                                     TextInput {
                                         width: parent.width
                                         height: parent.height
-                                        font.pixelSize: isDesktop() ? 20 : 40
+                                        font.pixelSize: isDesktop() ? 20 : phoneLarg()? 30:40
                                         anchors.fill: parent
                                         // anchors.margins: isDesktop() ? 0 : 10
                                         id: spenthoursManualInput
@@ -3126,7 +3243,7 @@ function deletetimesheetData(recordId, index) {
                                             id: spenthoursManualInputPlaceholder
                                             text: "00:00"
                                             color: "#aaa"
-                                            font.pixelSize: isDesktop() ? 20 : 50
+                                            font.pixelSize: isDesktop() ? 20 : phoneLarg()? 35:50
                                             anchors.fill: parent
                                             verticalAlignment: Text.AlignVCenter
                                         }
@@ -3154,7 +3271,7 @@ function deletetimesheetData(recordId, index) {
                                         contentItem: Text {
                                             text: running ? "Stop" : "Start"
                                             color: running ? "darkred" : "darkgreen"
-                                            font.pixelSize: isDesktop() ? 20 : 30
+                                            font.pixelSize: isDesktop() ? 20 : phoneLarg()? 20:30
                                         }
                                         visible: isManualTime? false : true
 
@@ -3184,7 +3301,7 @@ function deletetimesheetData(recordId, index) {
                                         contentItem: Text {
                                             text: "Reset"
                                             color: "#ffffff"
-                                            font.pixelSize: isDesktop() ? 20 : 30
+                                            font.pixelSize: isDesktop() ? 20 : phoneLarg()? 20:30
                                         }
                                         visible: isManualTime? false : true
 
@@ -3209,7 +3326,7 @@ function deletetimesheetData(recordId, index) {
                                         contentItem: Text {
                                             text: isManualTime ? "Auto" : "Manual"
                                             color: "#ffffff"
-                                            font.pixelSize: isDesktop() ? 20 : 30
+                                            font.pixelSize: isDesktop() ? 20 :phoneLarg()? 20: 30
                                         }
 
 
@@ -3231,9 +3348,9 @@ function deletetimesheetData(recordId, index) {
 
                     Rectangle {
                         id: save_btn
-                        property int buttonTopMargin :isDesktop() ? hasSubTask ? 550 : 450 : hasSubTask ? 1240 : 1150
+                        property int buttonTopMargin :isDesktop() ? hasSubTask ? 550 : 450 : hasSubTask ? 1240 : phoneLarg()? 700:1150
                         width: parent.width
-                        height: isDesktop() ? 30 : 80
+                        height: isDesktop() ? 30 : phoneLarg()? 45:80
                         anchors.top: parent.top
                         anchors.left: parent.left
                         // anchors.topMargin: isDesktop() ? 500 : buttonTopMargin
@@ -3242,7 +3359,7 @@ function deletetimesheetData(recordId, index) {
                         anchors.right: parent.right
                         Button {
                             width: isDesktop() ? 400 : 480
-                            height: isDesktop() ? 40 : 90
+                            // height: isDesktop() ? 40 : phoneLarg()?60:90
                             anchors.centerIn: parent
                             background: Rectangle {
                                 color: "#121944"
@@ -3255,7 +3372,7 @@ function deletetimesheetData(recordId, index) {
                             contentItem: Text {
                                 text: "Save Timesheet"
                                 color: "#ffffff"
-                                font.pixelSize: isDesktop() ? 20 : 40
+                                font.pixelSize: isDesktop() ? 20 : phoneLarg()? 30:40
                                 horizontalAlignment: Text.AlignHCenter // Align text horizontally (redundant here but useful for multi-line)
 
                             }
@@ -3354,7 +3471,7 @@ function deletetimesheetData(recordId, index) {
                             text: isTimesheetSaved ? "Timesheet is Saved successfully!" : "Timesheet could not be saved!"
                             color: isTimesheetSaved ? "green" : "red"
                             visible: isTimesheetClicked
-                            font.pixelSize: isDesktop() ? 18 : 40
+                            font.pixelSize: isDesktop() ? 18 : phoneLarg()? 30:40
                             horizontalAlignment: Text.AlignHCenter // Align text horizontally (redundant here but useful for multi-line)
                             anchors.centerIn: parent
 
@@ -3417,7 +3534,7 @@ function deletetimesheetData(recordId, index) {
                         onClicked: {
                             stackView.push(manageAccounts);
                             horizontalPanel.activeImageIndex = 2;  
-                            headermainOpen= false
+                            headermainOpen= true
                             console.log("Refresh clicked")
                             
                         }
@@ -3458,7 +3575,7 @@ function deletetimesheetData(recordId, index) {
                             console.log("Settings clicked")
                             
                             stackView.push(settingAccounts); 
-                            headermainOpen= false
+                            headermainOpen= true
                         }
                     }
                 }
@@ -3517,7 +3634,7 @@ function deletetimesheetData(recordId, index) {
                             verticalPanel.activeImageIndex = 2;  
                             stackView.push(manageAccounts);
                             console.log("Refresh clicked")
-                            headermainOpen= false
+                            headermainOpen= true
                             
                         }
                     }
@@ -3557,7 +3674,7 @@ function deletetimesheetData(recordId, index) {
                             verticalPanel.activeImageIndex = 4;  
                             console.log("Settings clicked")
                             stackView.push(settingAccounts); 
-                            headermainOpen= false
+                            headermainOpen= true
                         }
                     }
                 }
@@ -3565,7 +3682,9 @@ function deletetimesheetData(recordId, index) {
         }
 
     }
+
     Component.onCompleted: {
         timesheetlistData();
+        console.log(Screen.width,"////////",Screen.height)
     }
 }
