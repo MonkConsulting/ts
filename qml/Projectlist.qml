@@ -50,14 +50,6 @@ Item {
             }
     }
 
-    // function isDesktop() {
-    //     if(Screen.width > 1300){
-    //         return true;
-    //     }else{
-    //         return false;
-    //     }
-    // }
-
     ListModel {
         id: projectsListModel
     }

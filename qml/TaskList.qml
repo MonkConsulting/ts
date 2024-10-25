@@ -188,13 +188,13 @@ Item {
                                         anchors.leftMargin: 10
                                     }
 
-                                    Text {
-                                        text: "Sep " + (index + 1)
-                                        font.pixelSize: isDesktop()? 18:26
-                                        color: "#4CAF50"
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                    }
+                                    // Text {
+                                    //     text: "Sep " + (index + 1)
+                                    //     font.pixelSize: isDesktop()? 18:26
+                                    //     color: "#4CAF50"
+                                    //     anchors.verticalCenter: parent.verticalCenter
+                                    //     anchors.horizontalCenter: parent.horizontalCenter
+                                    // }
 
                                 }
                             }
