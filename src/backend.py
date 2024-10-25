@@ -160,6 +160,15 @@ def create_timesheets(selected_url, username, password_filled, database_dict, ti
     response = login_odoo(selected_url, username, password_filled, database_dict)
     models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(url))
     records_list = []
+    model_id = models.execute_kw(db, uid, password, 'ir.model', 'search', [[['model', '=', 'account.analytic.line']]])
+    field_ids = models.execute_kw(db, uid, password, 'ir.model.fields', 'search', [[['model_id', '=', model_id]]])
+    field_ids = models.execute_kw(db, uid, password,
+        'ir.model.fields', 'read',
+        [field_ids],
+        {'fields': ['name']}
+    )
+    fields_list = list(map(lambda field: field.get('name'), field_ids))
+    date_field = 'date' if 'date_time' not in fields_list else 'date_time'
     for entry in timesheet_entries:
         record_date = datetime.strptime(entry.get('record_date'), '%m/%d/%Y').strftime('%Y-%m-%d')
         vals = entry.get('unit_amount').split(':')
@@ -171,14 +180,14 @@ def create_timesheets(selected_url, username, password_filled, database_dict, ti
             records_list.append({'local_record_id': entry.get('local_record_id'), 'odoo_record_id': entry.get('odoo_record_id')})
             models.execute_kw(db, uid, password, 'account.analytic.line', 'write',
                             [[int(entry.get('odoo_record_id'))], 
-                            {'date_time': record_date, 
+                            {date_field: record_date, 
                             'project_id': int(entry.get('project_id')), 
                             'task_id': int(entry.get('task_id')), 
                             'name': entry.get('name'), 
                             'unit_amount': unit_amount}])
         else:
             record_id = models.execute_kw(db, uid, password, 'account.analytic.line', 'create',
-                            [{'date_time': record_date, 
+                            [{date_field: record_date, 
                             'project_id': int(entry.get('project_id')), 
                             'task_id': int(entry.get('task_id')), 
                             'name': entry.get('name'), 

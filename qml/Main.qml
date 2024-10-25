@@ -99,8 +99,8 @@ ApplicationWindow {
     }
 
     function isDesktop() {
-        if(Screen.width > 1200 ){
-            if(Screen.width > 2000 && Screen.height < 1200){
+        if(Screen.width > 1300 ){
+            if(Screen.width > 2000 && Screen.height < 1300){
                 return false;
             }else{
                 return true;
