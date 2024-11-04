@@ -18,6 +18,10 @@
     import QtQuick.Window 2.2
     import QtQuick.Controls 2.2
     import QtQuick.LocalStorage 2.7
+    import Ubuntu.Components 1.3 as Ubuntu
+    import QtQuick.Controls.Material 2.1
+
+    
 
 Item {
     width: parent.width
@@ -32,13 +36,13 @@ Item {
     property int selectedprojectUserId: 0
     property int selectedtaskUserId: 0
 
-    function createActivity(selectedAccountUserId, selectedActivityTypeId, datetimeInput, summaryInput, notesInput, user_id,selectedlinkUserId,selectedprojectUserId,selectedtaskUserId,resModelInput,resIdInput) {
+    function createActivity(selectedAccountUserId, selectedActivityTypeId, datetimeInput, summaryInput, notesInput, user_id,selectedlinkUserId,selectedprojectUserId,selectedtaskUserId,resModelInput,resIdInput,scheduleInput) {
         var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
         db.transaction(function (tx) {
             // tx.executeSql('DROP TABLE IF EXISTS mail_activity_app')
             if(selectedActivityTypeId && datetimeInput){
-                var result = tx.executeSql('INSERT INTO mail_activity_app (account_id, activity_type_id, summary, due_date, notes, user_id, link_id, project_id, task_id, resId, resModel)\
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [selectedAccountUserId, selectedActivityTypeId, summaryInput, datetimeInput, notesInput, user_id, selectedlinkUserId, selectedprojectUserId, selectedtaskUserId, resIdInput, resModelInput])
+                var result = tx.executeSql('INSERT INTO mail_activity_app (account_id, activity_type_id, summary, due_date, notes, user_id, link_id, project_id, task_id, resId, resModel, state)\
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [selectedAccountUserId, selectedActivityTypeId, summaryInput, datetimeInput, notesInput, user_id, selectedlinkUserId, selectedprojectUserId, selectedtaskUserId, resIdInput, resModelInput, scheduleInput])
                 isactivitySaved = true
                 isactivityClicked = true
                 dataClear()
@@ -104,7 +108,7 @@ Item {
     }
     ListModel {
         id: linkList
-        ListElement { itemId: 0; name: "" }   // Option 1: Blank
+        ListElement { itemId: 0; name: "Contact" }   // Option 1: Blank
         ListElement { itemId: 1; name: "Project" }  // Option 2: Project
         ListElement { itemId: 2; name: "Task" }   // Option 3: Task
         ListElement { itemId: 3; name: "Other" }   // Option 4: Other
@@ -144,60 +148,173 @@ Item {
         })
         return tasks_list;    
     }
-    
-    Row {
+    Rectangle {
         id: newActivity
         width: parent.width
+        height: isDesktop()? 60 : 120 // Make height of the header adaptive based on content
         anchors.top: parent.top
-        anchors.topMargin: isDesktop() ? 100 : 200
-        spacing: isDesktop() ? 20 : 40  
-        anchors.left: parent.left
-        anchors.leftMargin: isDesktop() ? 70 : 20
-        anchors.right: parent.right
-        anchors.rightMargin: isDesktop() ? 10 : 20
-        anchors.horizontalCenter: parent.horizontalCenter
-        z:1
+        anchors.topMargin: isDesktop() ? 60 : 120
+        color: "#FFFFFF"   // Background color for the header
+        z: 1
 
-        //
-        Label {
-            text: "Create Activities"
-            font.pixelSize: isDesktop() ? 20 : 40
-            anchors.verticalCenter: parent.verticalCenter
-            font.bold: true
-            color: "#121944"
-            
-            width: parent.width * 0.7  
-        }
+        // Bottom border
         Rectangle {
-            width: 1
-            height: 1
-            color: "transparent"
-            anchors.horizontalCenter: parent.horizontalCenter
+            width: parent.width
+            height: 2                    // Border height
+            color: "#DDDDDD"             // Border color
+            anchors.bottom: parent.bottom
         }
-        Button {
-            width: isDesktop() ? 120 : 240
-            height: isDesktop() ? 40 : 80
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.right: parent.right  
-            background: Rectangle {
-                color: "#121944"
-                radius: isDesktop() ? 5 : 10
-                border.color: "#87ceeb"
-                border.width: 2
-                anchors.fill: parent
+
+        Row {
+            id: row_id
+            width: parent.width
+            anchors.verticalCenter: parent.verticalCenter // Center the row vertically within newActivity
+            anchors.fill: parent
+            spacing: isDesktop() ? 20 : 40 
+            anchors.left: parent.left
+            anchors.leftMargin: isDesktop()?55 : -10
+            anchors.right: parent.right
+            anchors.rightMargin: isDesktop()?15 : 20 
+
+            // Left section with ToolButton and "Activities" label
+            Rectangle {
+                color: "transparent"
+                width: parent.width / 3
+                anchors.verticalCenter: parent.verticalCenter
+                height: parent.height 
+
+                Row {
+                    // anchors.centerIn: parent
+                    anchors.verticalCenter: parent.verticalCenter
+
+
+
+                ToolButton {
+                    width: isDesktop() ? 40 : 80
+                    height: isDesktop() ? 35 : 80 
+                    background: Rectangle {
+                        color: "transparent"  // Transparent button background
+                    }
+                    contentItem: Ubuntu.Icon {
+                        name: "back" 
+                    }
+                    onClicked: {
+                        stackView.push(activityLists)
+                    }
+                }
+
+                Label {
+                    text: "Activities"
+                    font.pixelSize: isDesktop() ? 20 : 40
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.right: ToolButton.right
+                    font.bold: true
+                    color: "#121944"
+                }
+                
+                }
             }
-            contentItem: Text {
-                text: "Back"
-                color: "#ffffff"
-                font.pixelSize: isDesktop() ? 20 : 40
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
+
+            // Center section with status message label
+            Rectangle {
+                color: "transparent"
+                width: parent.width / 3
+                height: parent.height 
+                anchors.horizontalCenter: parent.horizontalCenter
+
+                Text {
+                    id: activitySavedMessage
+                    text: isactivitySaved ? "Activity is Saved successfully!" : "Activity could not be saved!"
+                    color: isactivitySaved ? "green" : "red"
+                    visible: isactivityClicked
+                    font.pixelSize: isDesktop() ? 18 : phoneLarg()?30:40
+                    horizontalAlignment: Text.AlignHCenter // Align text horizontally (redundant here but useful for multi-line)
+                    anchors.centerIn: parent
+
+                }
             }
-            onClicked: {
-               stackView.push(activityLists);;  
+
+            // Right section with Button
+            Rectangle {
+                color: "transparent"
+                width: parent.width / 3
+                anchors.verticalCenter: parent.verticalCenter
+                height: parent.height 
+                anchors.right: parent.right
+
+
+                Button {
+                    id: rightButton
+                    width: isDesktop() ? 20 : 50
+                    height: isDesktop() ? 20 : 50
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.right: parent.right
+
+
+                    Image {
+                        source: "images/right.svg" // Image source
+                        width: isDesktop() ? 20 : 50
+                        height: isDesktop() ? 20 : 50
+                    }
+
+                    background: Rectangle {
+                        color: "transparent"
+                        radius: 10
+                        border.color: "transparent"
+                    }
+                   onClicked: {
+                    console.log(datetimeInput.text,"//////datetimeInput.text")
+                    if(selectedActivityTypeId && datetimeInput){
+                        createActivity(selectedAccountUserId, selectedActivityTypeId, datetimeInput.text, summaryInput.text, notesInput.text, selectedUserId,selectedlinkUserId,selectedprojectUserId,selectedtaskUserId,resModelInput.text,resIdInput.text,schedule.text)
+                        isactivitySaved= true
+                        isactivityClicked = true
+                        typingTimers.start()
+                    }else{
+                        isactivitySaved = false
+                        isactivityClicked = true
+                        typingTimers.start()
+                    }       
+                        // stackView.push(activityLists)
+                    }
+
+                }
+                Timer {
+                    id: typingTimers
+                    interval: 1500 // Time in milliseconds (1.5 second)
+                    running: false
+                    repeat: false
+                    onTriggered: {
+                        if (isactivitySaved) {
+                            selectedAccountUserId = 0
+                            selectedUserId = 0
+                            accountInput.text = ""
+                            selectedActivityTypeId = 0
+                            activityTypeInput.text = ""
+                            summaryInput.text = ""
+                            notesInput.text = ""
+                            userInput.text = ""
+                            isactivitySaved = false
+                            isactivityClicked = false
+                            projectInput.text = ""
+                            selectedprojectUserId = 0
+                            taskInput.text = ""
+                            selectedtaskUserId = 0
+                            linkInput.text = ""  // Set the selected name to the TextInput
+                            selectedlinkUserId = 0
+                            resModelInput.text=""
+                            resIdInput.text = ""
+
+                        }else{
+                            isTimesheetClicked = false;
+                            isactivityClicked = false;
+                        }
+                    }
+                }
             }
         }
     }
+
+    
 Flickable {
     id: flickableContainer
     width: parent.width
@@ -211,7 +328,7 @@ Flickable {
     
     Rectangle {
         anchors.top: parent.top
-        anchors.topMargin: isDesktop()?200:phoneLarg()?200:300
+        anchors.topMargin: isDesktop()?200:phoneLarg()?240:300
         anchors.left: parent.left
         anchors.leftMargin: isDesktop()?70 : 20
         anchors.right: parent.right
@@ -1237,70 +1354,81 @@ Flickable {
                     }
 
                 }
+                TextInput {
+                    id: schedule
+                    width: parent.width
+                    height: parent.height
+                    font.pixelSize: isDesktop() ? 18 : phoneLarg()?30:40
+                    anchors.fill: parent
+                    visible: false
+                    text: "schedule" 
+                }
                 
 
 
             }
         }
-        Rectangle {
-            id: save_activity
-            property int buttonTopMargin :isDesktop() ? selectedlinkUserId=== 0 ? 350: 400 : phoneLarg()? selectedlinkUserId=== 3? 670:600: selectedlinkUserId=== 0 ? 850:1100
-            width: parent.width
-            height: isDesktop() ? 30 : phoneLarg()?45:80
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.topMargin: buttonTopMargin
-            anchors.leftMargin: 20
-            anchors.right: parent.right
-            Button {
-                width: isDesktop() ? 400 : 480
-                // height: isDesktop() ? 40 : 90
-                anchors.centerIn: parent
-                background: Rectangle {
-                    color: "#121944"
-                    radius: isDesktop() ? 5 : 10
-                    border.color: "#87ceeb"
-                    border.width: 2
-                    anchors.fill: parent
-                }
+        // Rectangle {
+        //     id: save_activity
+        //     property int buttonTopMargin :isDesktop() ? selectedlinkUserId=== 0 ? 350: 400 : phoneLarg()? selectedlinkUserId=== 3? 670:600: selectedlinkUserId=== 0 ? 850:1100
+        //     width: parent.width
+        //     height: isDesktop() ? 30 : phoneLarg()?45:80
+        //     anchors.top: parent.top
+        //     anchors.left: parent.left
+        //     anchors.topMargin: buttonTopMargin
+        //     anchors.leftMargin: 20
+        //     anchors.right: parent.right
+        //     Button {
+        //         width: isDesktop() ? 400 : 480
+        //         // height: isDesktop() ? 40 : 90
+        //         anchors.centerIn: parent
+        //         background: Rectangle {
+        //             color: "#121944"
+        //             radius: isDesktop() ? 5 : 10
+        //             border.color: "#87ceeb"
+        //             border.width: 2
+        //             anchors.fill: parent
+        //         }
 
-                contentItem: Text {
-                    text: "Save Activity"
-                    color: "#ffffff"
-                    font.pixelSize: isDesktop() ? 20 : phoneLarg()?30:40
-                    horizontalAlignment: Text.AlignHCenter // Align text horizontally (redundant here but useful for multi-line)
+        //         contentItem: Text {
+        //             text: "Save Activity"
+        //             color: "#ffffff"
+        //             font.pixelSize: isDesktop() ? 20 : phoneLarg()?30:40
+        //             horizontalAlignment: Text.AlignHCenter // Align text horizontally (redundant here but useful for multi-line)
 
-                }
-                onClicked: {
+        //         }
+        //         onClicked: {
                     
-                    createActivity(selectedAccountUserId, selectedActivityTypeId, datetimeInput.text, summaryInput.text, notesInput.text, selectedUserId,selectedlinkUserId,selectedprojectUserId,selectedtaskUserId,resModelInput.text,resIdInput.text)
-                    // stackView.push(activityLists)
-                }
-            }
-        }
-        Rectangle {
-            width: parent.width
-            height: 50
-            anchors.top: save_activity.bottom
-            anchors.left: parent.left
-            anchors.topMargin: 20
+        //             createActivity(selectedAccountUserId, selectedActivityTypeId, datetimeInput.text, summaryInput.text, notesInput.text, selectedUserId,selectedlinkUserId,selectedprojectUserId,selectedtaskUserId,resModelInput.text,resIdInput.text,schedule.text)
+        //             // stackView.push(activityLists)
+        //         }
+        //     }
+        // }
+        // Rectangle {
+        //     width: parent.width
+        //     height: 50
+        //     anchors.top: save_activity.bottom
+        //     anchors.left: parent.left
+        //     anchors.topMargin: 20
 
-            Text {
-                id: activitySavedMessage
-                text: isactivitySaved ? "Activity is Saved successfully!" : "Activity could not be saved!"
-                color: isactivitySaved ? "green" : "red"
-                visible: isactivityClicked
-                font.pixelSize: isDesktop() ? 18 : phoneLarg()?30:40
-                horizontalAlignment: Text.AlignHCenter // Align text horizontally (redundant here but useful for multi-line)
-                anchors.centerIn: parent
+        //     Text {
+        //         id: activitySavedMessage
+        //         text: isactivitySaved ? "Activity is Saved successfully!" : "Activity could not be saved!"
+        //         color: isactivitySaved ? "green" : "red"
+        //         visible: isactivityClicked
+        //         font.pixelSize: isDesktop() ? 18 : phoneLarg()?30:40
+        //         horizontalAlignment: Text.AlignHCenter // Align text horizontally (redundant here but useful for multi-line)
+        //         anchors.centerIn: parent
 
-            }
-        }
+        //     }
+        // }
     }
     }
     Component.onCompleted: {
         console.log('\n\n stackView.currentItem.data', currentRecordId)
         console.log('\n\n stackView.currentItem.data', currentRecordId)
         dataClear()
+        linkInput.text = "Contact"
+        selectedlinkUserId = 0
     }
 }

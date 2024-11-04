@@ -2,6 +2,8 @@ import QtQuick 2.7
 import QtQuick.Window 2.2
 import QtQuick.Controls 2.2
 import QtQuick.LocalStorage 2.7
+import Ubuntu.Components 1.3 as Ubuntu
+
     
 
 Item {
@@ -9,6 +11,8 @@ Item {
     height: parent.height
     property var filterprojectlistData: []
     property int currentRecordId: 0
+    property bool issearchHeader: false
+
     // property bool workpersonaSwitchState: true 
 
     function fetch_projects_list() {
@@ -53,12 +57,148 @@ Item {
     ListModel {
         id: projectsListModel
     }
+    Rectangle {
+        id:projectHeader
+        width: parent.width
+        height: isDesktop()? 60 : 120 // Make height of the header adaptive based on content
+        anchors.top: parent.top
+        anchors.topMargin: isDesktop() ? 60 : 120
+        color: "#FFFFFF"   // Background color for the header
+        z: 1
 
+        // Bottom border
+        Rectangle {
+            width: parent.width
+            height: 2                    // Border height
+            color: "#DDDDDD"             // Border color
+            anchors.bottom: parent.bottom
+        }
+
+        Row {
+            id: row_id
+            width: parent.width
+            anchors.verticalCenter: parent.verticalCenter 
+            anchors.fill: parent
+            spacing: isDesktop() ? 20 : 40 
+            anchors.left: parent.left
+            anchors.leftMargin: isDesktop()? 55 : -10
+            anchors.right: parent.right
+            anchors.rightMargin: isDesktop()?15 : 20 
+
+            // Left section with ToolButton and "Activities" label
+            Rectangle {
+                id: header_tital
+                visible: !issearchHeader
+                color: "transparent"
+                width: parent.width / 5
+                anchors.verticalCenter: parent.verticalCenter
+                height: parent.height 
+
+                Row {
+                    // anchors.centerIn: parent
+                    anchors.verticalCenter: parent.verticalCenter
+
+                ToolButton {
+                    width: isDesktop() ? 40 : 80
+                    height: isDesktop() ? 35 : 80 
+                    background: Rectangle {
+                        color: "transparent"  // Transparent button background
+                    }
+                    contentItem: Ubuntu.Icon {
+                        name: "back" 
+                    }
+                    onClicked: {
+                        stackView.push(listPage)
+                    }
+                }    
+
+                Label {
+                    text: "Projects"
+                    font.pixelSize: isDesktop() ? 20 : 40
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.right: ToolButton.right
+                    font.bold: true
+                    color: "#121944"
+                }
+                
+                }
+            }
+
+            // Right section with Button
+            Rectangle {
+                id: header_btnADD
+                visible: !issearchHeader
+                color: "transparent"
+                width: parent.width / 8
+                anchors.verticalCenter: parent.verticalCenter
+                height: parent.height 
+                anchors.right: parent.right
+
+                Row {
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: isDesktop() ? 10 : 20
+                    anchors.right: parent.right
+
+                    ToolButton {
+                        id: search_id
+                        width: isDesktop() ? 40 : 80
+                        height: isDesktop() ? 35 : 80
+                        background: Rectangle {
+                            color: "transparent"  // Transparent button background
+                        }
+                        contentItem: Ubuntu.Icon {
+                            name: "search" 
+                        }
+                        onClicked: {
+                            issearchHeader = true
+                        }
+                    }
+                }
+                
+            }
+
+
+                Rectangle{
+                    id: search_header
+                    visible: issearchHeader
+                    width:parent.width
+                    anchors.verticalCenter: parent.verticalCenter
+                    ToolButton {
+                        id: back_idn
+                        width: isDesktop() ? 35 : 80
+                        height: isDesktop() ? 35 : 80
+                        anchors.verticalCenter: parent.verticalCenter
+                        background: Rectangle {
+                            color: "transparent"  // Transparent button background
+                        }
+                        contentItem: Ubuntu.Icon {
+                            name: "back"
+                        }
+                        onClicked: {
+                            issearchHeader = false
+                        }
+                    }
+
+                    // Full-width TextField
+                    TextField {
+                        id: searchField
+                        placeholderText: "Search..."
+                        anchors.left: back_idn.right // Start from the right of ToolButton
+                        anchors.leftMargin: isDesktop() ? 0 : 5
+                        anchors.right: parent.right // Extend to the right edge of the Row
+                        anchors.verticalCenter: parent.verticalCenter
+                        onTextChanged: {
+                            filterProjectList(searchField.text);  // Call the filter function when the text changes
+                        }
+                    }
+            }
+        }
+    }
     Rectangle {
         width: parent.width
         height: parent.height
         anchors.top: parent.top
-        anchors.topMargin: isDesktop()?80:120
+        anchors.topMargin: isDesktop()?65:120
         anchors.left: parent.left
         anchors.leftMargin: isDesktop()?70 : 20
         anchors.right: parent.right
@@ -67,40 +207,6 @@ Item {
         anchors.bottomMargin: isDesktop()?0:100
         color: "#ffffff"
 
-        // Search Row
-        Row {
-            id: searchId
-            spacing: 10
-            anchors.top: parent.top  // Position below the search row
-            anchors.topMargin: isDesktop() ? 20 : 80
-            anchors.left: parent.left
-            anchors.leftMargin: isDesktop() ? 0 : 10
-            anchors.right: parent.right  // Float the search field to the right
-            width: parent.width
-
-            // Label on the left side
-            Label {
-                text: "Projects"
-                font.pixelSize: isDesktop() ? 20 : 40   
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.left: parent.left
-                font.bold: true
-                color:"#121944"
-                width: parent.width * (isDesktop() ? 0.8 :0.5)
-            }
-
-            // Search field on the right side
-            TextField {
-                id: searchField
-                placeholderText: "Search..."
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.right: parent.right
-                width: parent.width * (isDesktop() ? 0.2 :0.5)
-                onTextChanged: {
-                    filterProjectList(searchField.text);  // Call the filter function when the text changes
-                }
-            }
-        }
 
         // Scrollable Content
             Rectangle {
@@ -196,7 +302,7 @@ Item {
 
                                     // Allocated Status
                                     Text {
-                                        text: "Allocates H : " + model.allocated_hours // Dynamic allocated status
+                                        text: "Allocated H : " + model.allocated_hours // Dynamic allocated status
                                         font.pixelSize: isDesktop()? 18 :26
                                         color: "#4CAF50" // Green for allocated status
                                         anchors.verticalCenter: parent.verticalCenter
@@ -220,12 +326,12 @@ Item {
             }
             Rectangle {
                 id: rightPanel
-                z: 1
+                z: 20
                 visible: false
                 width: isDesktop() ? parent.width /2 : phoneLarg()? parent.width /2 : parent.width
                 height: parent.height
                 anchors.top: parent.top
-                anchors.topMargin: phoneLarg()? -165 :0
+                anchors.topMargin: phoneLarg()?0 :0
                 color: "#EFEFEF"
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
@@ -234,7 +340,6 @@ Item {
                     var rowId = projectFlickable.edit_id;
 
                         db.transaction(function (tx) {
-                            // var result = tx.executeSql('SELECT * FROM project_task_app WHERE id = ?', [rowId]);
                             if(workpersonaSwitchState){
                                 var result = tx.executeSql('SELECT * FROM project_project_app WHERE id = ?', [rowId]);
                             }else{
@@ -242,10 +347,6 @@ Item {
                             }
                             if (result.rows.length > 0) {
                                 var rowData = result.rows.item(0);
-                                console.log(JSON.stringify(rowData, null, 2), "////rowData////");
-
-                                // var projectId = rowData.project_id || "";  
-                                // var parentId = rowData.parent_id === null ? rowData.parent_id || "":"";
                                 var accountId = rowData.account_id || ""; 
                                 if(rowData.planned_start_date != 0) {
                                     var rowDate = new Date(rowData.planned_start_date || "");  
@@ -262,31 +363,20 @@ Item {
                                     endDateInput.text = "mm/dd/yy"
                                 }
 
-                                // var project = tx.executeSql('SELECT name FROM project_project_app WHERE id = ?', [projectId]);
-                                // var parentname = tx.executeSql('SELECT name FROM project_task_app WHERE id = ?', [parentId]);
+                                var parent_project = tx.executeSql('SELECT name FROM project_project_app WHERE id = ?',[rowData.parent_id]);
+                                // , 
                                 if(workpersonaSwitchState){
                                     var account = tx.executeSql('SELECT name FROM users WHERE id = ?', [accountId]);
                                 }
                                 
-                                // projectInput.text = project.rows.length > 0 ? project.rows.item(0).name || "" : "";
-                                // selectedProjectId = projectId;
                                 if(workpersonaSwitchState){
                                     accountInput.text = account.rows.length > 0 ? account.rows.item(0).name || "" : "";
-                                    // selectedAccountUserId = accountId;
                                 }
                                 nameInput.text = rowData.name
-                                // console.log(parentname.rows.item(0).name,"/////,/,,/,.,.")
-                                // parentInput.text = parentname.rows.length > 0 ? parentname.rows.item(0).name || "" : "";
+                                allocatedhoursInput.text = rowData.allocated_hours
+                                parentProjectInput.text = parent_project.rows.length > 0 ? parent_project.rows.item(0).name || "" : "";
                                 img_star.selectedPriority = rowData.favorites || 0; // Set default to 0 if favorites is null
-                                // initialInput.text = rowData.initial_planned_hours || 0;
 
-                                
-
-                                // editdescriptionInput.text = rowData.name || "";  
-                                // edittaskInput.text = task.rows.length > 0 ? task.rows.item(0).name || "" : "";
-                                // selectedTaskId = taskId;
-
-                                // editspenthoursManualInput.text = rowData.unit_amount || "";  
                             }
                         });
                         function formatDate(date) {
@@ -386,16 +476,31 @@ Item {
                         //     // }
                         // }
                     }
+
+                    Flickable {
+                        id: flickableContainerProject
+                        width: parent.width
+                        // height: phoneLarg() ? parent.height - 50 : parent.height  // Adjust height for large phones
+                        height: parent.height  // Set the height to match the parent or a fixed value
+                        contentHeight: projectItemedit.childrenRect.height + (isDesktop()?0:100)  // The total height of the content inside Flickable
+                        anchors.fill: parent
+                        flickableDirection: Flickable.VerticalFlick  // Allow only vertical scrolling
+                        anchors.top: parent.top
+                        anchors.topMargin: isDesktop() ? 85 : phoneLarg()? 100 : 120
+                        
+
+                        // Make sure to enable clipping so the content outside the viewable area is not displayed
+                        clip: true
                     Item {
                         id: projectItemedit
-                        height: parent.height
+                        height: projectItemedit.childrenRect.height + 100
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.top: parent.top
                         anchors.leftMargin: phoneLarg()? 20:0
-                        anchors.topMargin: isDesktop() ? 100 : phoneLarg()? 150 : 120
+                        anchors.topMargin: isDesktop() ? 0 : phoneLarg()? 0 : 120
                         Row {
-                            spacing: isDesktop() ? 100 : phoneLarg()? 260 :220
+                            spacing: isDesktop() ? 130 : phoneLarg()? 260 :260
                             anchors.verticalCenterOffset: -height * 1.5
                             anchors.left: parent.left
                             anchors.leftMargin: 20
@@ -414,12 +519,12 @@ Item {
                                 height: isDesktop() ? 25 : phoneLarg()?50:80
                                 font.pixelSize: isDesktop() ? 18 : 40
                                 }
-                                Label { text: "Planned Start D" 
+                                Label { text: "Planned Start Date" 
                                 width: 150
                                 height: isDesktop() ? 25 : phoneLarg()?50:80
                                 font.pixelSize: isDesktop() ? 18 : 40
                                 }
-                                Label { text: "Planned End D " 
+                                Label { text: "Planned End Date " 
                                 width: 150
                                 height: isDesktop() ? 25 : phoneLarg()?50:80
                                 font.pixelSize: isDesktop() ? 18 : 40
@@ -450,19 +555,15 @@ Item {
                             }
                             Column {
                                 spacing: isDesktop() ? 20 : 40
-                                Component.onCompleted: {
-                                if (!isDesktop()) {
-                                    width: 350
-                                    }
-                                }
+                                
                                 Rectangle {
-                                    width: parent.width
+                                    width:  parent.width - (!isDesktop()? phoneLarg()? 0:50:0)
                                     height: isDesktop() ? 25 : phoneLarg()?50:80
                                     color: "transparent"
 
                                     // Bottom Border for TextInput
                                     Rectangle {
-                                        width: parent.width
+                                        width:  parent.width
                                         height: isDesktop() ? 1 : 2
                                         color: "black"
                                         anchors.bottom: parent.bottom
@@ -491,13 +592,13 @@ Item {
                                     }
                                 }
                                 Rectangle {
-                                    width: isDesktop() ? 430 : 700
+                                    width:  parent.width - (!isDesktop()? phoneLarg()? 0:50:0)
                                     height: isDesktop() ? 25 : phoneLarg()?50:80
                                     color: "transparent"
 
 
                                     Rectangle {
-                                        width: parent.width
+                                        width:  parent.width
                                         height: isDesktop() ? 1 : 2
                                         color: "black"
                                         anchors.bottom: parent.bottom
@@ -569,13 +670,13 @@ Item {
                                     }
                                 }
                                 Rectangle {
-                                    width: isDesktop() ? 430 : 700
+                                    width:  parent.width - (!isDesktop()? phoneLarg()? 0:50:0)
                                     height: isDesktop() ? 25 : phoneLarg()?50:80
                                     color: "transparent"
 
 
                                     Rectangle {
-                                        width: parent.width
+                                        width:  parent.width 
                                         height: isDesktop() ? 1 : 2
                                         color: "black"
                                         anchors.bottom: parent.bottom
@@ -647,13 +748,13 @@ Item {
                                     }
                                 }
                                 Rectangle {
-                                    width: isDesktop() ? 430 : 700
+                                    width:  parent.width - (!isDesktop()? phoneLarg()? 0:50:0)
                                     height: isDesktop() ? 25 : phoneLarg()?50:80
                                     color: "transparent"
 
                                     // Border at the bottom
                                     Rectangle {
-                                        width: parent.width
+                                        width:  parent.width
                                         height: isDesktop() ? 1 : 2
                                         color: "black"  // Border color
                                         anchors.bottom: parent.bottom
@@ -751,13 +852,13 @@ Item {
                                     }
                                 }
                                 Rectangle {
-                                    width: isDesktop() ? 430 : 700
+                                    width:  parent.width - (!isDesktop()? phoneLarg()? 0:50:0)
                                     height: isDesktop() ? 25 : phoneLarg()?50:80
                                     color: "transparent"
 
                                     // Border at the bottom
                                     Rectangle {
-                                        width: parent.width
+                                        width:  parent.width
                                         height: isDesktop() ? 1 : 2
                                         color: "black"  // Border color
                                         anchors.bottom: parent.bottom
@@ -860,7 +961,7 @@ Item {
                                         }
 
                                         onTextChanged: {
-                                            if (projectInput.text.length > 0) {
+                                            if (parentProjectInput.text.length > 0) {
                                                 parentProjectplaceholder.visible = false
                                             } else {
                                                 parentProjectplaceholder.visible = true
@@ -869,12 +970,12 @@ Item {
                                     }
                                 }
                                 Rectangle {
-                                    width: isDesktop() ? 430 : 700
+                                    width:  parent.width - (!isDesktop()? phoneLarg()? 0:50:0)
                                     height: isDesktop() ? 25 : phoneLarg()?50:80
                                     color: "transparent"
 
                                     Rectangle {
-                                        width: parent.width
+                                        width:  parent.width
                                         height: isDesktop() ? 1 : 2
                                         color: "black"
                                         anchors.bottom: parent.bottom
@@ -909,7 +1010,7 @@ Item {
                                     }
                                 }
                                 Row {
-                                    width: isDesktop() ? 430 : 700
+                                    width: isDesktop() ? 400 : 700
                                     height: isDesktop() ? 25 : phoneLarg()?50:80
                                     id: img_star
                                     spacing: 5  // Space between stars
@@ -945,7 +1046,7 @@ Item {
 
                             }
                         }
-                    }
+                    }}
                     
                 }
             }
@@ -956,5 +1057,6 @@ Item {
         // Initialization code if needed
         console.log(workpersonaSwitchState,"/////////////++++++++")
         fetch_projects_list()
+        issearchHeader = false
     }
 }

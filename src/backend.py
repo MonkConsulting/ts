@@ -143,7 +143,39 @@ def fetch_projects(selected_url, username, password_filled, database_dict, last_
         domain.append(['write_date', '>=', formatted_date.strftime('%Y-%m-%d %H:%M:%S')])
     projects.extend(models.execute_kw(db, uid, password,
             'project.project', 'search_read', [domain]))
-    return projects
+    
+    fetch_all_records = False
+    deleted_records = []
+    existing_projects = []
+    returned_default = models.execute_kw(db, uid, password, 'mail.activity', 'default_get', [['res_model', 'res_model_id']], {'context': {'default_res_model': 'auditlog.rule'}})
+    if returned_default.get('res_model_id'):
+        project_model = models.execute_kw(db, uid, password, 'mail.activity', 'default_get', [['res_model', 'res_model_id']], {'context': {'default_res_model': 'project.project'}})
+        audit_log_rule = models.execute_kw(db, uid, password, 'auditlog.rule', 'search', [[['model_id', '=', project_model.get('res_model_id')], ['log_unlink', '=', True], ['state', '=', 'subscribed']]])
+        if audit_log_rule:
+            if last_modified:
+                formatted_date = datetime.strptime(last_modified[:-1], '%Y-%m-%dT%H:%M:%S.%f')
+                logs_search = models.execute_kw(db, uid, password, 'auditlog.log', 'search', [[['create_date', '>=', formatted_date.strftime('%Y-%m-%d %H:%M:%S')], ['method', '=', 'unlink'], ['model_id', '=', project_model.get('res_model_id')]]])
+            else:
+                logs_search = models.execute_kw(db, uid, password, 'auditlog.log', 'search', [[['method', '=', 'unlink'], ['model_id', '=', project_model.get('res_model_id')]]])
+            record_sets = models.execute_kw(db, uid, password,
+                    'auditlog.log', 'read',
+                    [logs_search],
+                    {'fields': ['res_id']}
+                )
+            deleted_records = [rec.get('res_id') for rec in record_sets]
+        else:
+            fetch_all_records = True
+            existing_projects = partner_ids = models.execute_kw(db, uid, password,
+                'project.project', 'search',
+                [[]]
+            )
+    else:
+        fetch_all_records = True
+        existing_projects = partner_ids = models.execute_kw(db, uid, password,
+            'project.project', 'search',
+            [[]]
+        )
+    return {'projects': projects, 'existing_projects': existing_projects, 'fetch_all_records': fetch_all_records, 'deleted_records': deleted_records}
 
 def fetch_activity_type(selected_url, username, password_filled, database_dict, last_modified=False):
     response = login_odoo(selected_url, username, password_filled, database_dict)
@@ -161,7 +193,7 @@ def create_timesheets(selected_url, username, password_filled, database_dict, ti
     models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(url))
     records_list = []
     model_id = models.execute_kw(db, uid, password, 'ir.model', 'search', [[['model', '=', 'account.analytic.line']]])
-    field_ids = models.execute_kw(db, uid, password, 'ir.model.fields', 'search', [[['model_id', '=', model_id]]])
+    field_ids = models.execute_kw(db, uid, password, 'ir.model.fields', 'search', [[['model_id', '=', model_id[0]]]])
     field_ids = models.execute_kw(db, uid, password,
         'ir.model.fields', 'read',
         [field_ids],
@@ -193,7 +225,38 @@ def create_timesheets(selected_url, username, password_filled, database_dict, ti
                             'name': entry.get('name'), 
                             'unit_amount': unit_amount}])
             records_list.append({'local_record_id': entry.get('local_record_id'), 'odoo_record_id': record_id})
-    return records_list
+    fetch_all_records = False
+    deleted_records = []
+    existing_projects = []
+    returned_default = models.execute_kw(db, uid, password, 'mail.activity', 'default_get', [['res_model', 'res_model_id']], {'context': {'default_res_model': 'auditlog.rule'}})
+    if returned_default.get('res_model_id'):
+        project_model = models.execute_kw(db, uid, password, 'mail.activity', 'default_get', [['res_model', 'res_model_id']], {'context': {'default_res_model': 'account.analytic.line'}})
+        audit_log_rule = models.execute_kw(db, uid, password, 'auditlog.rule', 'search', [[['model_id', '=', project_model.get('res_model_id')], ['log_unlink', '=', True], ['state', '=', 'subscribed']]])
+        if audit_log_rule:
+            if last_modified:
+                formatted_date = datetime.strptime(last_modified[:-1], '%Y-%m-%dT%H:%M:%S.%f')
+                logs_search = models.execute_kw(db, uid, password, 'auditlog.log', 'search', [[['create_date', '>=', formatted_date.strftime('%Y-%m-%d %H:%M:%S')], ['method', '=', 'unlink'], ['model_id', '=', project_model.get('res_model_id')]]])
+            else:
+                logs_search = models.execute_kw(db, uid, password, 'auditlog.log', 'search', [[['method', '=', 'unlink'], ['model_id', '=', project_model.get('res_model_id')]]])
+            record_sets = models.execute_kw(db, uid, password,
+                    'auditlog.log', 'read',
+                    [logs_search],
+                    {'fields': ['res_id']}
+                )
+            deleted_records = [rec.get('res_id') for rec in record_sets]
+        else:
+            fetch_all_records = True
+            existing_projects = partner_ids = models.execute_kw(db, uid, password,
+                'account.analytic.line', 'search',
+                [[]]
+            )
+    else:
+        fetch_all_records = True
+        existing_projects = partner_ids = models.execute_kw(db, uid, password,
+            'account.analytic.line', 'search',
+            [[]]
+        )
+    return {'fetchedTimesheets': records_list, 'fetch_all_records': fetch_all_records, 'existing_records': existing_projects, 'deleted_records': deleted_records}
 
 def create_activities(selected_url, username, password_filled, database_dict, activity_entries):
     response = login_odoo(selected_url, username, password_filled, database_dict)
@@ -235,6 +298,40 @@ def create_activities(selected_url, username, password_filled, database_dict, ac
                             }])
             records_list.append({'local_record_id': entry.get('local_record_id'),
                      'odoo_record_id': record_id})
+            if 'state' in entry and entry.get('state') == 'done':
+                model.execute_kw(db, uid, password, 'mail.activity', 'mark_done', [[int(entry.get('odoo_record_id'))]])
+        else:
+            models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(selected_url))
+            model = 'res.partner'
+            res_id = False
+            if int(entry.get('link_id', 0)) == 1:
+                model = 'project.project'
+                res_id = int(entry.get('project_id'))
+            elif int(entry.get('link_id', 0)) == 2:
+                model = 'project.task'
+                res_id = int(entry.get('task_id'))
+            elif int(entry.get('link_id', 0)) == 3:
+                model = entry.get('res_model')
+                res_id = int(entry.get('res_id'))
+            else:
+                user_name = models.execute_kw(db, uid, password,
+                                          'res.users', 'read',
+                                          [int(entry.get('user_id'))],
+                                          {'fields': ['partner_id']})
+                res_id = user_name[0]['partner_id'][0]
+            returned_default = models.execute_kw(db, uid, password, 'mail.activity', 'default_get', [['res_model', 'res_model_id']], {'context': {'default_res_model': model}})
+            models.execute_kw(db, uid, password, 'mail.activity', 'write',
+                            [[int(entry.get('odoo_record_id'))],
+                            {'date_deadline': record_date, 
+                            'activity_type_id': int(entry.get('activity_type_id')), 
+                            'summary': entry.get('summary'), 
+                            'note': entry.get('notes'), 
+                            'user_id': int(entry.get('user_id')),
+                            'res_model_id': returned_default['res_model_id'],
+                            'res_id': res_id
+                            }])
+            if 'state' in entry and entry.get('state') == 'done':
+                model.execute_kw(db, uid, password, 'mail.activity', 'mark_done', [[int(entry.get('odoo_record_id'))]])
     return records_list
 
 def fetch_tasks(selected_url, username, password_filled, database_dict, last_modified=False):
@@ -252,7 +349,39 @@ def fetch_tasks(selected_url, username, password_filled, database_dict, last_mod
         domain.append(['write_date', '>=', formatted_date.strftime('%Y-%m-%d %H:%M:%S')])
     tasks.extend(models.execute_kw(db, uid, password,
             'project.task', 'search_read', [domain]))
-    return tasks
+    existing_tasks = []
+    fetch_all_records = False
+    deleted_records = []
+    returned_default = models.execute_kw(db, uid, password, 'mail.activity', 'default_get', [['res_model', 'res_model_id']], {'context': {'default_res_model': 'auditlog.rule'}})
+    if returned_default.get('res_model_id'):
+        task_model = models.execute_kw(db, uid, password, 'mail.activity', 'default_get', [['res_model', 'res_model_id']], {'context': {'default_res_model': 'project.task'}})
+        audit_log_rule = models.execute_kw(db, uid, password, 'auditlog.rule', 'search', [[['model_id', '=', task_model.get('res_model_id')], ['log_unlink', '=', True], ['state', '=', 'subscribed']]])
+        if audit_log_rule:
+            if last_modified:
+                formatted_date = datetime.strptime(last_modified[:-1], '%Y-%m-%dT%H:%M:%S.%f')
+                logs_search = models.execute_kw(db, uid, password, 'auditlog.log', 'search', [[['create_date', '>=', formatted_date.strftime('%Y-%m-%d %H:%M:%S')], ['method', '=', 'unlink'], ['model_id', '=', task_model.get('res_model_id')]]])
+            else:
+                logs_search = models.execute_kw(db, uid, password, 'auditlog.log', 'search', [[['method', '=', 'unlink'], ['model_id', '=', task_model.get('res_model_id')]]])
+
+            record_sets = models.execute_kw(db, uid, password,
+                    'auditlog.log', 'read',
+                    [logs_search],
+                    {'fields': ['res_id']}
+                )
+            deleted_records = [rec.get('res_id') for rec in record_sets]
+        else:
+            fetch_all_records = True
+            existing_tasks = partner_ids = models.execute_kw(db, uid, password,
+                'project.task', 'search',
+                [[]]
+            )
+    else:
+        fetch_all_records = True
+        existing_tasks = partner_ids = models.execute_kw(db, uid, password,
+            'project.task', 'search',
+            [[]]
+        )
+    return {'fetchedTasks': tasks, 'existing_tasks': existing_tasks, 'fetch_all_records': fetch_all_records, 'deleted_records': deleted_records}
 
 def fetch_contacts(selected_url, username, password_filled, database_dict, last_modified=False):
     response = login_odoo(selected_url, username, password_filled, database_dict)
@@ -309,7 +438,7 @@ def fetch_options_sub_tasks(selected_task):
     )
     return partners
 
-def fetch_activities(selected_url, username, password_filled, database_dict, last_modified=False):
+def fetch_activities(selected_url, username, password_filled, database_dict, last_modified=False, previous_activities=[]):
     response = login_odoo(selected_url, username, password_filled, database_dict)
     models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(url))
     domain = ['|', ['user_id', '=', uid], ['create_uid', '=', uid]]
@@ -323,7 +452,18 @@ def fetch_activities(selected_url, username, password_filled, database_dict, las
     activities = models.execute_kw(db, uid, password,
         'mail.activity', 'read', [activities_search],
         {'fields': ['date_deadline', 'activity_type_id', 'summary', 'note', 'res_model', 'res_id', 'user_id']})
-    return activities
+    prev_activities = []
+    logging.info('\n\n previous_activities %s' % previous_activities)
+    if previous_activities:
+        prev_activities = list(map(lambda prev: int(prev.get('odoo_record_id')), list(filter(lambda act: act.get('odoo_record_id') and act.get('odoo_record_id') is not None, previous_activities))))
+    activities_search = models.execute_kw(db, uid, password,
+        'mail.activity', 'search',
+        [[]])
+    done_activities = []
+    for activity in prev_activities:
+        if activity not in activities_search:
+            done_activities.append(activity)
+    return {'activities_list': activities, 'done_activities': done_activities}
 
 def save_timesheet_entries(timesheet_entries):
 

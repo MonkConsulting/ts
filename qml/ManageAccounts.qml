@@ -19,6 +19,8 @@ import QtQuick.Window 2.2
 import QtQuick.Controls 2.2
 import QtQuick.LocalStorage 2.7
 import io.thp.pyotherside 1.4
+import Ubuntu.Components 1.3 as Ubuntu
+
 // import com.example.databasepathprovider 1.0
 
 Item {
@@ -33,6 +35,7 @@ Item {
     property bool isPasswordVisible: false
     property var accountsList: []
     property bool loading: false
+    property bool issearchHeader: false
     property string loadingMessage: ""
 
 
@@ -40,21 +43,22 @@ Item {
         var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
 
         // db.transaction(function(tx) {
-            // tx.executeSql('DELETE from users')
-            // tx.executeSql('DROP table users')
-            // tx.executeSql('DELETE from project_project_app')
-            // tx.executeSql('DROP table project_project_app')
-            // tx.executeSql('DELETE from project_task_app')
-            // tx.executeSql('DROP table project_task_app')
-            // tx.executeSql('DELETE from account_analytic_line_app')
-            // tx.executeSql('DROP table account_analytic_line_app')
-            // tx.executeSql('DELETE from mail_activity_type_app')
-            // tx.executeSql('DROP table mail_activity_type_app')
-            // tx.executeSql('DELETE from res_partner_app')
-            // tx.executeSql('DROP table res_partner_app')
+        //     tx.executeSql('DELETE from users')
+        //     tx.executeSql('DROP table users')
+        //     tx.executeSql('DELETE from project_project_app')
+        //     tx.executeSql('DROP table project_project_app')
+        //     tx.executeSql('DELETE from project_task_app')
+        //     tx.executeSql('DROP table project_task_app')
+        //     tx.executeSql('DELETE from account_analytic_line_app')
+        //     tx.executeSql('DROP table account_analytic_line_app')
+        //     tx.executeSql('DELETE from mail_activity_type_app')
+        //     tx.executeSql('DROP table mail_activity_type_app')
+        //     tx.executeSql('DELETE from res_partner_app')
+        //     tx.executeSql('DROP table res_partner_app')
         //     tx.executeSql('DELETE from mail_activity_app')
         //     tx.executeSql('DROP table mail_activity_app')
         // });
+        // return;
         // Create users table if it doesn't exist
         db.transaction(function(tx) {
             tx.executeSql('CREATE TABLE IF NOT EXISTS users (\
@@ -179,6 +183,7 @@ Item {
                 task_id INTEGER,\
                 resId INTEGER,\
                 resModel TEXT,\
+                state TEXT,\
                 FOREIGN KEY (account_id) REFERENCES users(id) ON DELETE CASCADE,\
                 FOREIGN KEY (user_id) REFERENCES res_users_app(id) ON DELETE CASCADE,\
                 FOREIGN KEY (activity_type_id) REFERENCES mail_activity_type_app(id) ON DELETE CASCADE\
@@ -283,11 +288,26 @@ Item {
                     'link_id': fetchedEntries.rows.item(record).link_id,
                     'project_id': project_id,
                     'task_id': task_id,
+                    'state': fetchedEntries.rows.item(record).state,
                     'res_model': fetchedEntries.rows.item(record).resModel,
                     'res_id': fetchedEntries.rows.item(record).resId});
             }
         });
         return timesheetEntries;
+    }
+
+    function fetchAllActivities(instance_id) {
+        var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+        var timesheetEntries = [];
+        db.transaction(function (tx) {
+            var fetchedEntries = tx.executeSql('select * from mail_activity_app where account_id = ?', [instance_id])
+            for (var activity = 0; activity < fetchedEntries.rows.length; activity++) {
+                timesheetEntries.push({'id': fetchedEntries.rows.item(activity).id,
+                                    'odoo_record_id': fetchedEntries.rows.item(activity).odoo_record_id})
+            }
+        });
+        return timesheetEntries;
+
     }
 
     function update_instance_date(instance_id) {
@@ -298,17 +318,40 @@ Item {
         });
     }
 
-    function update_timesheet_entries(timesheet_entries) {
+    function update_timesheet_entries(timesheet_entries, instance_id) {
+        if (timesheet_entries === undefined) {
+            return
+        }
         var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+        var fetchedTimesheets = timesheet_entries.fetchedTimesheets
         db.transaction(function (tx) {
-            for (var record = 0; record < timesheet_entries.length; record++) {
-                tx.executeSql('update account_analytic_line_app set odoo_record_id = ?,last_modified = ? where id = ?', [timesheet_entries[record].odoo_record_id, new Date().toISOString(), timesheet_entries[record].local_record_id])
+            for (var record = 0; record < fetchedTimesheets.length; record++) {
+                tx.executeSql('update account_analytic_line_app set odoo_record_id = ?,last_modified = ? where id = ?', [timesheet_entries[record].odoo_record_id, new Date().toISOString(), fetchedTimesheets[record].local_record_id])
+            }
+
+            var deletedRecords = []
+            var ids_array = ''
+            if (timesheet_entries.fetch_all_records) {
+                ids_array = timesheet_entries.existing_records.join(", ")
+                deletedRecords = tx.executeSql('select id from account_analytic_line_app where account_id = '+ instance_id +' AND odoo_record_id not in ('+ ids_array +')');
+            } else {
+                ids_array = timesheet_entries.deleted_records.join(", ")
+                deletedRecords = tx.executeSql('select id from account_analytic_line_app where account_id = '+ instance_id +' AND odoo_record_id in ('+ ids_array +')');
+            }
+            for (var delete_rec = 0; delete_rec < deletedRecords.rows.length; delete_rec++) {
+                tx.executeSql('delete from account_analytic_line_app where id =  ?', [deletedRecords.rows.item(delete_rec).id])
+                // tx.executeSql('delete from project_task_app where project_id =  ?', [deletedRecords.rows.item(delete_rec).id])
+                // tx.executeSql('update project_project_app set parent_id = NULL where parent_id = ?', [deletedRecords.rows.item(delete_rec).id])
+                // tx.executeSql('delete from project_project_app where id =  ?', [deletedRecords.rows.item(delete_rec).id])
             }
         });
     }
 
     function update_activity_entries(activity_entries) {
         var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+        if (activity_entries === undefined) {
+            return
+        }
         db.transaction(function (tx) {
             for (var record = 0; record < activity_entries.length; record++) {
                 tx.executeSql('update mail_activity_app set odoo_record_id = ? where id = ?', [activity_entries[record].odoo_record_id, activity_entries[record].local_record_id])
@@ -317,6 +360,9 @@ Item {
     }
 
     function create_contacts(contacts, instance_id) {
+        if (contacts === undefined) {
+            return
+        }
         var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
         db.transaction(function (tx) {
             for (var contact = 0; contact < contacts.length; contact++) {
@@ -336,14 +382,17 @@ Item {
 
     function create_projects(projects, instance_id) {
         var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-
+        console.log('\n\n projects', projects)
+        if (projects === undefined) {
+            return
+        }
         db.transaction(function(tx) {
-            console.log("Database Query Results:");
-            for (var project = 0; project < projects.length; project++) {
-                var result = tx.executeSql('SELECT id, COUNT(*) AS count FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?', [projects[project].id, parseInt(instance_id)]);
+            var fetchedProjects = projects.projects
+            for (var project = 0; project < fetchedProjects.length; project++) {
+                var result = tx.executeSql('SELECT id, COUNT(*) AS count FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?', [fetchedProjects[project].id, parseInt(instance_id)]);
                 var parent_project_id = false
-                if (projects[project].parent_id.length) {
-                    var parent_query = tx.executeSql('SELECT id, COUNT(*) AS count FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?', [projects[project].parent_id[0], parseInt(instance_id)]);
+                if (fetchedProjects[project].parent_id.length) {
+                    var parent_query = tx.executeSql('SELECT id, COUNT(*) AS count FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?', [fetchedProjects[project].parent_id[0], parseInt(instance_id)]);
                     if (parent_query.rows.length !== 0) {
                         parent_project_id = parent_query.rows.item(0).id
                     }
@@ -353,13 +402,31 @@ Item {
                         (name, account_id, parent_id, planned_start_date, \
                         planned_end_date, allocated_hours, favorites, last_modified, \
                         odoo_record_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', 
-                        [projects[project].name, parseInt(instance_id), parent_project_id,
-                        projects[project].date_start, projects[project].date, projects[project].allocated_hours,
-                        projects[project].is_favorite, new Date().toISOString(), projects[project].id]);
+                        [fetchedProjects[project].name, parseInt(instance_id), parent_project_id,
+                        fetchedProjects[project].date_start, fetchedProjects[project].date, fetchedProjects[project].allocated_hours,
+                        fetchedProjects[project].is_favorite, new Date().toISOString(), fetchedProjects[project].id]);
                 } else {
-                    
+                    tx.executeSql('update project_project_app set name = ?,account_id = ?, parent_id = ?, planned_start_date = ?, \
+                        planned_end_date = ?, allocated_hours = ?, favorites = ?, last_modified = ?, \
+                        odoo_record_id = ? where id = ?', [fetchedProjects[project].name, parseInt(instance_id), parent_project_id,
+                        fetchedProjects[project].date_start, fetchedProjects[project].date, fetchedProjects[project].allocated_hours,
+                        fetchedProjects[project].is_favorite, new Date().toISOString(), fetchedProjects[project].id, result.rows.item(0).id])
                 }
-
+            }
+            var deletedRecords = []
+            var ids_array = ''
+            if (projects.fetch_all_records) {
+                ids_array = projects.existing_projects.join(", ")
+                deletedRecords = tx.executeSql('select id from project_project_app where account_id = '+ instance_id +' AND odoo_record_id not in ('+ ids_array +')');
+            } else {
+                ids_array = projects.deleted_records.join(", ")
+                deletedRecords = tx.executeSql('select id from project_project_app where account_id = '+ instance_id +' AND odoo_record_id in ('+ ids_array +')');
+            }
+            for (var delete_rec = 0; delete_rec < deletedRecords.rows.length; delete_rec++) {
+                tx.executeSql('delete from account_analytic_line_app where project_id =  ?', [deletedRecords.rows.item(delete_rec).id])
+                tx.executeSql('delete from project_task_app where project_id =  ?', [deletedRecords.rows.item(delete_rec).id])
+                tx.executeSql('update project_project_app set parent_id = NULL where parent_id = ?', [deletedRecords.rows.item(delete_rec).id])
+                tx.executeSql('delete from project_project_app where id =  ?', [deletedRecords.rows.item(delete_rec).id])
             }
         });
     }
@@ -367,21 +434,23 @@ Item {
     function create_tasks(tasks, instance_id) {
         var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
 
-
+        if (tasks === undefined) {
+            return
+        }
         db.transaction(function(tx) {
-            console.log("Database Query Results:");
-            for (var task = 0; task < tasks.length; task++) {
-                var result = tx.executeSql('SELECT id, COUNT(*) AS count FROM project_task_app WHERE odoo_record_id = ? AND account_id = ?', [tasks[task].id, parseInt(instance_id)]);
+            var fetchedTasks = tasks.fetchedTasks
+            for (var task = 0; task < fetchedTasks.length; task++) {
+                var result = tx.executeSql('SELECT id, COUNT(*) AS count FROM project_task_app WHERE odoo_record_id = ? AND account_id = ?', [fetchedTasks[task].id, parseInt(instance_id)]);
                 var parent_task_id = false;
-                if (tasks[task].parent_id.length) {
-                    var parent_query = tx.executeSql('SELECT id, COUNT(*) AS count FROM project_task_app WHERE odoo_record_id = ? AND account_id = ?', [tasks[task].parent_id[0], parseInt(instance_id)]);
+                if (fetchedTasks[task].parent_id.length) {
+                    var parent_query = tx.executeSql('SELECT id, COUNT(*) AS count FROM project_task_app WHERE odoo_record_id = ? AND account_id = ?', [fetchedTasks[task].parent_id[0], parseInt(instance_id)]);
                     if (parent_query.rows.length !== 0) {
                         parent_task_id = parent_query.rows.item(0).id
                     }
                 }
                 var project_id = false;
-                if (tasks[task].project_id.length) {
-                    var parent_query = tx.executeSql('SELECT id, COUNT(*) AS count FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?', [tasks[task].project_id[0], parseInt(instance_id)]);
+                if (fetchedTasks[task].project_id.length) {
+                    var parent_query = tx.executeSql('SELECT id, COUNT(*) AS count FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?', [fetchedTasks[task].project_id[0], parseInt(instance_id)]);
                     if (parent_query.rows.length !== 0) {
                         project_id = parent_query.rows.item(0).id
                     }
@@ -391,18 +460,39 @@ Item {
                         (name, account_id, project_id, parent_id, \
                         scheduled_date, deadline, initial_planned_hours, favorites, \
                         state, last_modified, odoo_record_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', 
-                        [tasks[task].name, parseInt(instance_id), project_id, parent_task_id,
-                        tasks[task].date_deadline, tasks[task].date_deadline, tasks[task].planned_hours,
-                        tasks[task].priority, tasks[task].stage_id, new Date().toISOString(), tasks[task].id]);
+                        [fetchedTasks[task].name, parseInt(instance_id), project_id, parent_task_id,
+                        fetchedTasks[task].date_deadline, fetchedTasks[task].date_deadline, fetchedTasks[task].planned_hours,
+                        fetchedTasks[task].priority, fetchedTasks[task].stage_id, new Date().toISOString(), fetchedTasks[task].id]);
                 } else {
-                    
+                    tx.executeSql('UPDATE project_task_app set name = ?, account_id = ?, project_id = ?, parent_id = ?, \
+                        scheduled_date = ?, deadline = ?, initial_planned_hours = ?, favorites = ?, \
+                        state = ?, last_modified = ?, odoo_record_id = ? where id = ?', [fetchedTasks[task].name, parseInt(instance_id), project_id, parent_task_id,
+                        fetchedTasks[task].date_deadline, fetchedTasks[task].date_deadline, fetchedTasks[task].planned_hours,
+                        fetchedTasks[task].priority, fetchedTasks[task].stage_id, new Date().toISOString(), fetchedTasks[task].id, result.rows.item(0).id])
                 }
 
+            }
+            var deletedRecords = []
+            var ids_array = ''
+            if (tasks.fetch_all_records) {
+                ids_array = tasks.existing_tasks.join(", ")
+                deletedRecords = tx.executeSql('select id from project_task_app where account_id = '+ instance_id +' AND odoo_record_id not in ('+ ids_array +')');
+            } else {
+                ids_array = tasks.deleted_records.join(", ")
+                deletedRecords = tx.executeSql('select id from project_task_app where account_id = '+ instance_id +' AND odoo_record_id in ('+ ids_array +')');
+            }
+            for (var delete_rec = 0; delete_rec < deletedRecords.rows.length; delete_rec++) {
+                tx.executeSql('delete from account_analytic_line_app where task_id =  ?', [deletedRecords.rows.item(delete_rec).id])
+                tx.executeSql('update project_task_app set parent_id = NULL where id = ?', [deletedRecords.rows.item(delete_rec).id])
+                tx.executeSql('delete from project_task_app where id =  ?', [deletedRecords.rows.item(delete_rec).id])
             }
         });
     }
 
     function create_activity_types(activities, instance_id) {
+        if (activities === undefined) {
+            return
+        }
         var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
         db.transaction(function(tx) {
             for (var activity = 0; activity < activities.length; activity++) {
@@ -417,6 +507,9 @@ Item {
     }
 
     function create_activities(activities, instance_id) {
+        if (activities === undefined) {
+            return
+        }
         var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
         db.transaction(function (tx) {
             for (var activity = 0; activity < activities.length; activity++) {
@@ -427,23 +520,23 @@ Item {
                     if (activities[activity].res_model == 'project.project') {
                         var project_id = tx.executeSql('select id from project_project_app where account_id = ? AND odoo_record_id = ?', [instance_id, activities[activity].res_id])
                         tx.executeSql('INSERT INTO mail_activity_app \
-                            (account_id, activity_type_id, summary, due_date, user_id, notes, odoo_record_id, last_modified, project_id, link_id)\
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [instance_id, activity_type_id.rows.item(0).id, 
+                            (account_id, activity_type_id, summary, due_date, user_id, notes, odoo_record_id, last_modified, project_id, link_id, state)\
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [instance_id, activity_type_id.rows.item(0).id, 
                                 activities[activity].summary, activities[activity].date_deadline, user_id.rows.item(0).id,
-                                activities[activity].note, activities[activity].id, new Date().toISOString(), project_id.rows.item(0).id, 1])
+                                activities[activity].note, activities[activity].id, new Date().toISOString(), project_id.rows.item(0).id, 1, 'schedule'])
                     } else if (activities[activity].res_model == 'project.task') {
                         var task_id = tx.executeSql('select id from project_task_app where account_id = ? AND odoo_record_id = ?', [instance_id, parseInt(activities[activity].res_id)])
                         tx.executeSql('INSERT INTO mail_activity_app \
-                            (account_id, activity_type_id, summary, due_date, user_id, notes, odoo_record_id, last_modified, task_id, link_id)\
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [instance_id, activity_type_id.rows.item(0).id, 
-                                activities[activity].summary, activities[activity].date_deadline, user_id.rows.item(0).id,
-                                activities[activity].note, activities[activity].id, new Date().toISOString(), task_id.rows.item(0).id, 2])
-                    } else {
-                        tx.executeSql('INSERT INTO mail_activity_app \
-                            (account_id, activity_type_id, summary, due_date, user_id, notes, odoo_record_id, last_modified, resModel, resId, link_id)\
+                            (account_id, activity_type_id, summary, due_date, user_id, notes, odoo_record_id, last_modified, task_id, link_id, state)\
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [instance_id, activity_type_id.rows.item(0).id, 
                                 activities[activity].summary, activities[activity].date_deadline, user_id.rows.item(0).id,
-                                activities[activity].note, activities[activity].id, new Date().toISOString(), activities[activity].res_model, activities[activity].res_id, 3])
+                                activities[activity].note, activities[activity].id, new Date().toISOString(), task_id.rows.item(0).id, 2, 'schedule'])
+                    } else {
+                        tx.executeSql('INSERT INTO mail_activity_app \
+                            (account_id, activity_type_id, summary, due_date, user_id, notes, odoo_record_id, last_modified, resModel, resId, link_id, state)\
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [instance_id, activity_type_id.rows.item(0).id, 
+                                activities[activity].summary, activities[activity].date_deadline, user_id.rows.item(0).id,
+                                activities[activity].note, activities[activity].id, new Date().toISOString(), activities[activity].res_model, activities[activity].res_id, 3, 'schedule'])
                     }
                 } else {
                     tx.executeSql('update mail_activity_app set activity_type_id = ?, summary = ?, due_date = ?, user_id = ?, notes = ?, last_modified = ?\
@@ -453,6 +546,22 @@ Item {
                 }
             }
         })
+    }
+
+    function done_activities(activities, instance_id) {
+        if (activities === undefined) {
+            return
+        }
+        var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+        db.transaction(function (tx) {
+            for (var activity = 0; activity < activities.length; activity++) {
+                var existing_activity = tx.executeSql('select id, count(*) AS count from mail_activity_app where account_id = ? AND odoo_record_id = ?', [instance_id, activities[activity]])
+                if (existing_activity.rows.length) {
+                    tx.executeSql('update mail_activity_app set state = ? where id = ?', ['done', existing_activity.rows.item(0).id])
+                }
+            }
+        });
+
     }
 
     function deleteData(recordId) {
@@ -467,10 +576,131 @@ Item {
         id: recordModel
     }
     Rectangle {
+        id:sycchronizationHeader
+        width: parent.width
+        height: isDesktop()? 60 : 120 // Make height of the header adaptive based on content
+        anchors.top: parent.top
+        anchors.topMargin: isDesktop() ? 60 : 120
+        color: "#FFFFFF"   // Background color for the header
+        z: 1
+
+        // Bottom border
+        Rectangle {
+            width: parent.width
+            height: 2                    // Border height
+            color: "#DDDDDD"             // Border color
+            anchors.bottom: parent.bottom
+        }
+
+        Row {
+            id: row_id
+            width: parent.width
+            anchors.verticalCenter: parent.verticalCenter 
+            anchors.fill: parent
+            spacing: isDesktop() ? 20 : 40 
+            anchors.left: parent.left
+            anchors.leftMargin: isDesktop()? issearchHeader? 55 : 70 :issearchHeader ? -10 : 15
+            anchors.right: parent.right
+            anchors.rightMargin: isDesktop()?15 : 20 
+
+            // Left section with ToolButton and "Activities" label
+            Rectangle {
+                id: header_tital
+                visible: !issearchHeader
+                color: "transparent"
+                width: parent.width / 5
+                anchors.verticalCenter: parent.verticalCenter
+                height: parent.height 
+
+                Row {
+                    // anchors.centerIn: parent
+                    anchors.verticalCenter: parent.verticalCenter
+
+                Label {
+                    text: "Synchronization"
+                    font.pixelSize: isDesktop() ? 20 : 40
+                    anchors.verticalCenter: parent.verticalCenter
+                    // anchors.right: ToolButton.right
+                    font.bold: true
+                    color: "#121944"
+                }
+                
+                }
+            }
+
+            // Right section with Button
+            Rectangle {
+                id: header_btnADD
+                visible: !issearchHeader
+                color: "transparent"
+                width: parent.width / 5
+                anchors.verticalCenter: parent.verticalCenter
+                height: parent.height 
+                anchors.right: parent.right
+
+                Row {
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: isDesktop() ? 10 : 20
+                    anchors.right: parent.right
+
+                    ToolButton {
+                        id: search_id
+                        width: isDesktop() ? 40 : 80
+                        height: isDesktop() ? 35 : 80
+                        background: Rectangle {
+                            color: "transparent"  // Transparent button background
+                        }
+                        contentItem: Ubuntu.Icon {
+                            name: "search" 
+                        }
+                        onClicked: {
+                            issearchHeader = true
+                        }
+                    }
+                }
+                
+            }
+                Rectangle{
+                    id: search_header
+                    visible: issearchHeader
+                    width:parent.width
+                    anchors.verticalCenter: parent.verticalCenter
+                    ToolButton {
+                        id: back_idn
+                        width: isDesktop() ? 35 : 80
+                        height: isDesktop() ? 35 : 80
+                        anchors.verticalCenter: parent.verticalCenter
+                        background: Rectangle {
+                            color: "transparent"  // Transparent button background
+                        }
+                        contentItem: Ubuntu.Icon {
+                            name: "back"
+                        }
+                        onClicked: {
+                            issearchHeader = false
+                        }
+                    }
+
+                    // Full-width TextField
+                    TextField {
+                        id: searchField
+                        placeholderText: "Search..."
+                        anchors.left: back_idn.right // Start from the right of ToolButton
+                        anchors.leftMargin: isDesktop() ? 0 : 5
+                        anchors.right: parent.right // Extend to the right edge of the Row
+                        anchors.verticalCenter: parent.verticalCenter
+                        onTextChanged: {
+                             filtersynList(searchField.text)
+                        }
+                    }
+            }
+        }
+    }
+    Rectangle {
         width: parent.width
         height: parent.height
         anchors.top: parent.top
-        anchors.topMargin: isDesktop()?80:120
+        anchors.topMargin: isDesktop()?65:120
         anchors.left: parent.left
         anchors.leftMargin: isDesktop()?70 : 20
         anchors.right: parent.right
@@ -479,40 +709,7 @@ Item {
         anchors.bottomMargin: isDesktop()?0:100
         color: "#ffffff"
 
-        // Search Row
-        Row {
-            id: searchId
-            spacing: 10
-            anchors.top: parent.top  // Position below the search row
-            anchors.topMargin: isDesktop() ? 20 : 80
-            anchors.left: parent.left
-            anchors.leftMargin: isDesktop() ? 0 : 10
-            anchors.right: parent.right  // Float the search field to the right
-            width: parent.width
-
-            // Label on the left side
-            Label {
-                text: "Synchronization"
-                font.pixelSize: isDesktop() ? 20 : 40   
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.left: parent.left
-                font.bold: true
-                color:"#121944"
-                width: parent.width * (isDesktop() ? 0.8 :0.5)
-            }
-
-            // Search field on the right side
-            TextField {
-                id: searchField
-                placeholderText: "Search..."
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.right: parent.right
-                width: parent.width * (isDesktop() ? 0.2 :0.5)
-                onTextChanged: {
-                    filtersynList(searchField.text);  // Call the filter function when the text changes
-                }
-            }
-        }
+        
         Rectangle {
             // spacing: 0
             anchors.fill: parent
@@ -676,9 +873,15 @@ Item {
 
                                         onAccepted: {
                                             loading = true; // Start loading
+                                            var failed_sync = false;
                                             loadingMessage = 'Synchronization for ' + model.name + '!' 
                                             var filled_password = passwordInput.text
                                             python.call("backend.fetch_projects", [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, model.last_modified] , function(projects) {
+                                                if (projects === undefined) {
+                                                    loading = false;
+                                                    failed_sync = true;
+                                                    return
+                                                }
                                                 create_projects(projects, model.user_id);
                                                 python.call("backend.fetch_tasks", [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, model.last_modified], function(tasks) {
                                                     create_tasks(tasks, model.user_id);
@@ -687,8 +890,14 @@ Item {
                                                         create_activity_types(activity_types, model.user_id)
                                                         python.call("backend.fetch_contacts", [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, model.last_modified] , function(contacts) {
                                                             create_contacts(contacts, model.user_id)
-                                                            python.call('backend.fetch_activities', [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, model.last_modified], function(activities) {
-                                                                create_activities(activities, model.user_id)
+                                                            var fetchedallActivities = fetchAllActivities(model.user_id)
+                                                            python.call('backend.fetch_activities', [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, model.last_modified, fetchedallActivities], function(activities_dict) {
+                                                                if (activities_dict === undefined) {
+                                                                    loading = false;
+                                                                    return
+                                                                }
+                                                                create_activities(activities_dict.activities_list, model.user_id);
+                                                                done_activities(activities_dict.done_activities, model.user_id);
                                                                 loading = false;
                                                             })
                                                         })
@@ -699,14 +908,15 @@ Item {
                                                     })
                                                     var timesheets = fetchTimesheets(model.user_id)
                                                     python.call("backend.create_timesheets", [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, timesheets], function (res) {
-                                                        update_timesheet_entries(res)
+                                                        update_timesheet_entries(res, model.user_id)
                                                     })
                                                     passwordInput.text = ""
                                                     passwordDialog.close();
                                                 })
                                             })
-
-                                            update_instance_date(model.user_id)
+                                            if (!failed_sync) {
+                                                update_instance_date(model.user_id)
+                                            }
                                         }
 
                                         onRejected: {
@@ -748,6 +958,7 @@ Item {
     Component.onCompleted: {
         initializeDatabase();
         queryData();
+        issearchHeader = false
     }
 
     signal logInPage(string Accountuser_id)
