@@ -18,11 +18,13 @@ import QtQuick 2.7
 import QtQuick.Window 2.2
 import QtQuick.Controls 2.2
 import QtQuick.LocalStorage 2.7
+import Ubuntu.Components 1.3 as Ubuntu
+
 // import Qt.labs.platform 1.0
 
 Item {
-    width: Screen.width
-    height: Screen.height
+    width: parent.width
+    height: parent.height
     property var optionList: []
     property bool isTextInputVisible: false
     property bool isTextMenuVisible: false
@@ -100,17 +102,87 @@ Item {
    
     // Login form components
     Rectangle {
-        width: Screen.width
-        height: Screen.height
+        width: parent.width
+        height: parent.height
         color: "#FFFFFF"
         anchors.centerIn: parent
+        Rectangle {
+            id:loginHeder
+            width: parent.width
+            height: isDesktop()? 60 : 120 // Make height of the header adaptive based on content
+            anchors.top: parent.top
+            anchors.topMargin: isDesktop() ? 60 : 120
+            color: "#FFFFFF"   // Background color for the header
+            z: 1
+
+            // Bottom border
+            Rectangle {
+                width: parent.width
+                height: 2                    // Border height
+                color: "#DDDDDD"             // Border color
+                anchors.bottom: parent.bottom
+            }
+
+            Row {
+                id: row_id
+                width: parent.width
+                anchors.verticalCenter: parent.verticalCenter 
+                anchors.fill: parent
+                spacing: isDesktop() ? 20 : 40 
+                anchors.left: parent.left
+                anchors.leftMargin: isDesktop()?55 : -10
+                anchors.right: parent.right
+                anchors.rightMargin: isDesktop()?15 : 20 
+
+                // Left section with ToolButton and "Activities" label
+                Rectangle {
+                    id: header_tital
+                    visible: !issearchHeader
+                    color: "transparent"
+                    width: parent.width
+                    anchors.verticalCenter: parent.verticalCenter
+                    height: parent.height 
+
+                    Row {
+                        // anchors.centerIn: parent
+                        anchors.verticalCenter: parent.verticalCenter
+
+                    ToolButton {
+                        width: isDesktop() ? 40 : 80
+                        height: isDesktop() ? 35 : 80 
+                        background: Rectangle {
+                            color: "transparent"  // Transparent button background
+                        }
+                        contentItem: Ubuntu.Icon {
+                            name: "back" 
+                        }
+                        onClicked: {
+                            stackView.push(settingAccounts)
+                        }
+                    }    
+
+                    Label {
+                        text: "Login Account"
+                        font.pixelSize: isDesktop() ? 20 : 40
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.right: ToolButton.right
+                        font.bold: true
+                        color: "#121944"
+                    }
+                    
+                    }
+                }
+
+            }
+        }
 
         Image {
             id: logo
-            source: "images/timeManagemetLogo.png" // Path to your logo image
-            width: isDesktop() ? 200 : phoneLarg()?350:500
-            height: isDesktop() ? 200 :phoneLarg()?330: 500
+            // source: "images/timeManagemetLogo.png" // Path to your logo image
+            // width: isDesktop() ? 200 : phoneLarg()?350:500
+            // height: isDesktop() ? 200 :phoneLarg()?330: 500
             anchors.top: parent.top
+            anchors.topMargin: isDesktop()?150:phoneLarg()? 240 : 300
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.margins: 20
         }

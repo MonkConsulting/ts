@@ -19,6 +19,8 @@ import QtQuick.Window 2.2
 import QtQuick.Controls 2.2
 import QtQuick.LocalStorage 2.7
 import io.thp.pyotherside 1.4
+import Ubuntu.Components 1.3 as Ubuntu
+
 
 Item {
     width: parent.width
@@ -33,6 +35,8 @@ Item {
     property var accountsList: []
     property bool loading: false
     property string loadingMessage: ""
+    property bool issearchHeader: false
+
 
     // Python {
     //     id: python
@@ -98,16 +102,17 @@ Item {
     //     var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
 
     //     db.transaction(function(tx) {
-    //     // var users = tx.executeSql('DELETE FROM users where id =' + parseInt(recordId));
-
-    //     var project = tx.executeSql('DELETE * FROM project_project_app WHERE account_id = ?', [parseInt(id)]);
-    //     var task = tx.executeSql('DELETE * FROM project_task_app WHERE account_id = ?', [parseInt(id)]);
-    //     var analytic = tx.executeSql('DELETE * FROM account_analytic_line_app WHERE account_id = ?', [parseInt(id)]);
-    //     var activity = tx.executeSql('DELETE * FROM mail_activity_type_app WHERE account_id = ?', [parseInt(id)]);
-    //     var res_users = tx.executeSql('DELETE * FROM res_users_app WHERE account_id = ?', [parseInt(id)]);
-    //     var mail_activity = tx.executeSql('DELETE * FROM mail_activity_app WHERE account_id = ?', [parseInt(id)]);
-    //         queryData()
+    //     var users = tx.executeSql('DELETE FROM users where id =' + parseInt(id));
+    //         tx.executeSql('DELETE FROM project_project_app WHERE account_id = ?', [parseInt(id)]);
+    //         tx.executeSql('DELETE FROM project_task_app WHERE account_id = ?', [parseInt(id)]);
+    //         tx.executeSql('DELETE FROM account_analytic_line_app WHERE account_id = ?', [parseInt(id)]);
+    //         tx.executeSql('DELETE FROM mail_activity_type_app WHERE account_id = ?', [parseInt(id)]);
+    //         tx.executeSql('DELETE FROM res_users_app WHERE account_id = ?', [parseInt(id)]);
+    //         tx.executeSql('DELETE FROM mail_activity_app WHERE account_id = ?', [parseInt(id)]);
+    //            queryData()
+    //            timesheetlistData()
     //     });
+        
     // }
     // function moveDataPersonal(id){
     //     var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
@@ -123,10 +128,144 @@ Item {
         id: recordModel
     }
     Rectangle {
+        id:setting_header
+        width: parent.width
+        height: isDesktop()? 60 : 120 // Make height of the header adaptive based on content
+        anchors.top: parent.top
+        anchors.topMargin: isDesktop() ? 60 : 120
+        color: "#FFFFFF"   // Background color for the header
+        z: 1
+
+        // Bottom border
+        Rectangle {
+            width: parent.width
+            height: 2                    // Border height
+            color: "#DDDDDD"             // Border color
+            anchors.bottom: parent.bottom
+        }
+
+        Row {
+            id: row_id
+            width: parent.width
+            anchors.verticalCenter: parent.verticalCenter 
+            anchors.fill: parent
+            spacing: isDesktop() ? 20 : 40 
+            anchors.left: parent.left
+            anchors.leftMargin: isDesktop()? issearchHeader? 55 : 70 :issearchHeader ? -10 : 15
+            anchors.right: parent.right
+            anchors.rightMargin: isDesktop()?15 : 20 
+
+            // Left section with ToolButton and "Activities" label
+            Rectangle {
+                id: header_tital
+                visible: !issearchHeader
+                color: "transparent"
+                width: parent.width / 5
+                anchors.verticalCenter: parent.verticalCenter
+                height: parent.height 
+
+                Row {
+                    // anchors.centerIn: parent
+                    anchors.verticalCenter: parent.verticalCenter
+
+                Label {
+                    text: "Accounts"
+                    font.pixelSize: isDesktop() ? 20 : 40
+                    anchors.verticalCenter: parent.verticalCenter
+                    // anchors.right: ToolButton.right
+                    font.bold: true
+                    color: "#121944"
+                }
+                
+                }
+            }
+
+            // Right section with Button
+            Rectangle {
+                id: header_btnADD
+                visible: !issearchHeader
+                color: "transparent"
+                width: parent.width / 8
+                anchors.verticalCenter: parent.verticalCenter
+                height: parent.height 
+                anchors.right: parent.right
+
+                Row {
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: isDesktop() ? 10 : 20
+                    anchors.right: parent.right
+
+                    ToolButton {
+                        width: isDesktop() ? 40 : 80
+                        height: isDesktop() ? 35 : 80
+                        background: Rectangle {
+                            color: "transparent"  // Transparent button background
+                        }
+                        contentItem: Ubuntu.Icon {
+                            name: "add" 
+                        }
+                        onClicked: {
+                            goToLogin()  // Call function to create new activity
+                        }
+                    }
+                    ToolButton {
+                        id: search_id
+                        width: isDesktop() ? 40 : 80
+                        height: isDesktop() ? 35 : 80
+                        background: Rectangle {
+                            color: "transparent"  // Transparent button background
+                        }
+                        contentItem: Ubuntu.Icon {
+                            name: "search" 
+                        }
+                        onClicked: {
+                            issearchHeader = true
+                        }
+                    }
+                }
+                
+            }
+                Rectangle{
+                    id: search_header
+                    visible: issearchHeader
+                    width:parent.width
+                    anchors.verticalCenter: parent.verticalCenter
+                    ToolButton {
+                        id: back_idn
+                        width: isDesktop() ? 35 : 80
+                        height: isDesktop() ? 35 : 80
+                        anchors.verticalCenter: parent.verticalCenter
+                        background: Rectangle {
+                            color: "transparent"  // Transparent button background
+                        }
+                        contentItem: Ubuntu.Icon {
+                            name: "back"
+                        }
+                        onClicked: {
+                            issearchHeader = false
+                        }
+                    }
+
+                    // Full-width TextField
+                    TextField {
+                        id: searchField
+                        placeholderText: "Search..."
+                        anchors.left: back_idn.right // Start from the right of ToolButton
+                        anchors.leftMargin: isDesktop() ? 0 : 5
+                        anchors.right: parent.right // Extend to the right edge of the Row
+                        anchors.verticalCenter: parent.verticalCenter
+                        onTextChanged: {
+                            filtersynList(searchField.text);  
+                        }
+                    }
+            }
+        }
+    }
+    Rectangle {
         width: parent.width
         height: parent.height
         anchors.top: parent.top
-        anchors.topMargin: isDesktop()?80:120
+        anchors.topMargin: isDesktop()?65:120
         anchors.left: parent.left
         anchors.leftMargin: isDesktop()?70 : 20
         anchors.right: parent.right
@@ -136,62 +275,60 @@ Item {
         color: "#ffffff"
 
         // Search Row
-        Row {
-            id: searchId
-            width: parent.width
-            anchors.top: parent.top
-            anchors.topMargin: isDesktop() ? 10 : 25
-            spacing: isDesktop() ? 20 : 30  
-            anchors.horizontalCenter: parent.horizontalCenter  
+        // Row {
+        //     id: searchId
+        //     width: parent.width
+        //     anchors.top: parent.top
+        //     anchors.topMargin: isDesktop() ? 10 : 80
+        //     spacing: isDesktop() ? 20 : 30  
+        //     anchors.horizontalCenter: parent.horizontalCenter  
             
-            Label {
-                text: "Accounts"
-                font.pixelSize: isDesktop() ? 20 : 40   
-                anchors.verticalCenter: parent.verticalCenter
-                font.bold: true
-                color: "#121944"
-                width: parent.width * (isDesktop() ? 0.453   : phoneLarg() ? 0.35 : 0.2)  
-            }
+        //     Label {
+        //         text: "Accounts"
+        //         font.pixelSize: isDesktop() ? 20 : 40   
+        //         anchors.verticalCenter: parent.verticalCenter
+        //         font.bold: true
+        //         color: "#121944"
+        //     }
             
-            Rectangle {
-                width: parent.width * (isDesktop() ? 0.2   : 0.1)    
-                height: 1
-                color: "transparent"
-            }
             
-            TextField {
-                id: searchField
-                placeholderText: "Search..."
-                anchors.verticalCenter: parent.verticalCenter
-                width: parent.width * (isDesktop() ? 0.2 : 0.4)  
-                onTextChanged: {
-                    filtersynList(searchField.text);  
-                }
-            }
+        //     TextField {
+        //         id: searchField
+        //         placeholderText: "Search..."
+        //         anchors.verticalCenter: parent.verticalCenter
+        //         anchors.right: parent.right
+        //         anchors.rightMargin: btn_id.width + 10
+        //         width: parent.width * (isDesktop() ? 0.2 : 0.4)  
+        //         onTextChanged: {
+        //             filtersynList(searchField.text);  
+        //         }
+        //     }
             
-            Button {
-                width: isDesktop() ? 120 : 220
-                height: isDesktop() ? 40 : 80
-                anchors.verticalCenter: parent.verticalCenter
-                background: Rectangle {
-                    color: "#121944"
-                    radius: isDesktop() ? 5 : 10
-                    border.color: "#87ceeb"
-                    border.width: 2
-                    anchors.fill: parent
-                }
-                contentItem: Text {
-                    text: " + "
-                    color: "#ffffff"
-                    font.pixelSize: isDesktop() ? 20 : 40
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-                onClicked: {
-                    goToLogin()  // Call function to create new activity
-                }
-            }
-        }
+        //     Button {
+        //         id: btn_id
+        //         width: isDesktop() ? 120 : 220
+        //         height: isDesktop() ? 40 : 80
+        //         anchors.verticalCenter: parent.verticalCenter
+        //         anchors.right: parent.right
+        //         background: Rectangle {
+        //             color: "#121944"
+        //             radius: isDesktop() ? 5 : 10
+        //             border.color: "#87ceeb"
+        //             border.width: 2
+        //             anchors.fill: parent
+        //         }
+        //         contentItem: Text {
+        //             text: " + "
+        //             color: "#ffffff"
+        //             font.pixelSize: isDesktop() ? 20 : 40
+        //             horizontalAlignment: Text.AlignHCenter
+        //             verticalAlignment: Text.AlignVCenter
+        //         }
+        //         onClicked: {
+        //             goToLogin()  // Call function to create new activity
+        //         }
+        //     }
+        // }
         Rectangle {
             // spacing: 0
             anchors.fill: parent
@@ -312,42 +449,27 @@ Item {
                                     //     id: deleteDialog
                                     //     title: "Confirmation"
                                     //      x: (parent.width - width) / 2
-                                    //      y: -270
-                                    //      height: isDesktop()?260:500
+                                    //      y: -150
+                                    //     //  height: isDesktop()?260:500
                                     //     standardButtons: Dialog.Ok | Dialog.Cancel
 
                                     //     contentItem: Column {
                                     //         spacing: isDesktop() ? 10 : 10  // Increase spacing for desktop
                                     //         padding: isDesktop() ? 10 : 20  // Increase padding for desktop
-
-                                    //         // Radio button 1: Delete all data
-                                    //         RadioButton {
-                                    //             id: deleteAccountRadio
-                                    //             text: "Delete all data"
-                                    //             checked: true  // Default checked option
-                                    //             font.pixelSize: isDesktop() ? 20 : 40  // Larger text for desktop
-                                    //         }
-
-                                    //         // Radio button 2: Keep personal data
-                                    //         RadioButton {
-                                    //             id: keepAccountRadio
-                                    //             text: "Move data to personal"
-                                    //             font.pixelSize: isDesktop() ? 20 : 40  // Larger text for desktop
-                                    //         }
+                                    //             Text {
+                                    //                 text: "Are you sure you want to delete this data?"  // Confirmation message
+                                    //                 font.pixelSize: isDesktop() ? 16 : 20
+                                    //                 horizontalAlignment: Text.AlignHCenter
+                                    //                 wrapMode: Text.WordWrap
+                                    //             }
                                     //     }
 
                                     //     onAccepted: {
-                                    //         if (deleteAccountRadio.checked) {
-                                    //             console.log("Option selected: Delete all data")
-                                    //             deteleAllData(model.user_id)
-                                    //         } else if (keepAccountRadio.checked) {
-                                    //             console.log("Option selected: Move data to personal")
-                                    //             moveDataPersonal(model.user_id)
-
-                                    //         }
-                                    //         // deleteData(model.user_id)
-                                    //         // logInPage(model.user_id)
-                                    //         // recordModel.remove(index)  // Remove the record
+                                    //         // deteleAllData(model.user_id)
+                                    //         logInPage(model.user_id)
+                                    //         // passwordDialog.open()
+                                    //         deleteData(model.user_id)
+                                    //         recordModel.remove(index) // Remove the record
                                     //         deleteDialog.close()  // Close the dialog
                                     //     }
 
@@ -355,14 +477,7 @@ Item {
                                     //         console.log("Dialog cancelled")
                                     //     }
                                     // }
-
-
-                                    
-                                       
-                                    
                                 }
-
-                               
                             }
                         }
                     }
@@ -392,6 +507,7 @@ Item {
 
     Component.onCompleted: {
         queryData();
+        issearchHeader = false
     }
 
     signal logInPage(string Accountuser_id)

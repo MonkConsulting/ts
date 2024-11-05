@@ -18,6 +18,8 @@ import QtQuick 2.7
 import QtQuick.Window 2.2
 import QtQuick.Controls 2.2
 import QtQuick.LocalStorage 2.7
+import Ubuntu.Components 1.3 as Ubuntu
+
 
 Item {
     width: parent.width
@@ -29,19 +31,26 @@ Item {
     property int eidtselectedUserId: 0
     property bool isActivityEdit: false
     property bool isEditActivityClicked: false
+    property bool issearchHeader: false
     property var filterActivityListData: []
     property int selectededitlinkUserId: 0 
     property int selectededitprojectUserId: 0
     property int selectededittaskUserId: 0
-    function queryData() {
+    property bool readOnlys: true
+    function queryData(type) {
         var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
         db.transaction(function (tx) {
             filterActivityListData = []
             activityListModel.clear();
             // tx.executeSql('DELETE FROM mail_activity_app');
             if(workpersonaSwitchState){
-                var existing_activities = tx.executeSql('select * from mail_activity_app')
-            }else{
+                var existing_activities = tx.executeSql('select * from mail_activity_app where account_id is not NULL')
+                if (type == 'pending') {
+                    existing_activities = tx.executeSql('select * from mail_activity_app where account_id is not NULL AND state != "done"')
+                } else if (type == 'done') {
+                    existing_activities = tx.executeSql('select * from mail_activity_app where account_id is not NULL AND state = "done"')
+                }
+            } else {
                 var existing_activities = tx.executeSql('SELECT * FROM mail_activity_app where account_id IS NULL');
             }
 
@@ -106,13 +115,13 @@ Item {
         // Update the record in the database
         tx.executeSql('UPDATE mail_activity_app SET \
             account_id = ?, activity_type_id = ?, summary = ?, user_id = ?, due_date = ?, \
-            notes = ?, resModel = ?, resId = ?, task_id = ?, project_id = ?, link_id = ? \
+            notes = ?, resModel = ?, resId = ?, task_id = ?, project_id = ?, link_id = ?, state = ? \
             WHERE id = ?',
             [data.updatedAccount, data.updatedActivity, data.updatedSummary, data.updatedUserId,
             data.updatedDate, data.updatedNote, data.resModel, data.resId, data.task_id, 
-            data.project_id, data.link_id, data.rowId]  // Parameters to replace placeholders
+            data.project_id, data.link_id, data.editschedule, data.rowId]  // Parameters to replace placeholders
         );
-        queryData();  // Refresh data or perform another action after updating
+        queryData('pending');  // Refresh data or perform another action after updating
     });
 }
 
@@ -135,7 +144,7 @@ Item {
 
     ListModel {
         id: editlinkList
-        ListElement { itemId: 0; name: "" }   // Option 1: Blank
+        ListElement { itemId: 0; name: "Contact" }   // Option 1: Blank
         ListElement { itemId: 1; name: "Project" }  // Option 2: Project
         ListElement { itemId: 2; name: "Task" }   // Option 3: Task
         ListElement { itemId: 3; name: "Other" }   // Option 4: Other
@@ -177,10 +186,175 @@ Item {
     }
 
     Rectangle {
+        id:activities_list
+        width: parent.width
+        height: isDesktop()? 60 : 120 // Make height of the header adaptive based on content
+        anchors.top: parent.top
+        anchors.topMargin: isDesktop() ? 60 : 120
+        color: "#FFFFFF"   // Background color for the header
+        z: 1
+
+        // Bottom border
+        Rectangle {
+            width: parent.width
+            height: 2                    // Border height
+            color: "#DDDDDD"             // Border color
+            anchors.bottom: parent.bottom
+        }
+
+        Row {
+            id: row_id
+            width: parent.width
+            anchors.verticalCenter: parent.verticalCenter 
+            anchors.fill: parent
+            spacing: isDesktop() ? 20 : 40 
+            anchors.left: parent.left
+            anchors.leftMargin: isDesktop()? issearchHeader? 55 : 70 :issearchHeader ? -10 : 15
+            anchors.right: parent.right
+            anchors.rightMargin: isDesktop()?15 : 20 
+
+            // Left section with ToolButton and "Activities" label
+            Rectangle {
+                id: header_tital
+                visible: !issearchHeader
+                color: "transparent"
+                width: parent.width / 5
+                anchors.verticalCenter: parent.verticalCenter
+                height: parent.height 
+
+                Row {
+                    // anchors.centerIn: parent
+                    anchors.verticalCenter: parent.verticalCenter
+
+                Label {
+                    text: "Activities"
+                    font.pixelSize: isDesktop() ? 20 : 40
+                    anchors.verticalCenter: parent.verticalCenter
+                    // anchors.right: ToolButton.right
+                    font.bold: true
+                    color: "#121944"
+                }
+                
+                }
+            }
+
+            // Right section with Button
+            Rectangle {
+                id: header_btnADD
+                visible: !issearchHeader
+                color: "transparent"
+                width: parent.width / 8
+                anchors.verticalCenter: parent.verticalCenter
+                height: parent.height 
+                anchors.right: parent.right
+
+                Row {
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: isDesktop() ? 10 : 20
+                    anchors.right: parent.right
+
+                    ToolButton {
+                        width: isDesktop() ? 40 : 80
+                        height: isDesktop() ? 35 : 80
+                        background: Rectangle {
+                            color: "transparent"  // Transparent button background
+                        }
+                        contentItem: Ubuntu.Icon {
+                            name: "add" 
+                        }
+                        onClicked: {
+                            newRecordActivity()
+                        }
+                    }
+                    ToolButton {
+                        id: search_id
+                        width: isDesktop() ? 40 : 80
+                        height: isDesktop() ? 35 : 80
+                        background: Rectangle {
+                            color: "transparent"  // Transparent button background
+                        }
+                        contentItem: Ubuntu.Icon {
+                            name: "search" 
+                        }
+                        onClicked: {
+                            issearchHeader = true
+                        }
+                    }
+                }
+                
+            }
+            Rectangle{
+                id: search_header
+                visible: issearchHeader
+                width:parent.width
+                anchors.verticalCenter: parent.verticalCenter
+                ToolButton {
+                    id: back_idn
+                    width: isDesktop() ? 35 : 80
+                    height: isDesktop() ? 35 : 80
+                    anchors.verticalCenter: parent.verticalCenter
+                    background: Rectangle {
+                        color: "transparent"  // Transparent button background
+                    }
+                    contentItem: Ubuntu.Icon {
+                        name: "back"
+                    }
+                    onClicked: {
+                        issearchHeader = false
+                    }
+                }
+
+                // Full-width TextField
+                TextField {
+                    id: searchField
+                    placeholderText: "Search..."
+                    anchors.left: back_idn.right // Start from the right of ToolButton
+                    anchors.leftMargin: isDesktop() ? 0 : 5
+                    anchors.right: parent.right // Extend to the right edge of the Row
+                    anchors.verticalCenter: parent.verticalCenter
+                    onTextChanged: {
+                        filterActivityList(searchField.text);
+                    }
+                }
+            }
+        }
+        // Rectangle {
+            TabBar {
+                anchors.topMargin: isDesktop()?65:100
+                spacing: isDesktop() ? 20 : 40 
+                width: parent.width
+                anchors.verticalCenter: parent.verticalCenter 
+                anchors.fill: parent
+                anchors.left: parent.left
+                anchors.leftMargin: isDesktop()? issearchHeader? 55 : 70 :issearchHeader ? -10 : 15
+                anchors.right: parent.right
+                anchors.rightMargin: isDesktop()?15 : 20
+                id: tabBar
+
+                // currentIndex: swipeView.currentIndex
+
+                TabButton {
+                    text: "Open"
+                    onClicked: queryData('pending')
+                }
+                TabButton {
+                    text: "Done"
+                    onClicked: queryData('done')
+                }
+                TabButton {
+                    text: "All"
+                    onClicked: queryData('all')
+                }
+            }
+        // }
+    }
+    
+
+    Rectangle {
         width: parent.width
         height: parent.height
         anchors.top: parent.top
-        anchors.topMargin: isDesktop()?80:120
+        anchors.topMargin: isDesktop()?110:200
         anchors.left: parent.left
         anchors.leftMargin: isDesktop()?70 : 20
         anchors.right: parent.right
@@ -188,69 +362,12 @@ Item {
         anchors.bottom: parent.bottom
         anchors.bottomMargin: isDesktop()?0:100
         color: "#ffffff"
-
-        Row {
-            id: newActivity
-            width: parent.width
-            anchors.top: parent.top
-            anchors.topMargin: isDesktop() ? 10 : 25
-            spacing: isDesktop() ? 20 : 30  
-            anchors.horizontalCenter: parent.horizontalCenter  
-            
-            Label {
-                text: "Activities"
-                font.pixelSize: isDesktop() ? 20 : 40   
-                anchors.verticalCenter: parent.verticalCenter
-                font.bold: true
-                color: "#121944"
-                width: parent.width * (isDesktop() ? 0.453   : phoneLarg() ? 0.35 : 0.2)  
-            }
-            
-            Rectangle {
-                width: parent.width * (isDesktop() ? 0.2   : 0.1)    
-                height: 1
-                color: "transparent"
-            }
-            
-            TextField {
-                id: searchField
-                placeholderText: "Search..."
-                anchors.verticalCenter: parent.verticalCenter
-                width: parent.width * (isDesktop() ? 0.2 : 0.4)  
-                onTextChanged: {
-                    filterActivityList(searchField.text);  
-                }
-            }
-            
-            Button {
-                width: isDesktop() ? 120 : 220
-                height: isDesktop() ? 40 : 80
-                anchors.verticalCenter: parent.verticalCenter
-                background: Rectangle {
-                    color: "#121944"
-                    radius: isDesktop() ? 5 : 10
-                    border.color: "#87ceeb"
-                    border.width: 2
-                    anchors.fill: parent
-                }
-                contentItem: Text {
-                    text: " + "
-                    color: "#ffffff"
-                    font.pixelSize: isDesktop() ? 20 : 40
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-                onClicked: {
-                    newRecordActivity();  // Call function to create new activity
-                }
-            }
-        }
        
         Rectangle {
             // spacing: 0
             anchors.fill: parent
             anchors.top: newActivity.bottom  
-            anchors.topMargin: isDesktop() ? 68 : 170
+            anchors.topMargin: isDesktop() ? 65 : 170
             border.color: "#CCCCCC"
             border.width: isDesktop() ? 1 : 2
         Column {
@@ -266,7 +383,6 @@ Item {
                 clip: true
                 property string edit_id: ""
                 visible: isDesktop() ? true : phoneLarg()? true : rightPanel.visible? false : true
-
 
 
                 Column {
@@ -340,6 +456,7 @@ Item {
                             }
                         }
                     }
+
                 }
             }
             Rectangle {
@@ -349,7 +466,7 @@ Item {
                 width: isDesktop() ? parent.width /2 : phoneLarg()? parent.width /2 : parent.width
                 height: parent.height
                 anchors.top: parent.top
-                anchors.topMargin: phoneLarg()? -165 :0
+                anchors.topMargin: phoneLarg()? 0 :0
                 color: "#EFEFEF"
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
@@ -361,6 +478,7 @@ Item {
                             var result = tx.executeSql('SELECT * FROM mail_activity_app WHERE id = ?', [rowId]);
                             if (result.rows.length > 0) {
                                 var rowData = result.rows.item(0);
+                                console.log(JSON.stringify(rowData, null, 2))
                                 
                                 var activityId = rowData.activity_type_id || 0; // Default to 0 if null/undefined
                                 var accountId = rowData.account_id || 0; // Default to 0 if null/undefined
@@ -386,7 +504,7 @@ Item {
                                 summaryInput.text = rowData.summary || ""; // Default to empty string if null/undefined
                                 selectededitlinkUserId = rowData.link_id
                                 if(selectededitlinkUserId === 0){
-                                    editlinkInput.text = ""
+                                    editlinkInput.text = "Contact"
                                 }
                                 if(selectededitlinkUserId === 1){
                                     editlinkInput.text = "Project"
@@ -409,11 +527,24 @@ Item {
 
                                 editresModelInput.text =rowData.resModel
                                 editresIdInput.text =rowData.resId
+                                if(rowData.state == "done"){
+                                    readOnlys = true
+                                }else{
+                                    readOnlys = false
+                                }
+                                editschedule.text = rowData.state
                                 
                                 var dueDate = rowData.due_date ? new Date(rowData.due_date) : null;
                                 datetimeInput.text = dueDate ? formatDate(dueDate) : "";
-
-                                notesInput.text = rowData.notes || ""
+                                notesInput.text = rowData.notes
+                                    .replace(/<[^>]+>/g, " ")     // Remove all HTML tags
+                                    .replace(/&nbsp;/g, "")       // Replace &nbsp; with a space
+                                    .replace(/&lt;/g, "<")         // Convert &lt; to <
+                                    .replace(/&gt;/g, ">")         // Convert &gt; to >
+                                    .replace(/&amp;/g, "&")        // Convert &amp; to &
+                                    .replace(/&quot;/g, "\"")      // Convert &quot; to "
+                                    .replace(/&#39;/g, "'")        // Convert &#39; to '
+                                    .trim() || "";
                             }
                         });
                         function formatDate(date) {
@@ -435,24 +566,22 @@ Item {
                         anchors.topMargin: 5
                         z: 1
                         color: "#ccc"
+                    
                     Row {
                         width: parent.width
                         anchors.top: parent.top
                         anchors.topMargin: 5
-                        // anchors.horizontalCenter: parent.horizontalCenter  // Center the row horizontally
-                        spacing: 10  // Add spacing between buttons if needed
+                        spacing: 20  // Adjust spacing for desired distance between buttons
 
                         Button {
                             id: crossButton
-                            anchors.left: parent.left
                             width: isDesktop() ? 24 : 65
                             height: isDesktop() ? 24 : 65
+                            anchors.left: parent.left
                             anchors.leftMargin: 10
-                            // anchors.top: parent.top
-                            // anchors.topMargin: 10
 
                             Image {
-                                source: "images/cross.svg" // Replace with your image path
+                                source: "images/cross.svg"  // Replace with your image path
                                 width: isDesktop() ? 24 : 65
                                 height: isDesktop() ? 24 : 65
                             }
@@ -466,12 +595,63 @@ Item {
                             onClicked: {
                                 rightPanel.visible = false 
                                 currentRecordId = -1
-                                // row_main_id.color="EFEFEF"
+                            }
+                        }
+
+                        Button {
+                            id: centerBtn
+                            // width: isDesktop() ? 20 : 50
+                            // height: isDesktop() ? 20 : 50
+                            visible: !readOnlys
+                            anchors.horizontalCenter: parent.horizontalCenter  // Center the button in the Row
+                            enabled: !readOnlys
+                            contentItem: Text {
+                                text: "Done"
+                                font.pixelSize: isDesktop() ? 20 : phoneLarg()?30:40
+                                horizontalAlignment: Text.AlignHCenter // Align text horizontally (redundant here but useful for multi-line)
+
+                            }
+
+                            onClicked: {
+                                editschedule.text = "done"
+                                readOnlys = true
+                                var rowId = editActivity.edit_id;
+                                const editData = {
+                                    updatedAccount: editselectedAccountUserId,
+                                    updatedActivity: editselectedActivityTypeId,
+                                    updatedUserId: eidtselectedUserId,
+                                    updatedSummary: summaryInput.text,
+                                    updatedDate: datetimeInput.text,
+                                    updatedNote: notesInput.text,
+                                    rowId: rowId,
+                                    project_id: selectededitprojectUserId,
+                                    task_id: selectededittaskUserId,
+                                    link_id: selectededitlinkUserId,
+                                    resModel: editresModelInput.text,
+                                    resId: editresIdInput.text,
+                                    editschedule: editschedule.text
+                                }
+                                editActivityData(editData)
+                                isEditActivityClicked = true
+                                isActivityEdit = true
+                                activityEditTimer.start();  // Timer for edit activity
+                                filterActivityList(searchField.text)
+                            }
+                        }
+
+                        Timer {
+                            id: activityEditTimer
+                            interval: 2000  // 2 seconds delay
+                            repeat: false
+                            onTriggered: {
+                                isActivityEdit = false;
+                                isEditActivityClicked = false;
                             }
                         }
 
                         Button {
                             id: rightButton
+                            visible: !readOnlys
                             // Position this button on the right side
                             anchors.right: parent.right
                             anchors.top: parent.top
@@ -502,29 +682,24 @@ Item {
                                     updatedDate: datetimeInput.text,
                                     updatedNote: notesInput.text,
                                     rowId: rowId,
-                                    project_id:selectededitprojectUserId,
-                                    task_id:selectededittaskUserId,
-                                    link_id:selectededitlinkUserId,
-                                    resModel:editresModelInput.text,
-                                    resId:editresIdInput.text
+                                    project_id: selectededitprojectUserId,
+                                    task_id: selectededittaskUserId,
+                                    link_id: selectededitlinkUserId,
+                                    resModel: editresModelInput.text,
+                                    resId: editresIdInput.text,
+                                    editschedule: editschedule.text
                                 }
                                 editActivityData(editData)
                                 isEditActivityClicked = true
                                 isActivityEdit = true
-                                activityEditTimer.start(); // Use the QML Timer to handle the delay
+                                activityEditTimer.start();  // Timer for edit activity
                                 filterActivityList(searchField.text)
                             }
-                            Timer {
-                                id: activityEditTimer
-                                interval: 2000 // 3 seconds delay
-                                repeat: false
-                                onTriggered: {
-                                    isActivityEdit = false;
-                                    isEditActivityClicked = false;
-                                }
-                            }
                         }
-                    }}
+                    }
+
+                    
+                    }
                     Flickable {
                         id: flickableContainer
                         width: parent.width
@@ -677,6 +852,7 @@ Item {
                                             MouseArea {
                                                 anchors.fill: parent
                                                 onClicked: {
+                                                    if(!readOnlys){
                                                     var result = accountlistDataGet(); 
                                                         if(result){
                                                             accountList.clear();
@@ -684,7 +860,7 @@ Item {
                                                                 accountList.append(result[i]);
                                                             }
                                                             menuAccount.open();
-                                                        }
+                                                        }}
                                                 }
                                             }
 
@@ -779,13 +955,14 @@ Item {
                                             MouseArea {
                                                 anchors.fill: parent
                                                 onClicked: {
+                                                    if(!readOnlys){
                                                     activityTypeListModel.clear();
                                                     console.log(editselectedAccountUserId,"//////selectedAccountUserId/////")
                                                     var result = fetch_activity_types(editselectedAccountUserId);
                                                     for (var i = 0; i < result.length; i++) {
                                                         activityTypeListModel.append({'id': result[i].id, 'name': result[i].name})
                                                     }
-                                                    menu.open();
+                                                    menu.open();}
                                                 }
                                             }
 
@@ -877,13 +1054,14 @@ Item {
                                             MouseArea {
                                                 anchors.fill: parent
                                                 onClicked: {
+                                                    if(!readOnlys){
                                                     editaccountUsersList.clear();
                                                     console.log('\n\n selectedAccountUserId', selectedAccountUserId)
                                                     var result = fetch_current_users(editselectedAccountUserId);
                                                     for (var i = 0; i < result.length; i++) {
                                                         editaccountUsersList.append({'id': result[i].id, 'name': result[i].name})
                                                     }
-                                                    usermenu.open();
+                                                    usermenu.open();}
                                                 }
                                             }
 
@@ -974,6 +1152,7 @@ Item {
                                                 font.pixelSize: isDesktop() ? 18 : 40
                                                 wrapMode: Text.NoWrap  
                                                 anchors.fill: parent
+                                                readOnly: readOnlys
 
                                                 Text {
                                                     id: summaryplaceholder
@@ -1058,9 +1237,10 @@ Item {
                                             MouseArea {
                                                 anchors.fill: parent
                                                 onClicked: {
+                                                    if(!readOnlys){
                                                     var now = new Date();
                                                     datePicker.selectedDate = now;
-                                                    calendarDialog.visible = true;
+                                                    calendarDialog.visible = true;}
                                                 }
                                             }
 
@@ -1123,6 +1303,7 @@ Item {
                                                 font.pixelSize: isDesktop() ? 18 : 40
                                                 wrapMode: Text.NoWrap  
                                                 anchors.fill: parent
+                                                readOnly: readOnlys
 
                                                 Text {
                                                     id: notesplaceholder
@@ -1193,7 +1374,8 @@ Item {
                                             MouseArea {
                                                 anchors.fill: parent
                                                 onClicked: {
-                                                    menueditlink.open()
+                                                    if(!readOnlys){
+                                                    menueditlink.open()}
                                                 }
                                             }
 
@@ -1242,7 +1424,8 @@ Item {
                                             }
                                         }
                                     }
-                                     // project
+
+                                    // project
                                     Rectangle {
                                         width: isDesktop() ? 430 : 700
                                         height: isDesktop() ? 25 : phoneLarg()?50:80
@@ -1284,6 +1467,7 @@ Item {
                                             MouseArea {
                                                 anchors.fill: parent
                                                 onClicked: {
+                                                    if(!readOnlys){
                                                     editprojectList.clear();
                                                     if(editselectedAccountUserId != 0){
                                                         var result = projects_get(editselectedAccountUserId); 
@@ -1294,7 +1478,7 @@ Item {
                                                             }
                                                     }
                                                                 menueditproject.open();
-                                                }
+                                                }}
                                             }
 
                                             Menu {
@@ -1345,7 +1529,7 @@ Item {
                                             }
                                         }
                                     }
-                                     // task
+                                    // task
                                     Rectangle {
                                         width: isDesktop() ? 430 : 700
                                         height: isDesktop() ? 25 : phoneLarg()?50:80
@@ -1374,6 +1558,7 @@ Item {
                                             anchors.fill: parent
                                             // anchors.margins: 5                                                        
                                             id: edittaskInput
+                                            readOnly: readOnlys
                                             Text {
                                                 id: edittaskplaceholder
                                                 text: "editTask"                                            
@@ -1387,6 +1572,7 @@ Item {
                                             MouseArea {
                                                 anchors.fill: parent
                                                 onClicked: {
+                                                    if(!readOnlys){
                                                     var result = tasks_list_get(editselectedAccountUserId); 
                                                         if(result){
                                                             edittaskList.clear();
@@ -1395,7 +1581,7 @@ Item {
                                                             }
                                                             menuedittask.open();
                                                         }
-                                                }
+                                                }}
                                             }
 
                                             Menu {
@@ -1429,11 +1615,6 @@ Item {
                                                         }
 
                                                         onClicked: {
-                                                            // activityTypeInput.text = ''
-                                                            // selectedActivityTypeId = 0
-                                                            // subeditTaskInput.text = ''
-                                                            // selectedSubeditTaskId = 0
-                                                            // hasSubeditTask = false
                                                             edittaskInput.text = edittaskName
                                                             selectededittaskUserId = edittaskId
                                                             menuedittask.close()
@@ -1451,7 +1632,7 @@ Item {
                                             }
                                         }
                                     }
-                                     // res model
+                                    // res model
                                     Rectangle {
                                         width: isDesktop() ? 430 : 700
                                         height: isDesktop() ? 25 : phoneLarg()?45:80
@@ -1492,6 +1673,7 @@ Item {
                                                 font.pixelSize: isDesktop() ? 18 : 40
                                                 wrapMode: Text.NoWrap  
                                                 anchors.fill: parent
+                                                readOnly: readOnlys
 
                                                 Text {
                                                     id: editresModelplaceholder
@@ -1523,7 +1705,7 @@ Item {
                                             }
                                         }
                                     }
-                                     // res ID       
+                                    // res ID       
                                     Rectangle {
                                         width: isDesktop() ? 430 : 700
                                         height: isDesktop() ? 25 : phoneLarg()?50:80
@@ -1545,6 +1727,7 @@ Item {
                                             height: parent.height
                                             font.pixelSize: isDesktop() ? 18 :40
                                             anchors.fill: parent
+                                            readOnly: readOnlys
                                             Text {
                                                     id: editresIdInputplaceholder
                                                     text: "Res Id"
@@ -1557,12 +1740,18 @@ Item {
 
                                             onTextChanged: {
                                                 editresIdInputplaceholder.visible = editresIdInput.text.length === 0
-
-                                                // Remove any non-numeric characters
                                                 editresIdInput.text = editresIdInput.text.replace(/[^0-9]/g, "");
                                             }
                                         }
 
+                                    }
+                                    TextInput {
+                                        id: editschedule
+                                        width: parent.width
+                                        height: parent.height
+                                        font.pixelSize: isDesktop() ? 18 : phoneLarg()?30:40
+                                        anchors.fill: parent
+                                        visible: false
                                     }
                                      Rectangle {
                                         width: parent.width
@@ -1594,40 +1783,15 @@ Item {
             }
 
         }}
-
-        // Drawer {
-        //     id: bottomDrawer
-        //     edge: Qt.BottomEdge  // Attach to the bottom edge
-        //     width: parent.width
-        //     height: isDesktop() ? 300 : 500  // Height of the drawer
-        //     background: Rectangle {
-        //         color: "#F0F0F0"
-        //     }
-            
-        //     StackView {
-        //         id: stackView
-        //         anchors.fill: parent
-        //         initialItem: activityForm // Ensure there's an initial item or you can use `push` here
-        //     }
-
-              
-        //     // stackView.push(activityForm)
-
-        // }
-        // Button {
-        //     text: "Open Bottom Drawer"
-        //     anchors.bottom: parent.bottom
-        //     anchors.horizontalCenter: parent.horizontalCenter
-        //     onClicked: {
-        //         bottomDrawer.open();
-        //     }
-        // }
             
     }
 
+
+
     Component.onCompleted: {
         // initializeDatabase();
-        queryData();
+        queryData('pending');
+        issearchHeader = false
     }
 
     signal newRecordActivity()
