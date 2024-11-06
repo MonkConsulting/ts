@@ -413,8 +413,15 @@ ApplicationWindow {
         });
     
     }
-    function notaddDataRow(model){
-        if(model.project_id && model.task_id){
+    function notaddDataPro(model){
+        if(model.project_id ){
+            return "#000000"
+        }else{
+            return "#ff0000"
+        }
+    }
+    function notaddDatatask(model){
+        if(model.task_id){
             return "#000000"
         }else{
             return "#ff0000"
@@ -487,7 +494,7 @@ ApplicationWindow {
                             // anchors.left: parent.left
                             // anchors.leftMargin: isDesktop() ? 7: 10
                             anchors.left: parent.left
-                            anchors.leftMargin: img_id.width - (isDesktop() ? 0: 10)
+                            anchors.leftMargin: img_id.width - (isDesktop() ? 0: 5)
                             // anchors.bottom: parent.bottom
                             // anchors.bottomMargin: 20
                             anchors.verticalCenter: parent.verticalCenter 
@@ -1355,7 +1362,6 @@ ApplicationWindow {
                                                                 id: date_id
                                                                 text: model.date
                                                                 font.pixelSize: isDesktop() ? 18 : 26
-                                                                font.bold: true
                                                                 color: "#000000"
                                                                 anchors.verticalCenter: parent.verticalCenter
                                                                 anchors.left: parent.left
@@ -1365,11 +1371,10 @@ ApplicationWindow {
 
                                                             // Center: Name in Bold
                                                             Text {
-                                                                text: model.name
+                                                                text: rightPanel.visible ? (model.name.length > 15 ?  model.name.substring(0, 15) + "..." : model.name) : (model.name.length > 30 ?  model.name.substring(0, 30) + "..." : model.name)
                                                                 id: name_id
                                                                 font.pixelSize: isDesktop() ? 18 : 30
-                                                                font.bold: true
-                                                                color: notaddDataRow(model)
+                                                                color: "#000000"
                                                                 anchors.verticalCenter: parent.verticalCenter
                                                                 anchors.left: date_id.right
                                                                 anchors.leftMargin: 10
@@ -1381,8 +1386,7 @@ ApplicationWindow {
                                                                 id: hrs_id
                                                                 text: model.spent_hours + " Hrs"
                                                                 font.pixelSize: isDesktop() ? 18 : 26
-                                                                font.bold: true
-                                                                color: "#4CAF50"
+                                                                color: "#000000"
                                                                 anchors.verticalCenter: parent.verticalCenter
                                                                 anchors.right: parent.right
                                                                 horizontalAlignment: Text.AlignRight 
@@ -1403,7 +1407,7 @@ ApplicationWindow {
                                                                 text: rightPanel.visible ? (model.project_id.length > 15 ? "Project: " + model.project_id.substring(0, 15) + "..." : "Project: " + model.project_id) : (model.project_id.length > 20 ? "Project: " + model.project_id.substring(0, 20) + "..." : "Project: " + model.project_id)
 
                                                                 font.pixelSize: isDesktop() ? 18 : 26
-                                                                color: notaddDataRow(model)
+                                                                color: notaddDataPro(model)
                                                                 anchors.verticalCenter: parent.verticalCenter
                                                                 anchors.left: parent.left
                                                                 anchors.leftMargin: 10
@@ -1415,7 +1419,7 @@ ApplicationWindow {
                                                                 text: rightPanel.visible ? (model.task_id.length > 15 ? "Tasks: " + model.task_id.substring(0, 15) + "..." : "Tasks: " + model.task_id) : (model.task_id.length > 20 ? "Tasks: " + model.task_id.substring(0, 20) + "..." : "Tasks: " + model.task_id)
 
                                                                 font.pixelSize: isDesktop() ? 18 : 26
-                                                                color: notaddDataRow(model)
+                                                                color: notaddDatatask(model)
                                                                 anchors.verticalCenter: parent.verticalCenter
                                                                 anchors.left: project_name.right
                                                                 anchors.leftMargin: 10
@@ -3015,6 +3019,20 @@ ApplicationWindow {
                                                     accountplaceholder.visible = false
                                                 } else {
                                                     accountplaceholder.visible = true
+                                                }
+                                            }
+                                            Component.onCompleted: {
+                                                var result = accountlistDataGet(); 
+                                                        if(result){
+                                                            accountList.clear();
+                                                            for (var i = 0; i < result.length; i++) {
+                                                                accountList.append(result[i]);
+                                                            }
+                                                }
+                                                if (accountList.count > 0) {
+                                                    // Default selection when component loads and has items
+                                                    accountInput.text = accountList.get(0).name;
+                                                    selectedAccountUserId = accountList.get(0).id;
                                                 }
                                             }
                                         }
