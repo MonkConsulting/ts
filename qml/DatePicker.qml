@@ -23,9 +23,8 @@ ListView {
     id: root
     property int selectedYear:      2024
 
-    signal clicked(date date);  // onClicked: print('onClicked', date.toDateString())
+    signal clicked(date date);
 
- // private
     property date selectedDate: new Date()
     function isDesktop() {
         if(Screen.width > 1300){
@@ -34,25 +33,24 @@ ListView {
             return false;
         }
     }
-    width: isDesktop() ? 450 : 600;  height: isDesktop() ? 450 : 600 // default size
+    width: isDesktop() ? 450 : 600;  height: isDesktop() ? 450 : 600
     snapMode:    ListView.SnapOneItem
     orientation: Qt.Horizontal
     clip:        true
     anchors.margins: 0
 
-    model: 500 * 12 // index == months since January of the year 0
+    model: 500 * 12
 
     function set(year, month) {
         selectedYear = year
         selectedDate = new Date(year, month, selectedDate.getDate())
         var index = year * 12 + month
         listView.currentIndex = index
-        // positionViewAtIndex(index, ListView.Center)
     }
 
     Item {
-        width: isDesktop() ? 400 : 600 // Adjust width as needed
-        height: isDesktop() ? 345 : 600 // Adjust height as needed
+        width: isDesktop() ? 400 : 600
+        height: isDesktop() ? 345 : 600
         anchors.centerIn: parent
         Row {
             spacing: 10
@@ -60,15 +58,12 @@ ListView {
                 horizontalCenter: parent.horizontalCenter
                 top: parent.top
                 topMargin: isDesktop() ? 0 : 80
-                // margins.top: 80 // Add top margin to separate from previous item
             }
 
             ComboBox {
                 id: yearSelector
-                // width: 50
                 width: isDesktop() ? 200 : 300
                 height: isDesktop() ? 30 : 57
-                // model: 10 // Example: show 10 years
                 textRole: "yearText"
                 model: ListModel {
                     Component.onCompleted: {
@@ -82,8 +77,6 @@ ListView {
                 onCurrentTextChanged: {
                     selectedYear = parseInt(currentText)
                 }
-                // Populate the years, or dynamically populate based on your needs
-                // Example: you might populate years from current year to current year + 10
             }
 
             Button {
@@ -102,7 +95,7 @@ ListView {
                     text: "Go"
                     color: "#fff"
                     font.pixelSize: isDesktop() ? 20 : 30
-                    horizontalAlignment: Text.AlignHCenter // Align text horizontally (redundant here but useful for multi-line)
+                    horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
 
 
@@ -117,9 +110,8 @@ ListView {
     }
 
     delegate: Item {
-        // property int year:      Math.floor(index / 12)
-        property int month:     index % 12 // 0 January
-        property int firstDay:  new Date(selectedYear, month, 1).getDay() // 0 Sunday to 6 Saturday
+        property int month:     index % 12
+        property int firstDay:  new Date(selectedYear, month, 1).getDay()
 
         width: root.width;  height: root.height
 
@@ -130,26 +122,23 @@ ListView {
             border.color: "#121944"
         }
 
-        // Add top margin by adjusting the y position
         y: 10
 
         Column {
             spacing: isDesktop() ? 40 : 60
 
-            Item { // month year header
+            Item {
                 width: root.width;  
                 height: isDesktop() ? root.height - grid.height - 100 : root.height - grid.height - 70;
 
 
-                Text { // month year
+                Text {
                     anchors {
                         horizontalCenter: parent.horizontalCenter
                         top: parent.top
-                        // topMargin: 500 // Add top margin to create space above the Text
                         centerIn: parent
                     }
 
-                    // anchors.centerIn: parent
                     color: "#fff"
                     text: ['January', 'February', 'March', 'April', 'May', 'June',
                            'July', 'August', 'September', 'October', 'November', 'December'][month] + ' ' + selectedYear
@@ -158,39 +147,39 @@ ListView {
 
             }
 
-            Grid { // 1 month calender
+            Grid {
                 id: grid
 
                 width: root.width;  height: (isDesktop() ? 0.675 : 0.745) * root.height
                 property real cellWidth:  width  / columns;
-                property real cellHeight: height / rows // width and height of each cell in the grid.
+                property real cellHeight: height / rows
 
-                columns: 7 // days
+                columns: 7
                 rows:    7
 
                 Repeater {
-                    model: grid.columns * grid.rows // 49 cells per month
+                    model: grid.columns * grid.rows
 
-                    delegate: Rectangle { // index is 0 to 48
-                        property int day:  index - 7 // 0 = top left below Sunday (-7 to 41)
-                        property int date: day - firstDay + 1 // 1-31
+                    delegate: Rectangle { 
+                        property int day:  index - 7 
+                        property int date: day - firstDay + 1 
 
                         width: grid.cellWidth;  height: grid.cellHeight
                         border.width: 0.3 * radius
                         border.color: new Date(selectedYear, month, date).toDateString() == selectedDate.toDateString()  &&  text.text  &&  day >= 0?
-                                      'black': 'transparent' // selected
+                                      'black': 'transparent' 
                         radius: 0.02 * root.height
-                        opacity: !mouseArea.pressed? 1: 0.3  //  pressed state
+                        opacity: !mouseArea.pressed? 1: 0.3  
 
                         Text {
                             id: text
 
                             anchors.centerIn: parent
                             font.pixelSize: 0.5 * parent.height
-                            font.bold:      new Date(selectedYear, month, date).toDateString() == new Date().toDateString() // today
+                            font.bold:      new Date(selectedYear, month, date).toDateString() == new Date().toDateString() 
                             text: {
-                                if(day < 0)                                               ['S', 'M', 'T', 'W', 'T', 'F', 'S'][index] // Su-Sa
-                                else if(new Date(selectedYear, month, date).getMonth() == month)  date // 1-31
+                                if(day < 0)                                               ['S', 'M', 'T', 'W', 'T', 'F', 'S'][index] 
+                                else if(new Date(selectedYear, month, date).getMonth() == month)  date 
                                 else                                                      ''
                             }
                         }
