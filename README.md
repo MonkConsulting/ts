@@ -1,6 +1,6 @@
-# Time Management (Alpha - Work In Progress)
+# Time Management (Beta Release)
 
-Time Management (Alpha - Work In Progress)
+Time Management (Beta Release)
 
 ## License
 

@@ -36,32 +36,11 @@ Item {
     property bool loading: false
     property string loadingMessage: ""
     property bool issearchHeader: false
-
-
-    // Python {
-    //     id: python
-
-    //     Component.onCompleted: {
-    //         addImportPath(Qt.resolvedUrl('../src/'));
-    //         importModule_sync("backend");
-    //     }
-
-    //     onError: {
-    //         console.log('Python error: ' + traceback);
-    //     }
-    // }
-
-
-
- 
-
-
     function queryData() {
         var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
 
         db.transaction(function(tx) {
             var result = tx.executeSql('SELECT * FROM users');
-            console.log("Database Query Results:");
             accountsList = [];
             for (var i = 0; i < result.rows.length; i++) {
                 accountsList.push({'user_id': result.rows.item(i).id, 'name': result.rows.item(i).name, 'link': result.rows.item(i).link, 'database': result.rows.item(i).database, 'username': result.rows.item(i).username})
@@ -73,19 +52,17 @@ Item {
         });
     }
     function filtersynList(query) {
-        recordModel.clear(); // Clear existing data in the model
+        recordModel.clear(); 
 
-            for (var i = 0; i < accountsList.length; i++) {
-                var entry = accountsList[i];
-                if (entry.name.toLowerCase().includes(query.toLowerCase()) 
-                    ) {
-                    recordModel.append(entry);
+        for (var i = 0; i < accountsList.length; i++) {
+            var entry = accountsList[i];
+            if (entry.name.toLowerCase().includes(query.toLowerCase()) 
+                ) {
+                recordModel.append(entry);
 
-                }
             }
+        }
     }
-
-
 
     function deleteData(recordId) {
         var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
@@ -97,50 +74,22 @@ Item {
             queryData()
         });
     }
-
-    // function deteleAllData(id){
-    //     var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-
-    //     db.transaction(function(tx) {
-    //     var users = tx.executeSql('DELETE FROM users where id =' + parseInt(id));
-    //         tx.executeSql('DELETE FROM project_project_app WHERE account_id = ?', [parseInt(id)]);
-    //         tx.executeSql('DELETE FROM project_task_app WHERE account_id = ?', [parseInt(id)]);
-    //         tx.executeSql('DELETE FROM account_analytic_line_app WHERE account_id = ?', [parseInt(id)]);
-    //         tx.executeSql('DELETE FROM mail_activity_type_app WHERE account_id = ?', [parseInt(id)]);
-    //         tx.executeSql('DELETE FROM res_users_app WHERE account_id = ?', [parseInt(id)]);
-    //         tx.executeSql('DELETE FROM mail_activity_app WHERE account_id = ?', [parseInt(id)]);
-    //            queryData()
-    //            timesheetlistData()
-    //     });
-        
-    // }
-    // function moveDataPersonal(id){
-    //     var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-
-    //     db.transaction(function(tx) {
-    //         tx.executeSql('UPDATE project_project_app SET account_id = ? WHERE account_id = ?', [false, parseInt(id)]);
-
-
-    //         queryData()
-    //     });
-    // }
     ListModel {
         id: recordModel
     }
     Rectangle {
         id:setting_header
         width: parent.width
-        height: isDesktop()? 60 : 120 // Make height of the header adaptive based on content
+        height: isDesktop()? 60 : 120 
         anchors.top: parent.top
         anchors.topMargin: isDesktop() ? 60 : 120
-        color: "#FFFFFF"   // Background color for the header
+        color: "#FFFFFF"   
         z: 1
 
-        // Bottom border
         Rectangle {
             width: parent.width
-            height: 2                    // Border height
-            color: "#DDDDDD"             // Border color
+            height: 2                    
+            color: "#DDDDDD"             
             anchors.bottom: parent.bottom
         }
 
@@ -155,7 +104,7 @@ Item {
             anchors.right: parent.right
             anchors.rightMargin: isDesktop()?15 : 20 
 
-            // Left section with ToolButton and "Activities" label
+            
             Rectangle {
                 id: header_tital
                 visible: !issearchHeader
@@ -165,22 +114,22 @@ Item {
                 height: parent.height 
 
                 Row {
-                    // anchors.centerIn: parent
+                    
                     anchors.verticalCenter: parent.verticalCenter
 
-                Label {
-                    text: "Accounts"
-                    font.pixelSize: isDesktop() ? 20 : 40
-                    anchors.verticalCenter: parent.verticalCenter
-                    // anchors.right: ToolButton.right
-                    font.bold: true
-                    color: "#121944"
-                }
+                    Label {
+                        text: "Accounts"
+                        font.pixelSize: isDesktop() ? 20 : 40
+                        anchors.verticalCenter: parent.verticalCenter
+                        
+                        font.bold: true
+                        color: "#121944"
+                    }
                 
                 }
             }
 
-            // Right section with Button
+            
             Rectangle {
                 id: header_btnADD
                 visible: !issearchHeader
@@ -199,13 +148,13 @@ Item {
                         width: isDesktop() ? 40 : 80
                         height: isDesktop() ? 35 : 80
                         background: Rectangle {
-                            color: "transparent"  // Transparent button background
+                            color: "transparent"  
                         }
                         contentItem: Ubuntu.Icon {
                             name: "add" 
                         }
                         onClicked: {
-                            goToLogin()  // Call function to create new activity
+                            goToLogin()  
                         }
                     }
                     ToolButton {
@@ -213,7 +162,7 @@ Item {
                         width: isDesktop() ? 40 : 80
                         height: isDesktop() ? 35 : 80
                         background: Rectangle {
-                            color: "transparent"  // Transparent button background
+                            color: "transparent"  
                         }
                         contentItem: Ubuntu.Icon {
                             name: "search" 
@@ -236,7 +185,7 @@ Item {
                         height: isDesktop() ? 35 : 80
                         anchors.verticalCenter: parent.verticalCenter
                         background: Rectangle {
-                            color: "transparent"  // Transparent button background
+                            color: "transparent"  
                         }
                         contentItem: Ubuntu.Icon {
                             name: "back"
@@ -246,13 +195,12 @@ Item {
                         }
                     }
 
-                    // Full-width TextField
                     TextField {
                         id: searchField
                         placeholderText: "Search..."
-                        anchors.left: back_idn.right // Start from the right of ToolButton
+                        anchors.left: back_idn.right 
                         anchors.leftMargin: isDesktop() ? 0 : 5
-                        anchors.right: parent.right // Extend to the right edge of the Row
+                        anchors.right: parent.right 
                         anchors.verticalCenter: parent.verticalCenter
                         onTextChanged: {
                             filtersynList(searchField.text);  
@@ -272,65 +220,9 @@ Item {
         anchors.rightMargin: isDesktop()?10 : 20
         anchors.bottom: parent.bottom
         anchors.bottomMargin: isDesktop()?0:100
-        color: "#ffffff"
-
-        // Search Row
-        // Row {
-        //     id: searchId
-        //     width: parent.width
-        //     anchors.top: parent.top
-        //     anchors.topMargin: isDesktop() ? 10 : 80
-        //     spacing: isDesktop() ? 20 : 30  
-        //     anchors.horizontalCenter: parent.horizontalCenter  
-            
-        //     Label {
-        //         text: "Accounts"
-        //         font.pixelSize: isDesktop() ? 20 : 40   
-        //         anchors.verticalCenter: parent.verticalCenter
-        //         font.bold: true
-        //         color: "#121944"
-        //     }
-            
-            
-        //     TextField {
-        //         id: searchField
-        //         placeholderText: "Search..."
-        //         anchors.verticalCenter: parent.verticalCenter
-        //         anchors.right: parent.right
-        //         anchors.rightMargin: btn_id.width + 10
-        //         width: parent.width * (isDesktop() ? 0.2 : 0.4)  
-        //         onTextChanged: {
-        //             filtersynList(searchField.text);  
-        //         }
-        //     }
-            
-        //     Button {
-        //         id: btn_id
-        //         width: isDesktop() ? 120 : 220
-        //         height: isDesktop() ? 40 : 80
-        //         anchors.verticalCenter: parent.verticalCenter
-        //         anchors.right: parent.right
-        //         background: Rectangle {
-        //             color: "#121944"
-        //             radius: isDesktop() ? 5 : 10
-        //             border.color: "#87ceeb"
-        //             border.width: 2
-        //             anchors.fill: parent
-        //         }
-        //         contentItem: Text {
-        //             text: " + "
-        //             color: "#ffffff"
-        //             font.pixelSize: isDesktop() ? 20 : 40
-        //             horizontalAlignment: Text.AlignHCenter
-        //             verticalAlignment: Text.AlignVCenter
-        //         }
-        //         onClicked: {
-        //             goToLogin()  // Call function to create new activity
-        //         }
-        //     }
-        // }
+        color: "#ffffff"        
         Rectangle {
-            // spacing: 0
+            
             anchors.fill: parent
             anchors.top: searchId.bottom  
             anchors.topMargin: isDesktop() ? 68 : 170
@@ -355,11 +247,11 @@ Item {
                         delegate: Rectangle {
                             width:  parent.width
                             height: isDesktop() ? 80 : 130
-                            // border.color: "#000000"87ceeb
-                            color: "#FFFFFF"  // Change color only for selected row
+                            
+                            color: "#FFFFFF"  
                             border.color: "#CCCCCC"
                             border.width: isDesktop()? 1 : 2
-                            // radius: 10
+                            
                            
                             Column {
                                 spacing: 0
@@ -382,26 +274,26 @@ Item {
                                         
                                         anchors.verticalCenter:  parent.verticalCenter 
                                         anchors.left: parent.left 
-                                        anchors.leftMargin:  10 // Optional, to add some space from the right edge
+                                        anchors.leftMargin:  10 
 
                                         
                                         Text {
-                                            text: model.name.charAt(0).toUpperCase() // Capitalize the first letter
+                                            text: model.name.charAt(0).toUpperCase() 
                                             color: "#fff"
                                             anchors.centerIn: parent
                                             font.pixelSize: isDesktop() ? 20 : 40
                                         }
                                     }
 
-                                    // Vertical layout for text and delete icon
+                                    
                                     Column {
                                         spacing: 5 
-                                        width: parent.width - 280 // Adjust width to account for the circle and spacing
-                                        anchors.centerIn:  parent  // Apply centerIn only for desktop
+                                        width: parent.width - 280 
+                                        anchors.centerIn:  parent  
 
 
 
-                                        // Name
+                                        
                                         Text {
                                             text: model.name
                                             font.pixelSize: isDesktop() ? 20 : 40
@@ -409,12 +301,12 @@ Item {
                                             elide: Text.ElideRight
                                         }
 
-                                        // Link
+                                        
                                         Text {
                                             text: (model.link.length > 40) ? model.link.substring(0, 40) + "..." : model.link
                                             font.pixelSize: isDesktop() ? 18 : 30
                                             color: "#0078d4"
-                                            elide: Text.ElideNone  // Disable default elide since we're handling it manually
+                                            elide: Text.ElideNone  
                                         }
                                     }
 
@@ -422,7 +314,7 @@ Item {
                                         
                                         width: isDesktop() ? 40 : 90
                                         height: isDesktop() ? 40 : 90
-                                        // anchors.centerIn: isDesktop() ? parent : undefined  // Apply centerIn only for desktop
+                                        
 
                                         background: Rectangle {
                                             color: "transparent"
@@ -434,49 +326,17 @@ Item {
                                             anchors.fill: parent
                                             smooth: true
                                         }
-                                        anchors.right:  parent.right  // This anchors the button to the right
-                                        anchors.rightMargin:  20  // Optional, to add some space from the right edge
+                                        anchors.right:  parent.right  
+                                        anchors.rightMargin:  20  
                                         anchors.verticalCenter: parent.verticalCenter
                                         onClicked: {
-                                            // deleteDialog.open()
+                                            
                                             logInPage(model.user_id)
-                                            // passwordDialog.open()
+                                            
                                             deleteData(model.user_id)
                                             recordModel.remove(index)
                                         }
                                     }
-                                    // Dialog {
-                                    //     id: deleteDialog
-                                    //     title: "Confirmation"
-                                    //      x: (parent.width - width) / 2
-                                    //      y: -150
-                                    //     //  height: isDesktop()?260:500
-                                    //     standardButtons: Dialog.Ok | Dialog.Cancel
-
-                                    //     contentItem: Column {
-                                    //         spacing: isDesktop() ? 10 : 10  // Increase spacing for desktop
-                                    //         padding: isDesktop() ? 10 : 20  // Increase padding for desktop
-                                    //             Text {
-                                    //                 text: "Are you sure you want to delete this data?"  // Confirmation message
-                                    //                 font.pixelSize: isDesktop() ? 16 : 20
-                                    //                 horizontalAlignment: Text.AlignHCenter
-                                    //                 wrapMode: Text.WordWrap
-                                    //             }
-                                    //     }
-
-                                    //     onAccepted: {
-                                    //         // deteleAllData(model.user_id)
-                                    //         logInPage(model.user_id)
-                                    //         // passwordDialog.open()
-                                    //         deleteData(model.user_id)
-                                    //         recordModel.remove(index) // Remove the record
-                                    //         deleteDialog.close()  // Close the dialog
-                                    //     }
-
-                                    //     onRejected: {
-                                    //         console.log("Dialog cancelled")
-                                    //     }
-                                    // }
                                 }
                             }
                         }
@@ -485,8 +345,8 @@ Item {
             }
             Item {
                 id: loader
-                visible: loading // Show loader based on loading state
-                // anchors.centerIn: parent
+                visible: loading 
+                
 
                 Rectangle {
                     width: Screen.width

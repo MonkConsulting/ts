@@ -29,8 +29,8 @@ Item {
     property int selectedActivityTypeId: 0
     property int currentRecordId: 0
     property int selectedcontactId: 0
-    property bool isactivitySaved: false
-    property bool isactivityClicked: false
+    property bool isactivitySaved: false;
+    property bool isactivityClicked: false;
     property int selectedUserId: 0 
     property int selectedlinkUserId: 0 
     property int selectedprojectUserId: 0
@@ -39,7 +39,6 @@ Item {
     function createActivity(selectedAccountUserId, selectedActivityTypeId, datetimeInput, summaryInput, notesInput, user_id,selectedlinkUserId,selectedprojectUserId,selectedtaskUserId,resModelInput,resIdInput,scheduleInput) {
         var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
         db.transaction(function (tx) {
-            // tx.executeSql('DROP TABLE IF EXISTS mail_activity_app')
             if(selectedActivityTypeId && datetimeInput){
                 var result = tx.executeSql('INSERT INTO mail_activity_app (account_id, activity_type_id, summary, due_date, notes, user_id, link_id, project_id, task_id, resId, resModel, state)\
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [selectedAccountUserId, selectedActivityTypeId, summaryInput, datetimeInput, notesInput, user_id, selectedlinkUserId, selectedprojectUserId, selectedtaskUserId, resIdInput, resModelInput, scheduleInput])
@@ -51,12 +50,9 @@ Item {
                 isactivityClicked = true
             }
             
-
         });
     }
     
-
-
     function dataClear(){
         selectedAccountUserId = 0
         selectedUserId = 0
@@ -72,7 +68,7 @@ Item {
         selectedprojectUserId = 0
         taskInput.text = ""
         selectedtaskUserId = 0
-        linkInput.text = ""  // Set the selected name to the TextInput
+        linkInput.text = ""
         selectedlinkUserId = 0
         resModelInput.text=""
         resIdInput.text = ""
@@ -95,10 +91,8 @@ Item {
         var activity_type_list = []
         db.transaction(function (tx) {
             var instance_users = tx.executeSql('select * from res_users_app where account_id = ?', [selectedAccountUserId])
-            console.log('\n\n instance_users.rows.length', instance_users.rows.length)
             var all_users = tx.executeSql('select * from res_users_app')
             for (var user = 0; user < all_users.rows.length; user++) {
-                console.log('\n\n current_user', all_users.rows.item(user).account_id)
             }
             for (var instance_user = 0; instance_user < instance_users.rows.length; instance_user++) {
                 activity_type_list.push({'id': instance_users.rows.item(instance_user).id, 'name': instance_users.rows.item(instance_user).name});
@@ -108,13 +102,12 @@ Item {
     }
     ListModel {
         id: linkList
-        ListElement { itemId: 0; name: "Contact" }   // Option 1: Blank
-        ListElement { itemId: 1; name: "Project" }  // Option 2: Project
-        ListElement { itemId: 2; name: "Task" }   // Option 3: Task
-        ListElement { itemId: 3; name: "Other" }   // Option 4: Other
+        ListElement { itemId: 0; name: "Contact" }
+        ListElement { itemId: 1; name: "Project" }
+        ListElement { itemId: 2; name: "Task" }
+        ListElement { itemId: 3; name: "Other" }
     }
     function projects_get(selectedAccountUserId) {
-        console.log(selectedAccountUserId,"//////////////")
         var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
         var projectList = []
         db.transaction(function(tx) {
@@ -130,6 +123,7 @@ Item {
         })
         return projectList;
     }
+
     function tasks_list_get(selectedAccountUserId) {
         var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
         var tasks_list = []
@@ -141,9 +135,7 @@ Item {
             }
             for (var i = 0; i < result.rows.length; i++) {
                 var child_tasks = tx.executeSql('SELECT count(*) FROM project_task_app where parent_id = ?', [result.rows.item(i).id]);
-                // tasksListModel.append({'id': result[i].id, 'name': result[i].name, 'taskHasSubTask': true ? child_tasks.rows.item(0).count > 0 : false})
                 tasks_list.push({'id': result.rows.item(i).id, 'name': result.rows.item(i).name, 'taskHasSubTask': true ? child_tasks.rows.item(0).count > 0 : false})
-                // projectList.push({'id': result.rows.item(i).id, 'name': result.rows.item(i).name})
             }
         })
         return tasks_list;    
@@ -151,24 +143,23 @@ Item {
     Rectangle {
         id: newActivity
         width: parent.width
-        height: isDesktop()? 60 : 120 // Make height of the header adaptive based on content
+        height: isDesktop()? 60 : 120
         anchors.top: parent.top
         anchors.topMargin: isDesktop() ? 60 : 120
-        color: "#FFFFFF"   // Background color for the header
+        color: "#FFFFFF"
         z: 1
 
-        // Bottom border
         Rectangle {
             width: parent.width
-            height: 2                    // Border height
-            color: "#DDDDDD"             // Border color
+            height: 2
+            color: "#DDDDDD"
             anchors.bottom: parent.bottom
         }
 
         Row {
             id: row_id
             width: parent.width
-            anchors.verticalCenter: parent.verticalCenter // Center the row vertically within newActivity
+            anchors.verticalCenter: parent.verticalCenter
             anchors.fill: parent
             spacing: isDesktop() ? 20 : 40 
             anchors.left: parent.left
@@ -176,7 +167,6 @@ Item {
             anchors.right: parent.right
             anchors.rightMargin: isDesktop()?15 : 20 
 
-            // Left section with ToolButton and "Activities" label
             Rectangle {
                 color: "transparent"
                 width: parent.width / 3
@@ -184,38 +174,34 @@ Item {
                 height: parent.height 
 
                 Row {
-                    // anchors.centerIn: parent
                     anchors.verticalCenter: parent.verticalCenter
 
-
-
-                ToolButton {
-                    width: isDesktop() ? 40 : 80
-                    height: isDesktop() ? 35 : 80 
-                    background: Rectangle {
-                        color: "transparent"  // Transparent button background
+                    ToolButton {
+                        width: isDesktop() ? 40 : 80
+                        height: isDesktop() ? 35 : 80 
+                        background: Rectangle {
+                            color: "transparent"
+                        }
+                        contentItem: Ubuntu.Icon {
+                            name: "back" 
+                        }
+                        onClicked: {
+                            stackView.push(activityLists)
+                        }
                     }
-                    contentItem: Ubuntu.Icon {
-                        name: "back" 
-                    }
-                    onClicked: {
-                        stackView.push(activityLists)
-                    }
-                }
 
-                Label {
-                    text: "Activities"
-                    font.pixelSize: isDesktop() ? 20 : 40
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.right: ToolButton.right
-                    font.bold: true
-                    color: "#121944"
-                }
+                    Label {
+                        text: "Activities"
+                        font.pixelSize: isDesktop() ? 20 : 40
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.right: ToolButton.right
+                        font.bold: true
+                        color: "#121944"
+                    }
                 
                 }
             }
 
-            // Center section with status message label
             Rectangle {
                 color: "transparent"
                 width: parent.width / 3
@@ -228,13 +214,12 @@ Item {
                     color: isactivitySaved ? "green" : "red"
                     visible: isactivityClicked
                     font.pixelSize: isDesktop() ? 18 : phoneLarg()?30:40
-                    horizontalAlignment: Text.AlignHCenter // Align text horizontally (redundant here but useful for multi-line)
+                    horizontalAlignment: Text.AlignHCenter
                     anchors.centerIn: parent
 
                 }
             }
 
-            // Right section with Button
             Rectangle {
                 color: "transparent"
                 width: parent.width / 3
@@ -263,24 +248,22 @@ Item {
                         border.color: "transparent"
                     }
                    onClicked: {
-                    console.log(datetimeInput.text,"//////datetimeInput.text")
-                    if(selectedActivityTypeId && datetimeInput){
-                        createActivity(selectedAccountUserId, selectedActivityTypeId, datetimeInput.text, summaryInput.text, notesInput.text, selectedUserId,selectedlinkUserId,selectedprojectUserId,selectedtaskUserId,resModelInput.text,resIdInput.text,schedule.text)
-                        isactivitySaved= true
-                        isactivityClicked = true
-                        typingTimers.start()
-                    }else{
-                        isactivitySaved = false
-                        isactivityClicked = true
-                        typingTimers.start()
-                    }       
-                        // stackView.push(activityLists)
+                        if (selectedActivityTypeId && datetimeInput) {
+                            createActivity(selectedAccountUserId, selectedActivityTypeId, datetimeInput.text, summaryInput.text, notesInput.text, selectedUserId,selectedlinkUserId,selectedprojectUserId,selectedtaskUserId,resModelInput.text,resIdInput.text,schedule.text)
+                            isactivitySaved= true
+                            isactivityClicked = true
+                            typingTimers.start()
+                        } else {
+                            isactivitySaved = false
+                            isactivityClicked = true
+                            typingTimers.start()
+                        }
                     }
 
                 }
                 Timer {
                     id: typingTimers
-                    interval: 1500 // Time in milliseconds (1.5 second)
+                    interval: 1500
                     running: false
                     repeat: false
                     onTriggered: {
@@ -299,7 +282,7 @@ Item {
                             selectedprojectUserId = 0
                             taskInput.text = ""
                             selectedtaskUserId = 0
-                            linkInput.text = ""  // Set the selected name to the TextInput
+                            linkInput.text = ""
                             selectedlinkUserId = 0
                             resModelInput.text=""
                             resIdInput.text = ""
@@ -318,11 +301,10 @@ Item {
 Flickable {
     id: flickableContainer
     width: parent.width
-    // height: phoneLarg() ? parent.height - 50 : parent.height  // Adjust height for large phones
-    height: parent.height  // Set the height to match the parent or a fixed value
-    contentHeight: activityForm.childrenRect.height + (phoneLarg()? 320 : 0 )// The total height of the content inside Flickable
+    height: parent.height
+    contentHeight: activityForm.childrenRect.height + 350
     anchors.fill: parent
-    flickableDirection: Flickable.VerticalFlick  // Allow only vertical scrolling
+    flickableDirection: Flickable.VerticalFlick
     clip: true
     
     
@@ -334,15 +316,13 @@ Flickable {
         anchors.right: parent.right
         anchors.rightMargin: isDesktop()?10 : 20
         color: "#ffffff"
-        id:"activityForm"
-        height: childrenRect.height + 20 // Additional space to ensure no clipping
+        id:activityForm
+        height: childrenRect.height + 20
 
-        
-        
         Row {
             spacing: isDesktop() ? 100 : 200
             anchors.verticalCenterOffset: -height * 1.5
-            anchors.horizontalCenter: parent.horizontalCenter; // Apply only for desktop
+            anchors.horizontalCenter: parent.horizontalCenter;
             
 
             Column {
@@ -377,7 +357,7 @@ Flickable {
                 }
                 Label { text: "Notes" 
                 width: 150
-                height: isDesktop() ? 25 : phoneLarg()?45:80
+                height: notesInput.height
                 font.pixelSize: isDesktop() ? 18 : phoneLarg()?30:40
                 }
                 Label { text: "Link To" 
@@ -425,11 +405,10 @@ Flickable {
                     height: isDesktop() ? 25 : phoneLarg()?45:80
                     color: "transparent"
 
-                    // Border at the bottom
                     Rectangle {
                         width: parent.width
                         height: isDesktop() ? 1 : 2
-                        color: "black"  // Border color
+                        color: "black"
                         anchors.bottom: parent.bottom
                         anchors.left: parent.left
                         anchors.right: parent.right
@@ -437,7 +416,6 @@ Flickable {
 
                     ListModel {
                         id: accountList
-                        // Example data
                     }
 
                     TextInput {
@@ -445,7 +423,6 @@ Flickable {
                         height: parent.height
                         font.pixelSize: isDesktop() ? 18 : phoneLarg()?30:40
                         anchors.fill: parent
-                        // anchors.margins: 5                                                        
                         id: accountInput
                         Text {
                             id: accountplaceholder
@@ -475,7 +452,7 @@ Flickable {
                             id: menuAccount
                             x: accountInput.x
                             y: accountInput.y + accountInput.height
-                            width: accountInput.width  // Match width with TextField
+                            width: accountInput.width
 
 
                             Repeater {
@@ -484,14 +461,13 @@ Flickable {
                                 MenuItem {
                                     width: parent.width
                                     height: isDesktop() ? 40 : phoneLarg()?50: 80
-                                    property int accountId: model.id  // Custom property for ID
+                                    property int accountId: model.id
                                     property string accuntName: model.name || ''
                                     Text {
                                         text: accuntName
                                         font.pixelSize: isDesktop() ? 18 : 40
                                         bottomPadding: 5
                                         topPadding: 5
-                                        //anchors.centerIn: parent
                                         color: "#000"
                                         anchors.verticalCenter: parent.verticalCenter
                                         anchors.left: parent.left
@@ -508,12 +484,8 @@ Flickable {
                                         selectedprojectUserId = 0
                                         taskInput.text = ''
                                         selectedtaskUserId = 0
-                                        // subTaskInput.text = ''
-                                        // selectedSubTaskId = 0
-                                        // hasSubTask = false
                                         accountInput.text = accuntName
                                         selectedAccountUserId = accountId
-
                                         menuAccount.close()
                                     }
                                 }
@@ -527,6 +499,28 @@ Flickable {
                                 accountplaceholder.visible = true
                             }
                         }
+                        Component.onCompleted: {
+                            var result = accountlistDataGet(); 
+                                    if(result){
+                                        accountList.clear();
+                                        for (var i = 0; i < result.length; i++) {
+                                            accountList.append(result[i]);
+                                        }
+                            }
+                            if (accountList.count > 0) {
+                                // Default selection when component loads and has items
+                                accountInput.text = accountList.get(0).name;
+                                selectedAccountUserId = accountList.get(0).id;
+                            }
+                                var result = fetch_activity_types(selectedAccountUserId);
+                                var filteredList = result.filter(function(item) {
+                                    return item.name === "To Do";
+                                });
+                                if (filteredList.length > 0) {
+                                    activityTypeInput.text = filteredList[0].name;
+                                    selectedActivityTypeId = filteredList[0].id;
+                                }
+                        }
                     }
                 }
 
@@ -535,7 +529,6 @@ Flickable {
                     height: isDesktop() ? 25 : phoneLarg()?45:80
                     color: "transparent"
 
-                    // Border at the bottom
                     Rectangle {
                         width: parent.width
                         height: isDesktop() ? 1 : 2
@@ -547,15 +540,13 @@ Flickable {
 
                     ListModel {
                         id: activityTypeListModel
-                        // Example data
                     }
 
                     TextInput {
                         width: parent.width
                         height: parent.height
                         font.pixelSize: isDesktop() ? 18 : phoneLarg()?30:40
-                        anchors.fill: parent
-                        // anchors.margins: 5                                                        
+                        anchors.fill: parent                                                        
                         id: activityTypeInput
                         Text {
                             id: activitytypeplaceholder
@@ -624,6 +615,7 @@ Flickable {
                                 activitytypeplaceholder.visible = true
                             }
                         }
+                        
                     }
                 }
                 
@@ -633,7 +625,6 @@ Flickable {
                     height: isDesktop() ? 25 : phoneLarg()?45:80
                     color: "transparent"
 
-                    // Border at the bottom
                     Rectangle {
                         width: parent.width
                         height: isDesktop() ? 1 : 2
@@ -645,7 +636,6 @@ Flickable {
 
                     ListModel {
                         id: accountUsersList
-                        // Example data
                     }
 
                     TextInput {
@@ -653,7 +643,6 @@ Flickable {
                         height: parent.height
                         font.pixelSize: isDesktop() ? 18 : phoneLarg()?30:40
                         anchors.fill: parent
-                        // anchors.margins: 5                                                        
                         id: userInput
                         Text {
                             id: userplaceholder
@@ -669,7 +658,6 @@ Flickable {
                             anchors.fill: parent
                             onClicked: {
                                 accountUsersList.clear();
-                                console.log('\n\n selectedAccountUserId', selectedAccountUserId)
                                 var result = fetch_current_users(selectedAccountUserId);
                                 for (var i = 0; i < result.length; i++) {
                                     accountUsersList.append({'id': result[i].id, 'name': result[i].name})
@@ -683,7 +671,6 @@ Flickable {
                             x: userInput.x
                             y: userInput.y + userInput.height
                             width: userInput.width
-
 
                             Repeater {
                                 model: accountUsersList
@@ -728,7 +715,7 @@ Flickable {
 
                 Rectangle {
                     width: isDesktop() ? 500 : 750
-                    height: isDesktop() ? 25 : phoneLarg()?45:80
+                    height: isDesktop() ? 25 : phoneLarg() ? 45 : 80
                     color: "transparent"
 
                     Rectangle {
@@ -736,66 +723,31 @@ Flickable {
                         height: isDesktop() ? 1 : 2
                         color: "black"
                         anchors.bottom: parent.bottom
-                        anchors.left: parent.left
-                        anchors.right: parent.right
                     }
 
-                    Flickable {
-                        id: flickableSummary
+                    TextInput {
+                        id: summaryInput
                         width: parent.width
                         height: parent.height
-                        contentWidth: summaryInput.width
-                        clip: true  
-                        interactive: true  
-                        property int previousCursorPosition: 0
-                        onContentWidthChanged: {
-                            if (summaryInput.cursorPosition > previousCursorPosition) {
-                                contentX = contentWidth - width;  
-                            }
-                            else if (summaryInput.cursorPosition < previousCursorPosition) {
-                                contentX = Math.max(0, summaryInput.cursorRectangle.x - 20); 
-                            }
-                            previousCursorPosition = summaryInput.cursorPosition;
-                        }
+                        font.pixelSize: isDesktop() ? 18 : phoneLarg() ? 30 : 40
+                        wrapMode: Text.NoWrap
+                        clip: true
 
-                        TextInput {
-                            id: summaryInput
-                            width: Math.max(parent.width, textMetrics.width)  
-                            height: parent.height
-                            font.pixelSize: isDesktop() ? 18 : phoneLarg()?30:40
-                            wrapMode: Text.NoWrap  
+                        Text {
+                            id: summaryPlaceholder
+                            text: "Summary"
+                            color: "#aaa"
+                            font.pixelSize: isDesktop() ? 18 : phoneLarg() ? 30 : 40
                             anchors.fill: parent
-
-                            Text {
-                                id: summaryplaceholder
-                                text: "Description"
-                                color: "#aaa"
-                                font.pixelSize: isDesktop() ? 18 : phoneLarg()?30:40
-                                anchors.fill: parent
-                                verticalAlignment: Text.AlignVCenter
-                                visible: summaryInput.text.length === 0
-                            }
-
-                            onFocusChanged: {
-                                summaryplaceholder.visible = !focus && summaryInput.text.length === 0
-                            }
-                            property real textWidth: textMetrics.width
-                            TextMetrics {
-                                id: textMetrics
-                                font: summaryInput.font
-                                text: summaryInput.text
-                            }
-
-                            onTextChanged: {
-                                contentWidth = textMetrics.width;
-                            }
-
-                            onCursorPositionChanged: {
-                                flickableSummary.contentX = Math.max(0, summaryInput.cursorRectangle.x - flickableSummary.width + 20);
-                            }
+                            verticalAlignment: Text.AlignVCenter
+                            visible: summaryInput.text.length === 0
+                        }
+                        onFocusChanged: {
+                            summaryPlaceholder.visible = !focus && summaryInput.text.length === 0;
                         }
                     }
                 }
+
 
                 Rectangle {
                     width: isDesktop() ? 500 : 750
@@ -860,13 +812,12 @@ Flickable {
                             }
                         }
                         function formatDate(date) {
-                            var month = date.getMonth() + 1; // Months are 0-based
+                            var month = date.getMonth() + 1;
                             var day = date.getDate();
                             var year = date.getFullYear();
                             return month + '/' + day + '/' + year;
                         }
 
-                        // Set the current date when the component is completed
                         Component.onCompleted: {
                             var currentDate = new Date();
                             datetimeInput.text = formatDate(currentDate);
@@ -875,7 +826,46 @@ Flickable {
                     }
                 }
                 
+                Rectangle {
+                    width: isDesktop() ? 500 : 750
+                    height: notesInput.height
+                    color: "transparent"
 
+                    Rectangle {
+                        width: parent.width
+                        height: isDesktop() ? 1 : 2
+                        color: "black"
+                        anchors.bottom: parent.bottom
+                    }
+
+                    TextArea {
+                        background: null 
+                        padding: 0
+                        color: "black"
+                        wrapMode: TextArea.Wrap
+                        id: notesInput
+                        width: parent.width
+                        font.pixelSize: isDesktop() ? 18 : phoneLarg() ? 30 : 40
+                        clip: true 
+                        anchors.left: parent.left
+                        anchors.leftMargin: (!notesPlaceholder.visible && !isDesktop()) ? -30 : 0
+
+                        Text {
+                            id: notesPlaceholder
+                            text: "Notes"
+                            color: "#aaa"
+                            font.pixelSize: isDesktop() ? 18 : phoneLarg() ? 30 : 40
+                            anchors.fill: parent
+                            verticalAlignment: Text.AlignVCenter
+                            visible: notesInput.text.length === 0
+                        }
+
+                        onFocusChanged: {
+                            notesPlaceholder.visible = !focus && notesInput.text.length === 0;
+                        }
+                    }
+                }
+                    // link
                 Rectangle {
                     width: isDesktop() ? 500 : 750
                     height: isDesktop() ? 25 : phoneLarg()?45:80
@@ -890,78 +880,6 @@ Flickable {
                         anchors.right: parent.right
                     }
 
-                    Flickable {
-                        id: flickableNotes
-                        width: parent.width
-                        height: parent.height
-                        contentWidth: notesInput.width
-                        clip: true  
-                        interactive: true  
-                        property int previousCursorPosition: 0
-                        onContentWidthChanged: {
-                            if (notesInput.cursorPosition > previousCursorPosition) {
-                                contentX = contentWidth - width;  
-                            }
-                            else if (notesInput.cursorPosition < previousCursorPosition) {
-                                contentX = Math.max(0, notesInput.cursorRectangle.x - 20); 
-                            }
-                            previousCursorPosition = notesInput.cursorPosition;
-                        }
-
-                        TextInput {
-                            id: notesInput
-                            width: Math.max(parent.width, textNotesMetrics.width)  
-                            height: parent.height
-                            font.pixelSize: isDesktop() ? 18 : phoneLarg()?30:40
-                            wrapMode: Text.NoWrap  
-                            anchors.fill: parent
-
-                            Text {
-                                id: notesplaceholder
-                                text: "Notes"
-                                color: "#aaa"
-                                font.pixelSize: isDesktop() ? 18 : phoneLarg()?30:40
-                                anchors.fill: parent
-                                verticalAlignment: Text.AlignVCenter
-                                visible: notesInput.text.length === 0
-                            }
-
-                            onFocusChanged: {
-                                notesplaceholder.visible = !focus && notesInput.text.length === 0
-                            }
-                            property real textWidth: textNotesMetrics.width
-                            TextMetrics {
-                                id: textNotesMetrics
-                                font: notesInput.font
-                                text: notesInput.text
-                            }
-
-                            onTextChanged: {
-                                contentWidth = textNotesMetrics.width;
-                            }
-
-                            onCursorPositionChanged: {
-                                flickableNotes.contentX = Math.max(0, notesInput.cursorRectangle.x - flickableNotes.width + 20);
-                            }
-                        }
-                    }
-                }
-// link
-                Rectangle {
-                    width: isDesktop() ? 500 : 750
-                    height: isDesktop() ? 25 : phoneLarg()?45:80
-                    color: "transparent"
-
-                    // Border at the bottom
-                    Rectangle {
-                        width: parent.width
-                        height: isDesktop() ? 1 : 2
-                        color: "black"  // Border color
-                        anchors.bottom: parent.bottom
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                    }
-
                    
                     TextInput {
                         width: parent.width
@@ -970,7 +888,6 @@ Flickable {
                         anchors.fill: parent
                         id: linkInput
 
-                        // Placeholder text
                         Text {
                             id: linkplaceholder
                             text: "Link to project or task"                                            
@@ -991,7 +908,7 @@ Flickable {
                             id: menulink
                             x: linkInput.x
                             y: linkInput.y + linkInput.height
-                            width: linkInput.width  // Match width with TextField
+                            width: linkInput.width
 
                             Repeater {
                                 model: linkList
@@ -999,7 +916,7 @@ Flickable {
                                 MenuItem {
                                     width: parent.width
                                     height: isDesktop() ? 40 : phoneLarg()?50: 80
-                                    property int linkId: model.itemId || 0  // Fallback to 0 if model.id is undefined
+                                    property int linkId: model.itemId || 0
                                     property string linkName: model.name || ''
                                     
                                     Text {
@@ -1014,36 +931,32 @@ Flickable {
                                         maximumLineCount: 2      
                                     }
 
-                                    // When the menu item is clicked, update the TextInput and close the menu
                                     onClicked: {
-                                        linkInput.text = linkName  // Set the selected name to the TextInput
-                                        selectedlinkUserId = linkId  // Store the selected ID (if needed)
-                                        console.log(linkId,"selectedlinkUserId: " + selectedlinkUserId);  // Debugging check
+                                        linkInput.text = linkName
+                                        selectedlinkUserId = linkId
 
-                                        menulink.close()  // Close the menu
+                                        menulink.close()
                                     }
                                 }
                             }
                         }
 
-                        // Placeholder visibility logic
                         onTextChanged: {
                             linkplaceholder.visible = linkInput.text.length === 0
                         }
                     }
                 }
-// project
+
                 Rectangle {
                     width: isDesktop() ? 500 : 750
                     height: isDesktop() ? 25 : phoneLarg()?45:80
                     color: "transparent"
                     visible: selectedlinkUserId === 1
 
-                    // Border at the bottom
                     Rectangle {
                         width: parent.width
                         height: isDesktop() ? 1 : 2
-                        color: "black"  // Border color
+                        color: "black"
                         anchors.bottom: parent.bottom
                         anchors.left: parent.left
                         anchors.right: parent.right
@@ -1051,7 +964,6 @@ Flickable {
 
                     ListModel {
                         id: projectList
-                        // Example data
                     }
 
                     TextInput {
@@ -1059,7 +971,6 @@ Flickable {
                         height: parent.height
                         font.pixelSize: isDesktop() ? 18 : phoneLarg()?30:40
                         anchors.fill: parent
-                        // anchors.margins: 5                                                        
                         id: projectInput
                         Text {
                             id: projectplaceholder
@@ -1077,13 +988,13 @@ Flickable {
                                 projectList.clear();
                                 if(selectedAccountUserId != 0){
                                     var result = projects_get(selectedAccountUserId); 
-                                        if(result){
-                                            for (var i = 0; i < result.length; i++) {
-                                                projectList.append(result[i]);
-                                            }
+                                    if (result) {
+                                        for (var i = 0; i < result.length; i++) {
+                                            projectList.append(result[i]);
                                         }
+                                    }
                                 }
-                                            menuproject.open();
+                                menuproject.open();
                             }
                         }
 
@@ -1091,7 +1002,7 @@ Flickable {
                             id: menuproject
                             x: projectInput.x
                             y: projectInput.y + projectInput.height
-                            width: projectInput.width  // Match width with TextField
+                            width: projectInput.width
 
 
                             Repeater {
@@ -1100,14 +1011,13 @@ Flickable {
                                 MenuItem {
                                     width: parent.width
                                     height: isDesktop() ? 40 : phoneLarg()?50: 80
-                                    property int projectId: model.id  // Custom property for ID
+                                    property int projectId: model.id
                                     property string projectName: model.name || ''
                                     Text {
                                         text: projectName
                                         font.pixelSize: isDesktop() ? 18 : 40
                                         bottomPadding: 5
                                         topPadding: 5
-                                        //anchors.centerIn: parent
                                         color: "#000"
                                         anchors.verticalCenter: parent.verticalCenter
                                         anchors.left: parent.left
@@ -1135,18 +1045,17 @@ Flickable {
                         }
                     }
                 }
-// task
+                    // task
                 Rectangle {
                     width: isDesktop() ? 500 : 750
                     height: isDesktop() ? 25 : phoneLarg()?45:80
                     color: "transparent"
                     visible: selectedlinkUserId === 2
 
-                    // Border at the bottom
                     Rectangle {
                         width: parent.width
                         height: isDesktop() ? 1 : 2
-                        color: "black"  // Border color
+                        color: "black"
                         anchors.bottom: parent.bottom
                         anchors.left: parent.left
                         anchors.right: parent.right
@@ -1154,7 +1063,6 @@ Flickable {
 
                     ListModel {
                         id: taskList
-                        // Example data
                     }
 
                     TextInput {
@@ -1162,7 +1070,6 @@ Flickable {
                         height: parent.height
                         font.pixelSize: isDesktop() ? 18 : phoneLarg()?30:40
                         anchors.fill: parent
-                        // anchors.margins: 5                                                        
                         id: taskInput
                         Text {
                             id: taskplaceholder
@@ -1178,13 +1085,13 @@ Flickable {
                             anchors.fill: parent
                             onClicked: {
                                 var result = tasks_list_get(selectedAccountUserId); 
-                                    if(result){
-                                        taskList.clear();
-                                        for (var i = 0; i < result.length; i++) {
-                                            taskList.append(result[i]);
-                                        }
-                                        menutask.open();
+                                if (result) {
+                                    taskList.clear();
+                                    for (var i = 0; i < result.length; i++) {
+                                        taskList.append(result[i]);
                                     }
+                                    menutask.open();
+                                }
                             }
                         }
 
@@ -1192,8 +1099,7 @@ Flickable {
                             id: menutask
                             x: taskInput.x
                             y: taskInput.y + taskInput.height
-                            width: taskInput.width  // Match width with TextField
-
+                            width: taskInput.width
 
                             Repeater {
                                 model: taskList
@@ -1201,14 +1107,13 @@ Flickable {
                                 MenuItem {
                                     width: parent.width
                                     height: isDesktop() ? 40 : phoneLarg()?50: 80
-                                    property int taskId: model.id  // Custom property for ID
+                                    property int taskId: model.id
                                     property string taskName: model.name || ''
                                     Text {
                                         text: taskName
                                         font.pixelSize: isDesktop() ? 18 : 40
                                         bottomPadding: 5
                                         topPadding: 5
-                                        //anchors.centerIn: parent
                                         color: "#000"
                                         anchors.verticalCenter: parent.verticalCenter
                                         anchors.left: parent.left
@@ -1219,11 +1124,6 @@ Flickable {
                                     }
 
                                     onClicked: {
-                                        // activityTypeInput.text = ''
-                                        // selectedActivityTypeId = 0
-                                        // subTaskInput.text = ''
-                                        // selectedSubTaskId = 0
-                                        // hasSubTask = false
                                         taskInput.text = taskName
                                         selectedtaskUserId = taskId
                                         menutask.close()
@@ -1241,7 +1141,6 @@ Flickable {
                         }
                     }
                 }
-// res model
                 Rectangle {
                     width: isDesktop() ? 500 : 750
                     height: isDesktop() ? 25 : phoneLarg()?45:80
@@ -1263,7 +1162,7 @@ Flickable {
                         height: parent.height
                         contentWidth: resModelInput.width
                         clip: true  
-                        interactive: true  
+                        interactive: true
                         property int previousCursorPosition: 0
                         onContentWidthChanged: {
                             if (resModelInput.cursorPosition > previousCursorPosition) {
@@ -1313,7 +1212,7 @@ Flickable {
                         }
                     }
                 }
-// res ID       
+
                 Rectangle {
                     width: isDesktop() ? 500 : 750
                     height: isDesktop() ? 25 : phoneLarg()?45:80
@@ -1348,7 +1247,6 @@ Flickable {
                         onTextChanged: {
                             resIdInputplaceholder.visible = resIdInput.text.length === 0
 
-                            // Remove any non-numeric characters
                             resIdInput.text = resIdInput.text.replace(/[^0-9]/g, "");
                         }
                     }
@@ -1368,66 +1266,10 @@ Flickable {
 
             }
         }
-        // Rectangle {
-        //     id: save_activity
-        //     property int buttonTopMargin :isDesktop() ? selectedlinkUserId=== 0 ? 350: 400 : phoneLarg()? selectedlinkUserId=== 3? 670:600: selectedlinkUserId=== 0 ? 850:1100
-        //     width: parent.width
-        //     height: isDesktop() ? 30 : phoneLarg()?45:80
-        //     anchors.top: parent.top
-        //     anchors.left: parent.left
-        //     anchors.topMargin: buttonTopMargin
-        //     anchors.leftMargin: 20
-        //     anchors.right: parent.right
-        //     Button {
-        //         width: isDesktop() ? 400 : 480
-        //         // height: isDesktop() ? 40 : 90
-        //         anchors.centerIn: parent
-        //         background: Rectangle {
-        //             color: "#121944"
-        //             radius: isDesktop() ? 5 : 10
-        //             border.color: "#87ceeb"
-        //             border.width: 2
-        //             anchors.fill: parent
-        //         }
-
-        //         contentItem: Text {
-        //             text: "Save Activity"
-        //             color: "#ffffff"
-        //             font.pixelSize: isDesktop() ? 20 : phoneLarg()?30:40
-        //             horizontalAlignment: Text.AlignHCenter // Align text horizontally (redundant here but useful for multi-line)
-
-        //         }
-        //         onClicked: {
-                    
-        //             createActivity(selectedAccountUserId, selectedActivityTypeId, datetimeInput.text, summaryInput.text, notesInput.text, selectedUserId,selectedlinkUserId,selectedprojectUserId,selectedtaskUserId,resModelInput.text,resIdInput.text,schedule.text)
-        //             // stackView.push(activityLists)
-        //         }
-        //     }
-        // }
-        // Rectangle {
-        //     width: parent.width
-        //     height: 50
-        //     anchors.top: save_activity.bottom
-        //     anchors.left: parent.left
-        //     anchors.topMargin: 20
-
-        //     Text {
-        //         id: activitySavedMessage
-        //         text: isactivitySaved ? "Activity is Saved successfully!" : "Activity could not be saved!"
-        //         color: isactivitySaved ? "green" : "red"
-        //         visible: isactivityClicked
-        //         font.pixelSize: isDesktop() ? 18 : phoneLarg()?30:40
-        //         horizontalAlignment: Text.AlignHCenter // Align text horizontally (redundant here but useful for multi-line)
-        //         anchors.centerIn: parent
-
-        //     }
-        // }
     }
     }
     Component.onCompleted: {
-        console.log('\n\n stackView.currentItem.data', currentRecordId)
-        console.log('\n\n stackView.currentItem.data', currentRecordId)
-        dataClear()
+            dataClear()
         linkInput.text = "Contact"
         selectedlinkUserId = 0
     }
