@@ -1,0 +1,19 @@
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/PyCQA/flake8
+    rev: 6.1.0  # Use the latest stable version
+    hooks:
+      - id: flake8
+        files: \.py$  # Restrict to Python files
+        args:
+          - --max-line-length=79  # Example configuration
+          - --ignore=E203,W503    # Example ignored rules
+
+  - repo: https://github.com/psf/black
+    rev: 23.9.1  # Use the latest stable version
+    hooks:
+      - id: black
+        files: \.py$  # Restrict to Python files
+        args:
+          - --line-length=79     # Matches the flake8 max line length
+

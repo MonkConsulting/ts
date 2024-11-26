@@ -87,7 +87,7 @@ def login_odoo(selected_url, username, password, database_dict):
             "res.users",
             "read",
             [generated_uid],
-            {"fields": ["name"]}
+            {"fields": ["name"]},
         )
         return {
             "result": "pass",
@@ -107,7 +107,7 @@ def get_model_id(database, odoo_uid, password, model, models):
         "mail.activity",
         "default_get",
         [["res_model", "res_model_id"]],
-        {"context": {"default_res_model": model}}
+        {"context": {"default_res_model": model}},
     )
     if record_model.get("res_model_id"):
         return record_model.get("res_model_id")
@@ -124,19 +124,11 @@ def get_audit_logs(
 ):
     """To fetch audit logs in case of unlink records."""
     model_id = get_model_id(
-        database,
-        odoo_uid,
-        password,
-        "auditlog.rule",
-        models
+        database, odoo_uid, password, "auditlog.rule", models
     )
     if model_id:
         record_model = get_model_id(
-            database,
-            odoo_uid,
-            password,
-            model,
-            models
+            database, odoo_uid, password, model, models
         )
         audit_log_rule = False
         try:
@@ -205,8 +197,7 @@ def fetch_projects(
     domain = []
     if last_modified:
         write_date = datetime.strptime(
-            last_modified[:-1],
-            "%Y-%m-%dT%H:%M:%S.%f"
+            last_modified[:-1], "%Y-%m-%dT%H:%M:%S.%f"
         )
         domain.append(
             [
@@ -442,9 +433,9 @@ def create_activities(
                 }
             )
             if (
-                "state" in activity and
-                activity.get("state") == "done" and
-                odoo_record_id
+                "state" in activity
+                and activity.get("state") == "done"
+                and odoo_record_id
             ):
                 try:
                     models.execute_kw(
@@ -507,13 +498,13 @@ def create_update_tasks(
         res_model,
         "search_read",
         [domain],
-        {"order": "parent_id desc"},
+        {"order": "parent_id"},
     )
     for task in tasks:
         project_id = task.get("project_id")
         if (
-            isinstance(task.get("sub_project_id"), (int, float)) and
-            task.get("sub_project_id") != 0
+            isinstance(task.get("sub_project_id"), (int, float))
+            and task.get("sub_project_id") != 0
         ):
             project_id = task.get("sub_project_id")
 
@@ -730,8 +721,8 @@ def fetch_activities(
                 lambda prev: int(prev.get("odoo_record_id")),
                 list(
                     filter(
-                        lambda act: act.get("odoo_record_id") and
-                        act.get("odoo_record_id") is not None,
+                        lambda act: act.get("odoo_record_id")
+                        and act.get("odoo_record_id") is not None,
                         previous_activities,
                     )
                 ),

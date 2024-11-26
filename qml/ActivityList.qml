@@ -271,6 +271,7 @@ Item {
                     }
                     onClicked: {
                         issearchHeader = false
+                        searchField.text = ""
                     }
                 }
 
@@ -289,7 +290,7 @@ Item {
         }
         // Rectangle {
             TabBar {
-                anchors.topMargin: isDesktop()?65:100
+                anchors.topMargin: isDesktop()?65:110
                 spacing: isDesktop() ? 20 : 40 
                 width: parent.width
                 anchors.verticalCenter: parent.verticalCenter 
@@ -342,14 +343,12 @@ Item {
         Rectangle {
             // spacing: 0
             anchors.fill: parent
-            anchors.top: newActivity.bottom  
             anchors.topMargin: isDesktop() ? 65 : 170
             border.color: "#CCCCCC"
             border.width: isDesktop() ? 1 : 2
         Column {
             spacing: 0
             anchors.fill: parent
-            anchors.top: newActivity.bottom
             anchors.topMargin: isDesktop() ? 1 : 2
             Flickable {
                 id: editActivity
