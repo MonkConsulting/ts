@@ -726,6 +726,7 @@ Item {
                         }
                         onClicked: {
                             issearchHeader = false
+                            searchField.text = ""
                         }
                     }
 

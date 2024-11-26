@@ -260,6 +260,7 @@ Item {
                                 }
                                 onClicked: {
                                     issearchHeadermain = false
+                                    searchField.text = ""
                                 }
                             }
 

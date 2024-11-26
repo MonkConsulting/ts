@@ -40,8 +40,8 @@ Item {
         var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
         db.transaction(function (tx) {
             if(selectedActivityTypeId && datetimeInput){
-                var result = tx.executeSql('INSERT INTO mail_activity_app (account_id, activity_type_id, summary, due_date, notes, user_id, link_id, project_id, task_id, resId, resModel, state)\
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [selectedAccountUserId, selectedActivityTypeId, summaryInput, datetimeInput, notesInput, user_id, selectedlinkUserId, selectedprojectUserId, selectedtaskUserId, resIdInput, resModelInput, scheduleInput])
+                var result = tx.executeSql('INSERT INTO mail_activity_app (account_id, activity_type_id, summary, due_date, notes, user_id, link_id, project_id, task_id, resId, resModel, state, last_modified)\
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [selectedAccountUserId, selectedActivityTypeId, summaryInput, datetimeInput, notesInput, user_id, selectedlinkUserId, selectedprojectUserId, selectedtaskUserId, resIdInput, resModelInput, scheduleInput,  new Date().toISOString()])
                 isactivitySaved = true
                 isactivityClicked = true
                 dataClear()

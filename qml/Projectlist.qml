@@ -90,6 +90,7 @@ Item {
     
     function filterProjectList(query) {
         listData=[] 
+        projectListView.model=[]
 
             for (var i = 0; i < filterprojectlistData.length; i++) {
                 var entry = filterprojectlistData[i];
@@ -221,6 +222,7 @@ Item {
                     }
                     onClicked: {
                         issearchHeader = false
+                        searchField.text = ""
                     }
                 }
 

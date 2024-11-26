@@ -253,6 +253,7 @@ Item {
                         }
                         onClicked: {
                             issearchHeader = false
+                            searchField.text = ""
                         }
                     }
 
@@ -1552,7 +1553,7 @@ Item {
                                                 parentTask.clear();
                                                 var result = fetch_tasks_list(selectedProjectId, editselectedSubProjectId);
                                                 for (var i = 0; i < result.length; i++) {
-                                                    if(tasks_list[i].parent_id == 0){
+                                                    if(result[i].parent_id == 0){
                                                          parentTask.append({'id': result[i].id, 'name': result[i].name, 'projectkHasSubProject': false})
                                                     }
                                                 }
