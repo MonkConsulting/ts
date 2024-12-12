@@ -206,15 +206,27 @@ def fetch_projects(
                 write_date.strftime("%Y-%m-%d %H:%M:%S"),
             ]
         )
-    projects = models.execute_kw(
-        database,
-        odoo_uid,
-        password,
-        res_model,
-        "search_read",
-        [domain],
-        {"order": "parent_id desc"},
-    )
+    try:
+        projects = models.execute_kw(
+            database,
+            odoo_uid,
+            password,
+            res_model,
+            "search_read",
+            [domain],
+            {"order": "parent_id desc"},
+        )
+    except Exception:
+        projects = models.execute_kw(
+            database,
+            odoo_uid,
+            password,
+            res_model,
+            "search_read",
+            [domain],
+        )
+        for project in projects:
+            project.update({"parent_id": False})
 
     deleted_records = get_audit_logs(
         database, odoo_uid, password, res_model, models, last_modified
