@@ -48,6 +48,8 @@ Item {
                 link TEXT NOT NULL,\
                 last_modified datetime,\
                 database TEXT NOT NULL,\
+                connectwith_id INTEGER,\
+                api_key TEXT NOT NULL,\
                 username TEXT NOT NULL\
             )');
         });
@@ -177,7 +179,7 @@ Item {
             console.log("Database Query Results:");
             accountsList = [];
             for (var i = 0; i < result.rows.length; i++) {
-                accountsList.push({'user_id': result.rows.item(i).id, 'name': result.rows.item(i).name, 'link': result.rows.item(i).link, 'database': result.rows.item(i).database, 'username': result.rows.item(i).username, 'last_modified': result.rows.item(i).last_modified})
+                accountsList.push({'user_id': result.rows.item(i).id, 'connect_with': result.rows.item(i).connectwith_id, 'name': result.rows.item(i).name, 'link': result.rows.item(i).link, 'database': result.rows.item(i).database, 'username': result.rows.item(i).username, 'last_modified': result.rows.item(i).last_modified, 'api_key': result.rows.item(i).api_key})
             }
             recordModel.clear();
             for (var i = 0; i < accountsList.length; i++) {
@@ -861,7 +863,56 @@ Item {
                                         anchors.rightMargin:  20
                                         anchors.verticalCenter: parent.verticalCenter
                                         onClicked: {
-                                            passwordDialog.open()
+                                            if (model.connect_with == 1) {
+                                                loading = true;
+                                                var failed_sync = false;
+                                                loadingMessage = 'Synchronization for ' + model.name + '!' 
+                                                var filled_password = model.api_key
+                                                var last_user_update = getLastModified(model.user_id)
+                                                python.call("backend.fetch_projects", [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, last_user_update] , function(projects) {
+                                                    if (projects === undefined) {
+                                                        loading = false;
+                                                        failed_sync = true;
+                                                        return
+                                                    }
+                                                    create_projects(projects, model.user_id);
+                                                    python.call("backend.fetch_contacts", [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, last_user_update] , function(contacts) {
+                                                        create_contacts(contacts, model.user_id)
+                                                        var fetchedAllTasks = get_all_tasks(model.user_id, last_user_update)
+                                                        python.call('backend.create_update_tasks', [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, fetchedAllTasks, last_user_update], function (obj_data) {
+                                                            set_tasks(obj_data.settled_tasks, model.user_id);
+                                                            create_tasks(obj_data.updated_tasks, model.user_id);
+                                                            var timesheets = fetchTimesheets(model.user_id)
+                                                            python.call("backend.create_timesheets", [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, timesheets], function (res) {
+                                                                update_timesheet_entries(res, model.user_id)
+                                                            })
+                                                            python.call('backend.fetch_activity_type', [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, last_user_update], function(activity_types) {
+                                                                create_activity_types(activity_types, model.user_id)
+                                                                var fetchedallActivities = fetchAllActivities(model.user_id)
+                                                                python.call('backend.fetch_activities', [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, last_user_update, fetchedallActivities], function(activities_dict) {
+                                                                    if (activities_dict === undefined) {
+                                                                        loading = false;
+                                                                        return
+                                                                    }
+                                                                    create_activities(activities_dict.activities_list, model.user_id);
+                                                                    done_activities(activities_dict.done_activities, model.user_id);
+                                                                    loading = false;
+                                                                    update_instance_date(model.user_id)
+                                                                })
+                                                            })
+                                                            var activities = fetchActivities(model.user_id)
+                                                            python.call("backend.create_activities", [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, activities], function (res) {
+                                                                update_activity_entries(res)
+                                                            })
+                                                        })
+                                                        
+                                                        passwordInput.text = ""
+                                                        passwordDialog.close();
+                                                    })
+                                                })
+                                            } else {
+                                                passwordDialog.open()
+                                            }
                                         }
                                     }
                                     Dialog {

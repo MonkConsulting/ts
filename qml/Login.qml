@@ -38,7 +38,8 @@ Item {
     property string account_name: ""
     property string selected_database: ""
     property string selected_link: ""
-    property int courant_userid: 0
+    property int currentUserId: 0
+    property int selectedconnectwithId:0
 
     function initializeDatabase() {
         var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
@@ -51,38 +52,29 @@ Item {
                 link TEXT NOT NULL,\
                 last_modified datetime,\
                 database TEXT NOT NULL,\
+                connectwith_id INTEGER,\
+                api_key TEXT,\
                 username TEXT NOT NULL\
             )');
-            
-            tx.executeSql('CREATE TABLE IF NOT EXISTS tasksLists (\
-                id INTEGER PRIMARY KEY AUTOINCREMENT,\
-                description TEXT NOT NULL,\
-                project_id INTEGER NOT NULL,\
-                task_id INTEGER NOT NULL,\
-                date TEXT NOT NULL,\
-                spenthours TEXT NOT NULL,\
-                user_id INTEGER NOT NULL,\
-                user_name TEXT NOT NULL,\
-                FOREIGN KEY (user_id) REFERENCES users(id)\
-            )');
-            tx.executeSql('delete from tasksLists');
-            tx.executeSql('drop table tasksLists');
 
         });
     }
 
-    function insertData(name, link, database, username) {
+    function insertData(name, link, database, username, selectedconnectwithId, apikey) {
         var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
 
         db.transaction(function(tx) {
             var result = tx.executeSql('SELECT id, COUNT(*) AS count FROM users WHERE link = ? AND database = ? AND username = ?', [link, database, username]);
-
             if (result.rows.item(0).count === 0) {
-                tx.executeSql('INSERT INTO users (name, link, database, username) VALUES (?, ?, ?, ?)', [name, link, database, username]);
+                var api_key_text = '';
+                if (selectedconnectwithId == 1) {
+                    api_key_text = apikey;
+                }
+                tx.executeSql('INSERT INTO users (name, link, database, username, connectwith_id, api_key) VALUES (?, ?, ?, ?, ?, ?)', [name, link, database, username, selectedconnectwithId, api_key_text]);
                 var newResult = tx.executeSql('SELECT id FROM users WHERE link = ? AND database = ? AND username = ?', [link, database, username]);
-                courant_userid = newResult.rows.item(0).id;
+                currentUserId = newResult.rows.item(0).id;
             } else {
-                courant_userid = result.rows.item(0).id;
+                currentUserId = result.rows.item(0).id;
             }
         });
     }
@@ -97,6 +89,12 @@ Item {
                 accountsList.push({'user_id': result.rows.item(i).id, 'name': result.rows.item(i).name, 'link': result.rows.item(i).link, 'database': result.rows.item(i).database, 'username': result.rows.item(i).username})
             }
         });
+    }
+
+    ListModel {
+        id: menuconnectwithModel
+        ListElement { itemId: 0; name: "Connect With Password" }
+        ListElement { itemId: 1; name: "Connect With Api Key" }
     }
 
    
@@ -185,12 +183,21 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.margins: 20
         }
-
+    Flickable {
+            id: flickableContainer
+            width: parent.width
+            height: parent.height  
+            contentHeight: loginFlickable.childrenRect.height + 370 
+            anchors.fill: parent
         Column {
+            id: loginFlickable
             spacing: 10
-            anchors.top: logo.bottom
+            anchors.top: parent.top
+            anchors.topMargin: isDesktop()?200:phoneLarg()?270:300
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.margins: 20
+            height: childrenRect.height + 20 
+
 
             ListModel {
                 id: accountsListModel
@@ -381,6 +388,51 @@ Item {
                 width: isDesktop() ? 500 : 1000
             }
 
+            TextField {
+                id: connectwith
+                placeholderText: "Connect With"
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: isDesktop() ? 500 : 1000
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        menuconnectwith.open(); 
+                    }
+                }
+                Menu {
+                    id: menuconnectwith
+                    x: connectwith.x
+                    width: connectwith.width
+
+                    Repeater {
+                        model: menuconnectwithModel
+
+                        MenuItem {
+                            width: parent.width
+                            height: isDesktop() ? 50 : 80
+                            property string connectId: model.itemId || 0  
+                            property string connectName: model.name || ''
+                            Text {
+                                text: connectName
+                                font.pixelSize: isDesktop() ? 20 : 40
+                                color: "#000"
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.left: parent.left
+                                anchors.leftMargin: 10                                
+                                wrapMode: Text.WordWrap
+                                elide: Text.ElideRight
+                                maximumLineCount: 2
+                            }
+                            onClicked: {
+                                connectwith.text = connectName
+                                selectedconnectwithId = connectId
+                                menuconnectwith.close()
+                            }
+                        }
+                    }
+                }
+            }
+
             Row {
                 anchors.horizontalCenter: parent.horizontalCenter
                 spacing: 5
@@ -408,6 +460,7 @@ Item {
             }
 
             Button {
+                id: loginButton
                 anchors.topMargin: 20
                 width: isDesktop() ? 500 : 1000
                 
@@ -431,9 +484,13 @@ Item {
                     } else {
                         python.call("backend.login_odoo", [linkInput.text, usernameInput.text, passwordInput.text, {'input_text': dbInput.text || single_db, 'selected_db': dbInputMenu.text, 'isTextInputVisible': isTextInputVisible, 'isTextMenuVisible': isTextMenuVisible}], function (result) {
                             if (result && result['result'] == 'pass') {
-                                insertData(accountNameInput.text, linkInput.text, result['database'], usernameInput.text)
+                                let apikey = ""
+                                if(selectedconnectwithId == 1){
+                                    apikey = passwordInput.text
+                                }
+                                insertData(accountNameInput.text, linkInput.text, result['database'], usernameInput.text,selectedconnectwithId,apikey)
                                 isValidLogin = true;
-                                loggedIn(result['name_of_user'],courant_userid);
+                                loggedIn(result['name_of_user'],currentUserId);
                             }
                             else {
                                 isValidLogin = false;
@@ -459,13 +516,25 @@ Item {
                 visible: !isValidLogin
                 font.pixelSize: isDesktop() ? 20 : 40
             }
+
+        
+        Label {
+            text: "Notes:\nIn case of Connect with API Key, API key will be stored in your local device, it helps to synchronize without password.\n\nIn case of Connect with Password, while synchronizarion password will be asked."
+            
+            anchors.left: parent.left
+            anchors.right: parent.right
+            horizontalAlignment: Label.AlignHCenter
+            verticalAlignment: Label.AlignVCenter
+            wrapMode: Label.Wrap
         }
+        }
+}
     }
 
     Component.onCompleted: {
         initializeDatabase();
-        queryData();   
+        queryData();
     }
 
-    signal loggedIn(string username,int courant_userid)
+    signal loggedIn(string username,int currentUserId)
 }

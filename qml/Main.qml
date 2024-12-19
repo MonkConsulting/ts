@@ -612,14 +612,14 @@ ApplicationWindow {
                 Login {
                     anchors.centerIn: parent
                     onLoggedIn: {
-                        currentUserId = courant_userid
+                        currentUserId = currentUserId;
                         selected_username = username;
                         currentTime = false;
                         stopwatchTimer.stop();
                         elapsedTime = 0;    
                         storedElapsedTime = 0;
                         running = false;
-                        stackView.push(listPage);
+                        stackView.push(manageAccounts);
                         horizontalPanel.activeImageIndex = 1
                         verticalPanel.activeImageIndex = 1              
                         penalOpen= true
