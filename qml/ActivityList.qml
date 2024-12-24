@@ -40,9 +40,9 @@ Item {
     function queryData(type) {
         var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
         db.transaction(function (tx) {
-            filterActivityListData = []
+            filterActivityListData = [];
             activityListModel.clear();
-            if(workpersonaSwitchState){
+            if(workpersonaSwitchState) {
                 var existing_activities = tx.executeSql('select * from mail_activity_app where account_id is not NULL order by last_modified desc')
                 if (type == 'pending') {
                     existing_activities = tx.executeSql('select * from mail_activity_app where account_id is not NULL AND state != "done" order by last_modified desc')

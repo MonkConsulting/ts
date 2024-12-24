@@ -46,9 +46,9 @@ Item {
         tasksListModel.clear()
         db.transaction(function(tx) {
             if(workpersonaSwitchState){
-                var result = tx.executeSql('SELECT * FROM project_task_app order by last_modified desc');
+                var result = tx.executeSql('SELECT * FROM project_task_app where account_id != 0 order by last_modified desc');
             }else{
-                var result = tx.executeSql('SELECT * FROM project_task_app where account_id IS NULL');
+                var result = tx.executeSql('SELECT * FROM project_task_app where account_id = 0');
             }
             for (var i = 0; i < result.rows.length; i++) {
                 var parent_task = tx.executeSql('SELECT name FROM project_task_app WHERE id = ?',[result.rows.item(i).parent_id]);
@@ -57,9 +57,21 @@ Item {
                 var accunt_id = tx.executeSql('SELECT name FROM users WHERE id = ?',[result.rows.item(i).account_id]);
                 var accountName = accunt_id.rows.length > 0 ? accunt_id.rows.item(0).name || "" : "";
 
-
                 var id = result.rows.item(i).id
                 var spentHoursQuery = tx.executeSql('SELECT unit_amount FROM account_analytic_line_app WHERE task_id = ?', [id]);
+
+                var color_pallet = ''
+                if (result.rows.item(i).sub_project_id != 0) {
+                    var project_color = tx.executeSql('select color_pallet from project_project_app where id = ?', [result.rows.item(i).sub_project_id])
+                    if (project_color.rows.length) {
+                        color_pallet = project_color.rows.item(0).color_pallet;
+                    }
+                } else {
+                    var project_color = tx.executeSql('select color_pallet from project_project_app where id = ?', [result.rows.item(i).project_id])
+                    if (project_color.rows.length) {
+                        color_pallet = project_color.rows.item(0).color_pallet;
+                    }
+                }
 
                 var totalMinutes = 0;
                 for (var j = 0; j < spentHoursQuery.rows.length; j++) {
@@ -75,7 +87,7 @@ Item {
                 var remainingMinutes = totalMinutes % 60;
                 var spentHours =  totalHours + ":" + (remainingMinutes < 10 ? "0" : "") + remainingMinutes;
 
-                tasksListModel.append({'id': result.rows.item(i).id, 'name': result.rows.item(i).name, 'allocated_hours': result.rows.item(i).initial_planned_hours, 'state': result.rows.item(i).state, 'parentTask': parentTask, 'accountName':accountName,'favorites':result.rows.item(i).favorites,'spentHours':spentHours, 'timerRunning': false})
+                tasksListModel.append({'id': result.rows.item(i).id, 'color_pallet': color_pallet, 'name': result.rows.item(i).name, 'allocated_hours': result.rows.item(i).initial_planned_hours, 'state': result.rows.item(i).state, 'parentTask': parentTask, 'accountName':accountName,'favorites':result.rows.item(i).favorites,'spentHours':spentHours, 'timerRunning': false})
                 filtertasklistData.push({'id': result.rows.item(i).id, 'name': result.rows.item(i).name, 'allocated_hours': result.rows.item(i).initial_planned_hours, 'state': result.rows.item(i).state,'parentTask': parentTask, 'accountName':accountName,'favorites':result.rows.item(i).favorites,'spentHours':spentHours, 'timerRunning': false})
             }
         })
@@ -84,20 +96,19 @@ Item {
     function filterTaskList(query) {
         tasksListModel.clear(); 
 
-            for (var i = 0; i < filtertasklistData.length; i++) {
-                var entry = filtertasklistData[i];
-                
-                if (entry.name.toLowerCase().includes(query.toLowerCase()) ||
-                    entry.parentTask.toLowerCase().includes(query.toLowerCase()) || 
-                    entry.state.toLowerCase().includes(query.toLowerCase()) ||
-                    entry.accountName.toLowerCase().includes(query.toLowerCase()) ||
-                    (entry.spentHours.toString().includes(query)) ||  
-                    (entry.allocated_hours.toString().includes(query))
-                    ) {
-                    tasksListModel.append(entry);
-
-                }
+        for (var i = 0; i < filtertasklistData.length; i++) {
+            var entry = filtertasklistData[i];
+            
+            if (entry.name.toLowerCase().includes(query.toLowerCase()) ||
+                entry.parentTask.toLowerCase().includes(query.toLowerCase()) || 
+                entry.state.toLowerCase().includes(query.toLowerCase()) ||
+                entry.accountName.toLowerCase().includes(query.toLowerCase()) ||
+                (entry.spentHours.toString().includes(query)) ||  
+                (entry.allocated_hours.toString().includes(query))
+                ) {
+                tasksListModel.append(entry);
             }
+        }
     }
 
     function fetch_current_users_task(selectedAccountUserId) {
@@ -346,16 +357,16 @@ Item {
                                     height: isDesktop() ? 78 : 130
                                     anchors.top: parent.top
                                     anchors.topMargin: 1
-                                    color: getColorBasedOnIndex(index)
-                                    function getColorBasedOnIndex(index) {
-                                        switch (index % 4) {
-                                            case 0: return "#ff0000";  
-                                            case 1: return "#00ff00";  
-                                            case 2: return "#0000ff";  
-                                            case 3: return "#ffff00";  
-                                            default: return "#cccfff";  
-                                        }
-                                    }
+                                    color: model.color_pallet
+                                    // function getColorBasedOnIndex(index) {
+                                    //     switch (index % 4) {
+                                    //         case 0: return "#ff0000";  
+                                    //         case 1: return "#00ff00";  
+                                    //         case 2: return "#0000ff";  
+                                    //         case 3: return "#ffff00";  
+                                    //         default: return "#cccfff";  
+                                    //     }
+                                    // }
                                 }
 
                                 Column {
@@ -408,7 +419,7 @@ Item {
                                         
                                         
                                         Text {
-                                            text: model.state
+                                            text: model.state ? model.state : ''
                                             font.pixelSize: isDesktop() ? 18 : 26
                                             color: "#000000"  
                                             anchors.verticalCenter: parent.verticalCenter
@@ -428,7 +439,6 @@ Item {
                                                 model.timerRunning = true
                                             }
                                         }
-
 
                                         Row {
                                             spacing: 10
@@ -572,11 +582,11 @@ Item {
                                 }
                             }
                             
-                            
                         }
                     }
                 }
             }
+
             Rectangle {
                 id: rightPanel
                 z: 1
@@ -597,7 +607,7 @@ Item {
                             if(workpersonaSwitchState){
                                 var result = tx.executeSql('SELECT * FROM project_task_app WHERE id = ?', [rowId]);
                             }else{
-                                var result = tx.executeSql('SELECT * FROM project_task_app where account_id IS NULL AND id = ?', [rowId] );
+                                var result = tx.executeSql('SELECT * FROM project_task_app where account_id = 0 AND id = ?', [rowId] );
                             }
                             if (result.rows.length > 0) {
                                 var rowData = result.rows.item(0);
@@ -609,15 +619,13 @@ Item {
                                 var userId = rowData.user_id || ""; 
                                 
                                 if(sub_pro_Id != 0){
-                                hasSubProject = true
-                                var sub_project = tx.executeSql('SELECT name FROM project_project_app WHERE id = ?', [sub_pro_Id]);
-                                subProjectInput.text = sub_project.rows.length > 0 ? sub_project.rows.item(0).name || "" : "";
-                                editselectedSubProjectId = sub_pro_Id
+                                    hasSubProject = true
+                                    var sub_project = tx.executeSql('SELECT name FROM project_project_app WHERE id = ?', [sub_pro_Id]);
+                                    subProjectInput.text = sub_project.rows.length > 0 ? sub_project.rows.item(0).name || "" : "";
+                                    editselectedSubProjectId = sub_pro_Id
                                 }else{
-                                hasSubProject = false
-                                    
+                                    hasSubProject = false
                                 }
-
 
                                 if(rowData.start_date != 0 && rowData.start_date != "mm/dd/yy") {
                                     var rowDate = new Date(rowData.start_date || "");  
@@ -633,7 +641,7 @@ Item {
                                 }else{
                                     enddateInput.text = "mm/dd/yy"
                                 }
-                                if(rowData.deadline != 0 && rowData.deadline != "mm/dd/yy") {
+                                if (rowData.deadline != 0 && rowData.deadline != "mm/dd/yy") {
                                     var rowDate = new Date(rowData.deadline || "");  
                                     var formattedDate = formatDate(rowDate);  
                                     deadlineInput.text = formattedDate;
@@ -641,12 +649,10 @@ Item {
                                     currentDate.setHours(0, 0, 0, 0);                
                                     rowDate.setHours(0, 0, 0, 0);                    
 
-                                    var timeDiff = rowDate - currentDate;            
+                                    var timeDiff = rowDate - currentDate;
                                     var dayLefts = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));  
-
                                     dayLeft = dayLefts
-                                   
-                                }else{
+                                } else {
                                     deadlineInput.text = "mm/dd/yy"
                                     dayLeft = ""
                                 }
@@ -774,7 +780,7 @@ Item {
 
                             onClicked: {
                                 const editData = {
-                                    selectedAccountUserId: selectedAccountUserId ,
+                                    selectedAccountUserId: selectedAccountUserId,
                                     nameInput: nameInput.text,
                                     selectedProjectId: selectedProjectId,
                                     editselectedSubProjectId: editselectedSubProjectId,
@@ -1090,19 +1096,12 @@ Item {
                                                     }
 
                                                     onClicked: {
-                                                        
-                                                        
-                                                        
-                                                        
-                                                        
                                                         accountInput.text = accuntName
                                                         selectedAccountUserId = accountId
                                                         selectedProjectId = 0
                                                         projectInput.text = ""
                                                         selectedparentId = 0 
                                                         parentInput.text = ""
-
-                                                        
                                                     }
                                                 }
                                             }
@@ -1593,17 +1592,8 @@ Item {
                                                     }
 
                                                     onClicked: {
-                                                        
-                                                        
-                                                        
-                                                        
-                                                        
                                                         parentInput.text = parentName
                                                         selectedparentId = parentId
-                                                        
-                                                        
-                                                        
-                                                        
                                                     }
                                                 }
                                             }
@@ -1819,7 +1809,6 @@ Item {
                                     width:  parent.width - (!isDesktop()? phoneLarg()? 0:50:0)
                                     height: isDesktop() ? 25 : phoneLarg()?50:80
                                     color: "transparent"
-
 
                                     Rectangle {
                                         width: parent.width

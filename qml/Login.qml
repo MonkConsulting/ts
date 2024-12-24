@@ -66,7 +66,7 @@ Item {
         db.transaction(function(tx) {
             var result = tx.executeSql('SELECT id, COUNT(*) AS count FROM users WHERE link = ? AND database = ? AND username = ?', [link, database, username]);
             if (result.rows.item(0).count === 0) {
-                var api_key_text = '';
+                var api_key_text = ' ';
                 if (selectedconnectwithId == 1) {
                     api_key_text = apikey;
                 }
@@ -89,6 +89,8 @@ Item {
                 accountsList.push({'user_id': result.rows.item(i).id, 'name': result.rows.item(i).name, 'link': result.rows.item(i).link, 'database': result.rows.item(i).database, 'username': result.rows.item(i).username})
             }
         });
+        selectedconnectwithId = 1;
+        connectwith.text = 'Connect With Api Key'
     }
 
     ListModel {
@@ -388,6 +390,11 @@ Item {
                 width: isDesktop() ? 500 : 1000
             }
 
+            Label {
+                id: connectwithLabel
+                text: 'Connection Options:'
+            }
+
             TextField {
                 id: connectwith
                 placeholderText: "Connect With"
@@ -439,7 +446,7 @@ Item {
 
                 TextField {
                     id: passwordInput
-                    placeholderText: "Password"
+                    placeholderText: selectedconnectwithId == 0 ? "Password" : "API Key"
                     width: isDesktop() ? 452 : 900
                     echoMode: isPasswordVisible ? TextInput.Normal : TextInput.Password
                 }
@@ -518,15 +525,15 @@ Item {
             }
 
         
-        Label {
-            text: "Notes:\nIn case of Connect with API Key, API key will be stored in your local device, it helps to synchronize without password.\n\nIn case of Connect with Password, while synchronizarion password will be asked."
-            
-            anchors.left: parent.left
-            anchors.right: parent.right
-            horizontalAlignment: Label.AlignHCenter
-            verticalAlignment: Label.AlignVCenter
-            wrapMode: Label.Wrap
-        }
+            Label {
+                text: selectedconnectwithId == 1 ? "Notes:<br/>Connect with API Key: Your API key will be securely stored on your device, enabling synchronization without requiring a password.<br/><br/>In Odoo, you can generate your API key in the <b>My Profile</b> page under the <b>Account Security</b> tab." : "Notes:<br/>Connect with Password: You will be prompted to enter your password each time synchronization is performed."
+                textFormat: Text.RichText
+                anchors.left: parent.left
+                anchors.right: parent.right
+                horizontalAlignment: Label.AlignHCenter
+                verticalAlignment: Label.AlignVCenter
+                wrapMode: Label.Wrap
+            }
         }
 }
     }

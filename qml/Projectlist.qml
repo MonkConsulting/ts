@@ -13,7 +13,12 @@ Item {
     property var listData: []
     property int currentRecordId: 0
     property bool issearchHeader: false
-
+    property int selectedAccountUserId: 0 
+    property int selectedparentProjectId: 0 
+    property bool isProjectEdit: false
+    property bool isEditProjectClicked: false
+    property string selectedColor: ''
+    property var color_indexes: ["#ffffff","#111111","#960334","#FB3778", "#7C0396","#D937FB", "#030396","#3737FB", "#008585","#33FFFF", "#038203","#37FB37", "#787802","#FBFB37", "#964D03","#FB9937"]
 
     function fetch_projects_list() {
         var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
@@ -21,9 +26,9 @@ Item {
         
         db.transaction(function(tx) {
             if (workpersonaSwitchState) {
-                var result = tx.executeSql('SELECT * FROM project_project_app where parent_id = 0 order by last_modified desc');
+                var result = tx.executeSql('SELECT * FROM project_project_app where parent_id = 0 AND account_id IS NOT NULL order by last_modified desc');
             } else {
-                var result = tx.executeSql('SELECT * FROM project_project_app where account_id IS NULL');
+                var result = tx.executeSql('SELECT * FROM project_project_app where parent_id = 0 AND account_id IS NULL');
             }
             for (var i = 0; i < result.rows.length; i++) {
                 var task_total = tx.executeSql('SELECT id, COUNT(*) AS count FROM project_task_app WHERE account_id = ? AND project_id = ?', [result.rows.item(i).account_id, result.rows.item(i).id]);
@@ -54,7 +59,8 @@ Item {
                         status: child_projects.rows.item(child).last_update_status,
                         allocated_hours: child_projects.rows.item(child).allocated_hours,
                         planned_end_date: childplannedEndDate,
-                        parentProject: result.rows.item(i).name
+                        parentProject: result.rows.item(i).name,
+                        color_pallet: child_projects.rows.item(i).color_pallet
                     });
                 }
 
@@ -66,11 +72,11 @@ Item {
                     status: result.rows.item(i).last_update_status,
                     allocated_hours: result.rows.item(i).allocated_hours,
                     planned_end_date: plannedEndDate,
-                    children: children_list
+                    children: children_list,
+                    color_pallet: result.rows.item(i).color_pallet
                     
                 });
 
-                
                 filterprojectlistData.push({
                     id: result.rows.item(i).id,
                     total_tasks: task_total.rows.item(0).count,
@@ -79,8 +85,8 @@ Item {
                     status: result.rows.item(i).last_update_status,
                     allocated_hours: result.rows.item(i).allocated_hours,
                     planned_end_date: plannedEndDate,
-                    children: children_list
-                    
+                    children: children_list,
+                    color_pallet: result.rows.item(i).color_pallet
                 });
 
                 projectListView.model = listData;  
@@ -108,6 +114,24 @@ Item {
             }
     }
 
+    function editprojectData(data){
+        var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+        db.transaction(function(tx) {
+            if (!workpersonaSwitchState) {
+                tx.executeSql('UPDATE project_project_app SET \
+                    parent_id = ?,allocated_hours = ?,favorites = ?,planned_start_date = ?,planned_end_date = ?, \
+                    name = ?,  description = ?, color_pallet = ?, last_modified = ? WHERE id = ?',
+                    [data.updatedparentProject, data.updateallocatedhoursInput, data.img_star,data.updatedstartDate,data.updatedendDate,
+                    data.updatedProject,data.updatedDescription, data.color_pallet, new Date().toISOString(), data.rowId]  
+                );
+            } else {
+                tx.executeSql('UPDATE project_project_app SET color_pallet = ? WHERE id = ?', [data.color_pallet, data.rowId])
+            }
+            fetch_projects_list()
+        });
+    
+    }
+
     Rectangle {
         id:projectHeader
         width: parent.width
@@ -117,7 +141,6 @@ Item {
         color: "#FFFFFF"   
         z: 1
 
-        
         Rectangle {
             width: parent.width
             height: 2                    
@@ -185,6 +208,23 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: isDesktop() ? 10 : 20
                     anchors.right: parent.right
+
+
+                    ToolButton {
+                        width: isDesktop() ? 40 : 80
+                        height: isDesktop() ? 35 : 80
+                        visible: !workpersonaSwitchState
+                        background: Rectangle {
+                            color: "transparent"  
+                        }
+                        contentItem: Ubuntu.Icon {  
+                            name: "add" 
+                        }
+                        onClicked: {
+                            
+                            stackView.push(projectForm)
+                        }
+                    }
 
                     ToolButton {
                         id: search_id
@@ -281,7 +321,7 @@ Item {
                                 model: listData
                                 delegate: Column {
                                     width: parent.width
-                                    Rectangle{
+                                    Rectangle {
                                         id: menRow
                                         width: parent.width
                                         height: isDesktop()?80:100 
@@ -330,16 +370,7 @@ Item {
                                                 height: isDesktop() ? 78 : 97
                                                 anchors.top: parent.top
                                                 anchors.topMargin: 1
-                                                color: getColorBasedOnIndex(index)
-                                                function getColorBasedOnIndex(index) {
-                                                    switch (index % 4) {
-                                                        case 0: return "#ff0000";  
-                                                        case 1: return "#00ff00";  
-                                                        case 2: return "#0000ff";  
-                                                        case 3: return "#ffff00";  
-                                                        default: return "#cccfff";  
-                                                    }
-                                                }
+                                                color: modelData.color_pallet
                                             }
 
                                             Column {
@@ -483,16 +514,7 @@ Item {
                                                     height: isDesktop() ? 78 : 97
                                                     anchors.top: parent.top
                                                     anchors.topMargin: 1
-                                                    color: getColorBasedOnIndex(index)
-                                                    function getColorBasedOnIndex(index) {
-                                                        switch (index % 4) {
-                                                            case 0: return "#ff0000";  
-                                                            case 1: return "#00ff00";  
-                                                            case 2: return "#0000ff";  
-                                                            case 3: return "#ffff00";  
-                                                            default: return "#cccfff";  
-                                                        }
-                                                    }
+                                                    color: modelData.color_pallet
                                                 }
 
                                                 Column {
@@ -504,7 +526,6 @@ Item {
                                                         height: isDesktop() ? 40 : 50
                                                         spacing: 20 
 
-                                                        
                                                         Row {
                                                             spacing: 10
                                                             anchors.left: parent.left
@@ -523,7 +544,6 @@ Item {
 
                                                             Text {
                                                                 text: "Project: " + modelData.name
-                                                                
                                                                 font.pixelSize: isDesktop() ? 20 : 30
                                                                 color: "#000000"
                                                                 anchors.verticalCenter: parent.verticalCenter
@@ -531,7 +551,6 @@ Item {
                                                                 elide: Text.ElideRight
                                                             }
                                                         }
-
                                                         
                                                         Text {
                                                             text: modelData.parentProject
@@ -543,7 +562,6 @@ Item {
                                                             width: parent.width * 0.4
                                                             elide: Text.ElideRight
                                                         }
-
                                                         
                                                         Text {
                                                             text: modelData.status
@@ -656,7 +674,10 @@ Item {
                                         }
                                         nameInput.text = rowData.name
                                         allocatedhoursInput.text = rowData.allocated_hours
+                                        selectedAccountUserId = accountId
+                                        selectedColor = rowData.color_pallet != null ? rowData.color_pallet : '#FFFFFF'
                                         parentProjectInput.text = parent_project.rows.length > 0 ? parent_project.rows.item(0).name || "" : "";
+                                        selectedparentProjectId = rowData.parent_id
                                         img_star.selectedPriority = rowData.favorites || 0; 
                                         descriptionProject.text = rowData.description
                                             .replace(/<[^>]+>/g, " ")     
@@ -716,7 +737,68 @@ Item {
                                         currentRecordId = -1
                                         
                                     }
-                                }                                
+                                } 
+                                Timer {
+                                    id: projectEditTimer
+                                    interval: 2000  
+                                    repeat: false
+                                    onTriggered: {
+                                        isProjectEdit = false;
+                                        isEditProjectClicked = false;
+                                    }
+                                }
+                                Button {
+                                    visible: workpersonaSwitchState
+                                    id: rightButton
+                                    
+                                    anchors.right: parent.right
+                                    anchors.top: parent.top
+                                    anchors.topMargin: 10
+                                    width: isDesktop() ? 20 : 50
+                                    height: isDesktop() ? 20 : 50
+                                    anchors.rightMargin: isDesktop() ? 15 : 20
+
+                                    Image {
+                                        source: "images/right.svg" 
+                                        width: isDesktop() ? 20 : 50
+                                        height: isDesktop() ? 20 : 50
+                                    }
+
+                                    background: Rectangle {
+                                        color: "transparent"
+                                        radius: 10
+                                        border.color: "transparent"
+                                    }
+
+                                    onClicked: {
+                                        var rowId = projectFlickable.edit_id;
+                                        const editData = {
+                                            updatedProject: nameInput.text ,
+                                            updatedAccount: selectedAccountUserId,
+                                            updatedDescription: descriptionProject.text,
+                                            updatedstartDate: startDateInput.text,
+                                            updatedendDate: endDateInput.text,
+                                            updatedparentProject: selectedparentProjectId,                                            
+                                            updateallocatedhoursInput:allocatedhoursInput.text,
+                                            img_star: img_star.selectedPriority,
+                                            rowId: rowId,
+                                            color_pallet: selectedColor
+                                        }
+                                        if(nameInput.text){
+                                            isProjectEdit = true
+                                            isEditProjectClicked = true
+                                            editprojectData(editData)
+                                            filterProjectList(searchField.text)
+                                            projectEditTimer.start()
+                                            
+
+                                        }else{
+                                            isProjectEdit = false
+                                            isEditProjectClicked = true
+                                            projectEditTimer.start()
+                                        }
+                                    }
+                                }                               
                             }
 
                             Flickable {
@@ -771,6 +853,7 @@ Item {
                                             }
                                             Label { text: "Instance" 
                                             width: 150
+                                            visible: workpersonaSwitchState
                                             height: isDesktop() ? 25 : phoneLarg()?50:80
                                             font.pixelSize: isDesktop() ? 18 : 40
                                             }
@@ -785,15 +868,21 @@ Item {
                                             font.pixelSize: isDesktop() ? 18 : 40
                                             }
                                             
-                                            Label { text: "Favorites" 
-                                            width: 150
-                                            height: isDesktop() ? 25 : phoneLarg()?50:80
-                                            font.pixelSize: isDesktop() ? 18 : 40
-                                            }
                                             Label { text: "Description" 
                                             width: 150
                                             height: descriptionProject.height
                                             font.pixelSize: isDesktop() ? 18 : 40
+                                            }
+
+                                            Label { text: "Favorites" 
+                                                width: 150
+                                                height: isDesktop() ? 25 : phoneLarg()?50:80
+                                                font.pixelSize: isDesktop() ? 18 : 40
+                                            }
+                                            Label { text: "Color Pallet" 
+                                                width: 150
+                                                height: isDesktop() ? 25 : phoneLarg()?50:80
+                                                font.pixelSize: isDesktop() ? 18 : 40
                                             }
                                         }
                                         Column {
@@ -818,7 +907,7 @@ Item {
                                                     height: parent.height
                                                     font.pixelSize: isDesktop() ? 18 : 40
                                                     anchors.fill: parent
-                                                    readOnly: true
+                                                    readOnly: workpersonaSwitchState
 
                                                     Text {
                                                         id: namePlaceholder
@@ -853,7 +942,7 @@ Item {
                                                     font.pixelSize: isDesktop() ? 18 : phoneLarg()?35:50
                                                     anchors.fill: parent
                                                     id: startDateInput
-                                                    readOnly: true
+                                                    readOnly: workpersonaSwitchState
                                                     Text {
                                                         id: startDateplaceholder
                                                         text: "Date"
@@ -876,6 +965,17 @@ Item {
                                                             onClicked: {
                                                                 startDateInput.text = Qt.formatDate(date, 'M/d/yyyy').toString()
                                                             }
+                                                        }
+                                                    }
+                                                    MouseArea {
+                                                        visible: !workpersonaSwitchState
+                                                        anchors.fill: parent
+                                                        onClicked: {
+                                                            var now = new Date()
+                                                            datePickerstartDate.selectedDate = now
+                                                            datePickerstartDate.currentIndex = now.getMonth()
+                                                            datePickerstartDate.selectedYear = now.getFullYear()
+                                                            startDateDialog.visible = true
                                                         }
                                                     }
 
@@ -920,7 +1020,7 @@ Item {
                                                     height: parent.height
                                                     font.pixelSize: isDesktop() ? 18 : phoneLarg()?35:50
                                                     anchors.fill: parent
-                                                    readOnly: true
+                                                    readOnly: workpersonaSwitchState
                                                     id: endDateInput
                                                     Text {
                                                         id: endDateplaceholder
@@ -944,6 +1044,17 @@ Item {
                                                             onClicked: {
                                                                 endDateInput.text = Qt.formatDate(date, 'M/d/yyyy').toString()
                                                             }
+                                                        }
+                                                    }
+                                                    MouseArea {
+                                                        visible: !workpersonaSwitchState
+                                                        anchors.fill: parent
+                                                        onClicked: {
+                                                            var now = new Date()
+                                                            datePickerendDate.selectedDate = now
+                                                            datePickerendDate.currentIndex = now.getMonth()
+                                                            datePickerendDate.selectedYear = now.getFullYear()
+                                                            endDateDialog.visible = true
                                                         }
                                                     }
                                                     onTextChanged: {
@@ -972,6 +1083,7 @@ Item {
                                                 width:  parent.width - (!isDesktop()? phoneLarg()? 0:50:0)
                                                 height: isDesktop() ? 25 : phoneLarg()?50:80
                                                 color: "transparent"
+                                                visible: workpersonaSwitchState
 
                                                 
                                                 Rectangle {
@@ -1079,6 +1191,7 @@ Item {
                                                     height: parent.height
                                                     font.pixelSize: isDesktop() ? 18 : 40
                                                     anchors.fill: parent
+                                                    readOnly: workpersonaSwitchState
                                                     
                                                     id: parentProjectInput
                                                     Text {
@@ -1093,6 +1206,17 @@ Item {
 
                                                     MouseArea {
                                                         anchors.fill: parent
+                                                        visible: !workpersonaSwitchState
+                                                        onClicked: {
+                                                            parentProject.clear();
+                                                            var result = fetch_projects(projectFlickable.edit_id);
+                                                            for (var i = 0; i < result.length; i++) {
+                                                                parentProject.append({'id': result[i].id, 'name': result[i].name, })
+                                                            }
+                                                            
+                                                            parentProjectmenu.open(); 
+
+                                                        }
                                                     }
 
                                                     Menu {
@@ -1127,6 +1251,9 @@ Item {
 
                                                                 onClicked: {
                                                                     parentProjectInput.text = parentProjectName
+                                                                    selectedparentProjectId = parentProjectId
+                                                                    parentProjectmenu.close()
+
                                                                 }
                                                             }
                                                         }
@@ -1159,7 +1286,7 @@ Item {
                                                     height: parent.height
                                                     font.pixelSize: isDesktop() ? 20 : 40
                                                     anchors.fill: parent
-                                                    readOnly: true
+                                                    readOnly: workpersonaSwitchState
                                                     
                                                     id: allocatedhoursInput
                                                     
@@ -1177,28 +1304,6 @@ Item {
                                                             allocatedhoursInputPlaceholder.visible = false
                                                         } else {
                                                             allocatedhoursInputPlaceholder.visible = true
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            Row {
-                                                width: isDesktop() ? 400 : 700
-                                                height: isDesktop() ? 25 : phoneLarg()?50:80
-                                                id: img_star
-                                                spacing: 5  
-                                                property int selectedPriority: 0  
-
-                                                Repeater {
-                                                    model: 1  
-                                                    delegate: Item {
-                                                        width: isDesktop() ? 30 : 50  
-                                                        height: isDesktop() ? 30 : 50
-
-                                                        Image {
-                                                            id: starImage
-                                                            source: (index < img_star.selectedPriority) ? "images/star-active.svg" : "images/starinactive.svg"  
-                                                            anchors.fill: parent
-                                                            smooth: true  
                                                         }
                                                     }
                                                 }
@@ -1225,7 +1330,7 @@ Item {
                                                     width: parent.width
                                                     
                                                     font.pixelSize: isDesktop() ? 18 : 40
-                                                    readOnly: true
+                                                    readOnly: workpersonaSwitchState
                                                     anchors.left: parent.left
                                                     anchors.leftMargin: (!descriptionProjectPlaceholder.visible && !isDesktop()) ? -30 : 0
 
@@ -1248,6 +1353,170 @@ Item {
                                                     }
                                                 }
                                             }
+                                            Row {
+                                                width: isDesktop() ? 400 : 700
+                                                height: isDesktop() ? 25 : phoneLarg()?50:80
+                                                id: img_star
+                                                spacing: 5  
+                                                property int selectedPriority: 0  
+
+                                                Repeater {
+                                                    model: 1  
+                                                    delegate: Item {
+                                                        width: isDesktop() ? 30 : 50  
+                                                        height: isDesktop() ? 30 : 50
+
+                                                        Image {
+                                                            id: starImage
+                                                            source: (index < img_star.selectedPriority) ? "images/star-active.svg" : "images/starinactive.svg"  
+                                                            anchors.fill: parent
+                                                            smooth: true  
+                                                        }
+                                                        MouseArea {
+                                                            visible: !workpersonaSwitchState
+                                                            anchors.fill: parent
+                                                            onClicked: {
+                                                                
+                                                                if (index + 1 === img_star.selectedPriority) {
+                                                                    img_star.selectedPriority = 0;  
+                                                                } else {
+                                                                    img_star.selectedPriority = index + 1;  
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            Rectangle {
+                                                width: isDesktop() ? 500 : 750
+                                                height: isDesktop() ? 25 : 80
+                                                color: "transparent"
+
+                                                
+                                                Rectangle {
+                                                    width: parent.width
+                                                    height: isDesktop() ? 1 : 2
+                                                    color: "black"  
+                                                    anchors.bottom: parent.bottom
+                                                    anchors.left: parent.left
+                                                    anchors.right: parent.right
+                                                }
+
+                                                TextInput {
+                                                    width: parent.width
+                                                    height: parent.height
+                                                    font.pixelSize: isDesktop() ? 18 : 40
+                                                    anchors.fill: parent
+                                                    
+                                                    id: colorInput
+                                                    Item {
+                                                        id: buttonHeaderAreaSelected
+                                                        anchors {
+                                                            top: parent.top
+                                                            left: parent.left
+                                                            right: parent.right
+                                                        }
+                                                        height: parent.height
+                                                        clip: true
+
+                                                        Rectangle{
+                                                            anchors{
+                                                                fill: parent
+                                                                bottomMargin: -10
+                                                            }
+                                                            radius: 10
+                                                            color: selectedColor
+                                                        }
+                                                    }
+
+                                                    MouseArea {
+                                                        anchors.fill: parent
+                                                        onClicked: {
+                                                            colorListModel.clear();
+                                                            for (var i = 0; i < color_indexes.length; i++) {
+                                                                colorListModel.append({'name': color_indexes[i]})
+                                                            }
+                                                            menuColor.open();
+                                                        }
+                                                    }
+
+                                                    ListModel {
+                                                        id: colorListModel
+                                                    }
+
+                                                    Menu {
+                                                        id: menuColor
+                                                        x: colorInput.x
+                                                        y: colorInput.y + colorInput.height
+                                                        width: colorInput.width  
+
+
+                                                        Repeater {
+                                                            model: colorListModel
+
+                                                            MenuItem {
+                                                                width: parent.width
+                                                                height: isDesktop() ? 40 : 80
+
+                                                                property string sColor: model.name;
+
+                                                                Item {
+                                                                    id: buttonHeaderArea
+                                                                    anchors {
+                                                                        top: parent.top
+                                                                        left: parent.left
+                                                                        right: parent.right
+                                                                    }
+                                                                    height: parent.height
+                                                                    clip: true
+
+                                                                    Rectangle{
+                                                                        anchors{
+                                                                            fill: parent
+                                                                            bottomMargin: -10
+                                                                        }
+                                                                        radius: 10
+                                                                        color: sColor
+                                                                    }
+                                                                }
+
+                                                                onClicked: {
+                                                                    selectedColor = model.name;
+                                                                    menuColor.close();
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+
+                                                    onTextChanged: {
+                                                        if (colorInput.text.length > 0) {
+                                                            colorplaceholder.visible = false
+                                                        } else {
+                                                            colorplaceholder.visible = true
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            Rectangle {
+                                                    width: parent.width
+                                                    height: 50
+                                                    anchors.left: parent.left
+                                                    anchors.topMargin: 20
+                                                    color: "#EFEFEF"
+                                                
+
+                                                    Text {
+                                                        id: timesheedSavedMessage
+                                                        text: isProjectEdit ? "Project is Edit successfully!" : "Project could not be Edit!"
+                                                        color: isProjectEdit ? "green" : "red"
+                                                        visible: isEditProjectClicked
+                                                        font.pixelSize: isDesktop() ? 18 : 40
+                                                        horizontalAlignment: Text.AlignHCenter 
+                                                        anchors.centerIn: parent
+
+                                                    }
+                                            }
+                                            
                                             
 
                                         }

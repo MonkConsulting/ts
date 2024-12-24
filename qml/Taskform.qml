@@ -270,6 +270,7 @@ Item {
                         width: 60
                         Label { text: "Instance" 
                         width: 150
+                        visible: workpersonaSwitchState
                         height: isDesktop() ? 25 : 80
                         font.pixelSize: isDesktop() ? 18 : 40
                         }
@@ -345,6 +346,7 @@ Item {
                             width: isDesktop() ? 500 : 750
                             height: isDesktop() ? 25 : 80
                             color: "transparent"
+                            visible: workpersonaSwitchState
 
                             Rectangle {
                                 width: parent.width
@@ -381,13 +383,13 @@ Item {
                                     anchors.fill: parent
                                     onClicked: {
                                         var result = accountlistDataGet(); 
-                                            if(result){
-                                                accountList.clear();
-                                                for (var i = 0; i < result.length; i++) {
-                                                    accountList.append(result[i]);
-                                                }
-                                                menuAccount.open();
+                                        if (result) {
+                                            accountList.clear();
+                                            for (var i = 0; i < result.length; i++) {
+                                                accountList.append(result[i]);
                                             }
+                                            menuAccount.open();
+                                        }
                                     }
                                 }
 
@@ -1366,9 +1368,11 @@ Item {
         startdateInput.text = formatDate(today);
         enddateInput.text = formatDate(thisFriday);
         deadlineInput.text = formatDate(thisFriday);
-        var result = accountlistDataGet();
-        selectedAccountUserId = result[0].id
-        accountInput.text = result[0].name
-        var contacts_list = fetch_current_users_task(result[0].id)
+        if (workpersonaSwitchState) {
+            var result = accountlistDataGet();
+            selectedAccountUserId = result[0].id
+            accountInput.text = result[0].name
+            var contacts_list = fetch_current_users_task(result[0].id)
+        }
     }
 }

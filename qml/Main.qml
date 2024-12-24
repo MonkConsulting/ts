@@ -142,6 +142,141 @@ ApplicationWindow {
     ListModel {
     id: treeModel
     }
+
+    function prepare_database() {
+        var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+
+        db.transaction(function(tx) {
+            tx.executeSql('CREATE TABLE IF NOT EXISTS users (\
+                id INTEGER PRIMARY KEY AUTOINCREMENT,\
+                name TEXT NOT NULL,\
+                link TEXT NOT NULL,\
+                last_modified datetime,\
+                database TEXT NOT NULL,\
+                connectwith_id INTEGER,\
+                api_key TEXT,\
+                username TEXT NOT NULL\
+            )');
+        });
+
+        db.transaction(function(tx) {
+            
+            tx.executeSql('CREATE TABLE IF NOT EXISTS project_project_app (\
+                id INTEGER PRIMARY KEY AUTOINCREMENT,\
+                name TEXT NOT NULL,\
+                account_id INTEGER,\
+                parent_id INTEGER,\
+                planned_start_date date,\
+                planned_end_date date,\
+                allocated_hours FLOAT,\
+                favorites INTEGER,\
+                last_update_status TEXT,\
+                description TEXT,\
+                last_modified datetime,\
+                color_pallet TEXT,\
+                odoo_record_id INTEGER,\
+                FOREIGN KEY (account_id) REFERENCES users(id) ON DELETE CASCADE,\
+                FOREIGN KEY (parent_id) REFERENCES project_project_app(id) ON DELETE CASCADE\
+            )');
+        });
+
+        db.transaction(function(tx) {
+            tx.executeSql('CREATE TABLE IF NOT EXISTS res_users_app (\
+                id INTEGER PRIMARY KEY AUTOINCREMENT,\
+                account_id INTEGER,\
+                name Text,\
+                share INTEGER,\
+                active INTEGER,\
+                odoo_record_id INTEGER,\
+                FOREIGN KEY (account_id) REFERENCES users(id) ON DELETE CASCADE\
+            )');
+        });
+
+        db.transaction(function(tx) {
+            
+            tx.executeSql('CREATE TABLE IF NOT EXISTS project_task_app (\
+                id INTEGER PRIMARY KEY AUTOINCREMENT,\
+                name TEXT NOT NULL,\
+                account_id INTEGER,\
+                project_id INTEGER,\
+                sub_project_id INTEGER,\
+                parent_id INTEGER,\
+                start_date date,\
+                end_date date,\
+                deadline date,\
+                initial_planned_hours FLOAT,\
+                favorites INTEGER,\
+                state TEXT,\
+                description TEXT,\
+                last_modified datetime,\
+                user_id INTEGER,\
+                odoo_record_id INTEGER,\
+                FOREIGN KEY (account_id) REFERENCES users(id) ON DELETE CASCADE,\
+                FOREIGN KEY (project_id) REFERENCES project_project_app(id) ON DELETE CASCADE,\
+                FOREIGN KEY (sub_project_id) REFERENCES project_project_app(id) ON DELETE CASCADE,\
+                FOREIGN KEY (user_id) REFERENCES res_users_app(id) ON DELETE CASCADE,\
+                FOREIGN KEY (parent_id) REFERENCES project_task_app(id) ON DELETE CASCADE\
+            )');
+        });
+
+        db.transaction(function(tx) {
+            
+            tx.executeSql('CREATE TABLE IF NOT EXISTS account_analytic_line_app (\
+                id INTEGER PRIMARY KEY AUTOINCREMENT,\
+                account_id INTEGER,\
+                project_id INTEGER,\
+                sub_project_id INTEGER,\
+                task_id INTEGER,\
+                sub_task_id INTEGER,\
+                name TEXT,\
+                unit_amount FLOAT,\
+                last_modified datetime,\
+                quadrant_id INTEGER,\
+                record_date date,\
+                odoo_record_id INTEGER,\
+                FOREIGN KEY (account_id) REFERENCES users(id) ON DELETE CASCADE,\
+                FOREIGN KEY (project_id) REFERENCES project_project_app(id) ON DELETE CASCADE,\
+                FOREIGN KEY (task_id) REFERENCES project_task_app(id) ON DELETE CASCADE\
+            )');
+        });
+
+        db.transaction(function(tx) {
+            tx.executeSql('CREATE TABLE IF NOT EXISTS mail_activity_type_app (\
+                id INTEGER PRIMARY KEY AUTOINCREMENT,\
+                account_id INTEGER,\
+                name TEXT,\
+                odoo_record_id INTEGER,\
+                FOREIGN KEY (account_id) REFERENCES users(id) ON DELETE CASCADE\
+            )');
+        });
+
+        db.transaction(function(tx) {
+            
+            tx.executeSql('CREATE TABLE IF NOT EXISTS mail_activity_app (\
+                id INTEGER PRIMARY KEY AUTOINCREMENT,\
+                account_id INTEGER,\
+                activity_type_id INTEGER,\
+                summary TEXT,\
+                due_date DATE,\
+                user_id INTEGER,\
+                notes TEXT,\
+                odoo_record_id INTEGER,\
+                last_modified datetime,\
+                link_id INTEGER,\
+                project_id INTEGER,\
+                task_id INTEGER,\
+                resId INTEGER,\
+                resModel TEXT,\
+                state TEXT,\
+                FOREIGN KEY (account_id) REFERENCES users(id) ON DELETE CASCADE,\
+                FOREIGN KEY (user_id) REFERENCES res_users_app(id) ON DELETE CASCADE,\
+                FOREIGN KEY (activity_type_id) REFERENCES mail_activity_type_app(id) ON DELETE CASCADE\
+                FOREIGN KEY (project_id) REFERENCES project_project_app(id) ON DELETE CASCADE,\
+                FOREIGN KEY (task_id) REFERENCES project_task_app(id) ON DELETE CASCADE\
+            )');
+        });
+    }
+
     function accountlistDataGet(){
         var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
         var accountlist = [];
@@ -163,7 +298,7 @@ ApplicationWindow {
             if(workpersonaSwitchState){
                 var result = tx.executeSql('SELECT * FROM project_project_app WHERE account_id = ? AND parent_id IS 0', [selectedAccountUserId]);
             }else{
-                var result = tx.executeSql('SELECT * FROM project_project_app WHERE account_id IS NULL AND parent_id IS NULL');
+                var result = tx.executeSql('SELECT * FROM project_project_app WHERE id != ? AND account_id IS NULL AND parent_id IS 0', [selectedAccountUserId]);
             }
             for (var i = 0; i < result.rows.length; i++) {
                 var child_projects = tx.executeSql('SELECT count(*) as count FROM project_project_app where parent_id = ?', [result.rows.item(i).id]);
@@ -194,18 +329,17 @@ ApplicationWindow {
         var tasks_list = []
         db.transaction(function(tx) {
             if(workpersonaSwitchState){
-                var result = tx.executeSql('SELECT * FROM project_task_app where project_id = ? AND sub_project_id = ?', [project_id, sub_project_id]);
+                var result = tx.executeSql('SELECT * FROM project_task_app where project_id = ? AND account_id != 0 AND sub_project_id = ?', [project_id, sub_project_id]);
             }else{
-                var result = tx.executeSql('SELECT * FROM project_task_app where account_id IS NULL AND project_id = ?', [project_id]);
+                var result = tx.executeSql('SELECT * FROM project_task_app where account_id = 0 AND project_id = ? AND sub_project_id = ?', [project_id, sub_project_id]);
             }
             for (var i = 0; i < result.rows.length; i++) {
                 var child_tasks = tx.executeSql('SELECT count(*) as count FROM project_task_app where parent_id = ?', [result.rows.item(i).id]);
                 
                 tasks_list.push({'id': result.rows.item(i).id, 'name': result.rows.item(i).name, 'taskHasSubTask': true ? child_tasks.rows.item(0).count > 0 : false,'parent_id':result.rows.item(i).parent_id})
-                
             }
         })
-        return tasks_list;    
+        return tasks_list;
     }
 
     function fetch_sub_tasks(task_id) {
@@ -369,8 +503,8 @@ ApplicationWindow {
                         
                         Rectangle {
                             id: switchBackground
-                            width: isDesktop() ? 50 : 110
-                            height: isDesktop() ? 20 : 50
+                            width: isDesktop() ? 50 : 150
+                            height: isDesktop() ? 20 : 60
                             radius: isDesktop() ? 2 : 4
                             color: workpersonaSwitchState ? "#CCCCCC" : "#008000"
                             anchors.verticalCenter: parent.verticalCenter
@@ -412,14 +546,9 @@ ApplicationWindow {
                             onCheckedChanged: {
                                 workpersonaSwitchState = !mySwitch.checked;
                                 stackView.push(listPage);
-                                
                             }
                         }
 
-                        
-                       
-
-                        
                         Button {
                             id: hamburgerButton
                             width: isDesktop() ? 60 : 120
@@ -849,6 +978,15 @@ ApplicationWindow {
                     anchors.top: parent.top
                     anchors.topMargin: 100
                     anchors.centerIn: parent
+                }
+            }
+        }
+        Component {
+            id: projectForm
+            Item {
+                objectName: "projectForm"
+                ProjectForm {
+                    
                 }
             }
         }
@@ -2314,7 +2452,7 @@ ApplicationWindow {
                         onClicked: {
                             verticalPanel.activeImageIndex = 4;  
                             stackView.push(settingAccounts); 
-                            headermainOpen= true
+                            headermainOpen = true
                         }
                     }
                 }
@@ -2324,7 +2462,7 @@ ApplicationWindow {
     }
 
     Component.onCompleted: {
-        
+        prepare_database()
         issearchHeadermain = false
     }
 }
