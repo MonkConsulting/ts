@@ -50,7 +50,6 @@ Item {
                     if (typeof childplannedEndDate !== 'string') {
                         childplannedEndDate = String(childplannedEndDate);
                     }
-
                     children_list.push({
                         id: child_projects.rows.item(child).id,
                         total_tasks: childtask_total.rows.item(0).count,
@@ -60,7 +59,7 @@ Item {
                         allocated_hours: child_projects.rows.item(child).allocated_hours,
                         planned_end_date: childplannedEndDate,
                         parentProject: result.rows.item(i).name,
-                        color_pallet: child_projects.rows.item(i).color_pallet
+                        color_pallet: child_projects.rows.item(child).color_pallet
                     });
                 }
 
@@ -370,7 +369,7 @@ Item {
                                                 height: isDesktop() ? 78 : 97
                                                 anchors.top: parent.top
                                                 anchors.topMargin: 1
-                                                color: modelData.color_pallet
+                                                color: modelData.color_pallet != null ? modelData.color_pallet : '#FFFFFF'
                                             }
 
                                             Column {
