@@ -36,19 +36,26 @@ Item {
         db.transaction(function (tx) {
             
             if(workpersonaSwitchState){
-                var result = tx.executeSql('select * from account_analytic_line_app order by last_modified desc');
+                var result = tx.executeSql('select * from account_analytic_line_app where account_id != 0 order by last_modified desc');
             }else{
-                var result = tx.executeSql('SELECT * FROM account_analytic_line_app where account_id IS NULL');
+                var result = tx.executeSql('SELECT * FROM account_analytic_line_app where account_id = 0');
             }
             
             for (var i = 0; i < result.rows.length; i++) { 
-                console.log(result.rows.item(i)); 
-
                 var projectId = result.rows.item(i).project_id || 0;  
                 var taskId = result.rows.item(i).task_id || 0;        
                 
-                var project = tx.executeSql('select name from project_project_app where id = ?', [projectId]);
-                var projectName = (project.rows.length > 0) ? project.rows.item(0).name : "";
+                var color_pallet = ''
+                var projectName = ''
+                if (result.rows.item(i).sub_project_id != 0) {
+                    var project = tx.executeSql('select name, color_pallet from project_project_app where id = ?', [result.rows.item(i).sub_project_id]);
+                    projectName = (project.rows.length > 0) ? project.rows.item(0).name : "";
+                    color_pallet = (project.rows.length > 0) ? project.rows.item(0).color_pallet : "";
+                } else {
+                    var project = tx.executeSql('select name, color_pallet from project_project_app where id = ?', [projectId]);
+                    projectName = (project.rows.length > 0) ? project.rows.item(0).name : "";
+                    color_pallet = (project.rows.length > 0) ? project.rows.item(0).color_pallet : "";
+                }
                 
                 var task = tx.executeSql('select name from project_task_app where id = ?', [taskId]);
                 var taskName = (task.rows.length > 0) ? task.rows.item(0).name : "";
@@ -59,14 +66,13 @@ Item {
                 timesheetListobject.push({
                     'id': result.rows.item(i).id,  
                     'project_id': projectName,          
-                    'task_id': taskName,                
+                    'task_id': taskName,
+                    'color_pallet': color_pallet,
                     'name': result.rows.item(i).name || "",  
                     'spent_hours': spentHoursDecimal,   
-                    
                     'date': result.rows.item(i).record_date || ""  
                 });
 
-                console.log(JSON.stringify(timesheetListobject, null, 2));
             }
         });
         for (var j = 0; j < timesheetListobject.length; j++) {
@@ -75,6 +81,7 @@ Item {
                         project_id: timesheetListobject[j].project_id,
                         task_id: timesheetListobject[j].task_id,
                         name: timesheetListobject[j].name,
+                        color_pallet: timesheetListobject[j].color_pallet,
                         spent_hours: timesheetListobject[j].spent_hours,
                         quadrant_id: timesheetListobject[j].quadrant_id,
                         date: timesheetListobject[j].date
@@ -169,7 +176,6 @@ Item {
                     anchors.right: parent.right
                     anchors.rightMargin: isDesktop()?15 : 20 
 
-                    
                     Rectangle {
                         id: header_tital
                         visible: !issearchHeadermain
@@ -353,16 +359,7 @@ Item {
                                                         height: isDesktop()?79:97
                                                         anchors.top: parent.top
                                                         anchors.topMargin: 1
-                                                        color: getColorBasedOnIndex(index)
-                                                        function getColorBasedOnIndex(index) {
-                                                            switch(index % 4) {
-                                                                case 0: return "#ff0000";  
-                                                                case 1: return "#00ff00";  
-                                                                case 2: return "#0000ff";  
-                                                                case 3: return "#ffff00";  
-                                                                default: return "#cccfff";  
-                                                            }
-                                                        }
+                                                        color: model.color_pallet
                                                     }
                                                 Column {
                                                     spacing: 0
@@ -459,14 +456,12 @@ Item {
 
                                 db.transaction(function (tx) {
                                     if(workpersonaSwitchState){
-                                        var result = tx.executeSql('SELECT * FROM account_analytic_line_app WHERE id = ?', [rowId]);
+                                        var result = tx.executeSql('SELECT * FROM account_analytic_line_app WHERE account_id != 0 AND id = ?', [rowId]);
                                     }else{
-                                        var result = tx.executeSql('SELECT * FROM account_analytic_line_app where account_id IS NULL AND id = ?', [rowId] );
+                                        var result = tx.executeSql('SELECT * FROM account_analytic_line_app where account_id = 0 AND id = ?', [rowId] );
                                     }
                                     if (result.rows.length > 0) {
                                         var rowData = result.rows.item(0);
-                                        console.log(JSON.stringify(rowData, null, 2), "////timesheet////");
-
                                         var projectId = rowData.project_id || "";  
                                         var taskId = rowData.task_id || "";        
                                         var accountId = rowData.account_id || "";  
@@ -515,22 +510,6 @@ Item {
 
                                         editspenthoursManualInput.text = rowData.unit_amount || "";  
                                         selectededitquadrantId = rowData.quadrant_id
-                                            // if(rowData.quadrant_id === 0){
-                                            //     editquadrantInput.text = ""
-                                            // }
-                                            // if(rowData.quadrant_id === 1){
-                                            //     editquadrantInput.text = "Urgent and important tasks"
-                                            // }
-                                            // if(rowData.quadrant_id === 2){
-                                            //     editquadrantInput.text = "Not urgent, yet important tasks"
-                                            // }
-                                            // if(rowData.quadrant_id === 3){
-                                            //     editquadrantInput.text = "Important but not urgent tasks"
-                                            // }
-                                            // if(rowData.quadrant_id === 4){
-                                            //     editquadrantInput.text = "Not urgent and not important tasks"
-                                            // }
-                                        
                                     }
                                 });
 
@@ -913,7 +892,6 @@ Item {
                                                     height: isDesktop() ? 25 : phoneLarg()?50:80
                                                     color: "transparent"
 
-                                                    
                                                     Rectangle {
                                                         width: parent.width
                                                         height: isDesktop() ? 1 : 2
@@ -952,7 +930,6 @@ Item {
                                                                 editprojectsListModel.clear();
                                                                 var result = fetch_projects(selectedAccountUserId);
                                                                 for (var i = 0; i < result.length; i++) {
-                                                                    console.log('\n\n result[i].name', '>>>>>>>>>>>', result[i].projectkHasSubProject)
                                                                     editprojectsListModel.append({'id': result[i].id, 'name': result[i].name, 'projectkHasSubProject': result[i].projectkHasSubProject})
                                                                 }
                                                                 menu.open();
@@ -1359,39 +1336,6 @@ Item {
                                                         }
                                                     }
                                                 }
-                                                // Rectangle {
-                                                //     width: isDesktop() ? 420 : 700
-                                                //     height: isDesktop() ? 150 : phoneLarg()? 320:300
-                                                //     color: "transparent"
-
-                                                //     Column {
-
-                                                //         RadioButton {
-                                                //             text: "Urgent and Important"
-                                                //             font.pixelSize: isDesktop() ? 18 : phoneLarg()? 30:40
-                                                //             checked: selectededitquadrantId === 1  // Check based on selected value
-                                                //             onClicked: selectededitquadrantId = 1
-                                                //         }
-                                                //         RadioButton {
-                                                //             text: "Not urgent, yet Important"
-                                                //             font.pixelSize: isDesktop() ? 18 : phoneLarg()? 30:40
-                                                //             checked: selectededitquadrantId === 2  // Check based on selected value
-                                                //             onClicked: selectededitquadrantId = 2
-                                                //         }
-                                                //         RadioButton {
-                                                //             text: "Important but not Urgent"
-                                                //             font.pixelSize: isDesktop() ? 18 : phoneLarg()? 30:40
-                                                //             checked: selectededitquadrantId === 3  // Check based on selected value
-                                                //             onClicked: selectededitquadrantId = 3
-                                                //         }
-                                                //         RadioButton {
-                                                //             text: "Not urgent and not Important"
-                                                //             font.pixelSize: isDesktop() ? 18 : phoneLarg()? 30:40
-                                                //             checked: selectededitquadrantId === 4 // Check based on selected value
-                                                //             onClicked: selectededitquadrantId = 4
-                                                //         }
-                                                //     }
-                                                // }
 
                                                 Rectangle {
                                                     width: isDesktop() ? 420 : 700
@@ -1433,26 +1377,6 @@ Item {
                                                         }
                                                     }
                                                 }
-
-                                                // Rectangle {
-                                                //     width: parent.width
-                                                //     height: 50
-                                                //     anchors.left: parent.left
-                                                //     anchors.topMargin: 20
-                                                //     color: "#EFEFEF"
-                                                
-
-                                                //     Text {
-                                                //         id: timesheedSavedMessage
-                                                //         text: isTimesheetEdit ? "Timesheet is Edit successfully!" : "Timesheet could not be Edit!"
-                                                //         color: isTimesheetEdit ? "green" : "red"
-                                                //         visible: isEditTimesheetClicked
-                                                //         font.pixelSize: isDesktop() ? 18 : 40
-                                                //         horizontalAlignment: Text.AlignHCenter 
-                                                //         anchors.centerIn: parent
-
-                                                //     }
-                                                // }
                                                 
                                             }
                                         }
