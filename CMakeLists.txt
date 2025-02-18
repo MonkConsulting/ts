@@ -11,8 +11,8 @@ execute_process(
 )
 set(QT_IMPORTS_DIR "lib/${ARCH_TRIPLET}")
 
-set(PROJECT_NAME "timemanagementapp")
-set(FULL_PROJECT_NAME "timemanagementapp.synconics")
+set(PROJECT_NAME "tsapp")
+set(FULL_PROJECT_NAME "tsapp.monk")
 set(DATA_DIR /)
 set(DESKTOP_FILE_NAME ${PROJECT_NAME}.desktop)
 
@@ -43,6 +43,7 @@ install(DIRECTORY assets DESTINATION ${DATA_DIR})
 install(DIRECTORY src DESTINATION ${DATA_DIR})
 
 install(DIRECTORY qml DESTINATION ${DATA_DIR})
+install(DIRECTORY models DESTINATION ${DATA_DIR})
 
 # Translations
 file(GLOB_RECURSE I18N_SRC_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}/po qml/*.qml qml/*.js)
@@ -71,7 +72,7 @@ add_subdirectory(po)
 file(GLOB_RECURSE PROJECT_SRC_FILES
     RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
     qml/*.qml
-    qml/*.js
+    models/*.js
     src/*
     *.json
     *.json.in

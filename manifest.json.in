@@ -1,15 +1,15 @@
 {
-    "name": "timemanagementapp.synconics",
+    "name": "tsapp.monk",
     "description": "Time Management (Beta Release)",
     "architecture": "@CLICK_ARCH@",
     "title": "Time Management (Beta Release)",
     "hooks": {
-        "timemanagementapp": {
-            "apparmor": "timemanagementapp.apparmor",
-            "desktop":  "timemanagementapp.desktop"
+        "tsapp": {
+            "apparmor": "tsapp.apparmor",
+            "desktop":  "tsapp.desktop"
         }
     },
     "version": "0.1.21",
-    "maintainer": "Synconics Technologies Pvt. Ltd. <contact@synconics.com>",
+    "maintainer": "Monk Consulting <girish@monkconsulting.io>",
     "framework" : "@CLICK_FRAMEWORK@"
 }
