@@ -23,29 +23,46 @@ Page{
         width: parent.width
         height: units.gu(40)
 
-            ChartView {
-                id: chart
-                title: "Projectwise Time Spent"
-                anchors.fill: parent
-                legend.alignment: Qt.AlignBottom
-                antialiasing: true
+                ChartView {
+                    id: chart3
+                    title: "Projectwise Time Spent"
+                    anchors.fill: parent
+                    theme: ChartView.ChartThemeHighContrast
+                    legend.alignment: Qt.AlignBottom
+                    antialiasing: true
 
-                BarSeries {
-                    id: mySeries
-                    axisX: BarCategoryAxis { categories: ["Project 1", "Project 2", "Project 3", "Project 4" ] }
-                    BarSet { label: "Time"; values: [2, 2, 3, 4, 5, 6] }
-                }
-    
-                property variant othersSlice: 0
-                property variant timecat: []
+                    BarSeries {
+                        id: mySeries
+                        axisY: ValueAxis {
+                                min: 0
+                                max: 50
+                                tickCount: 5
+                             }
+                    }
+        
+                    property variant othersSlice: 0
+                    property variant project: []
 
 
 
                 Component.onCompleted: {
-                    DbInit.initializeDatabase();
-                    DemoData.record_demo_data();
                     var quadrant_data = Model.get_projects_spent_hours();
-                    chart.timecat = quadrant_data;
+                    var count = 0;
+                    var timeval;
+                    var timecat = [];
+                    for (var key in quadrant_data) {
+                        project[count] = key;
+                        timeval = quadrant_data[key];
+                        count = count+1;
+                    }
+                    var count2 = Object.keys(quadrant_data).length;
+                    for (count = 0; count < count2; count++)
+                        {
+                            timecat[count] = quadrant_data[project[count]];
+                            console.log("Dashboard2 Timecat: " + timecat[count]);
+                    }
+                    mySeries.append("Time", timecat);
+                    mySeries.axisX.categories =  project;
 
                 }
             }

@@ -24,7 +24,7 @@ Page{
         height: units.gu(40)
 
             ChartView {
-                id: chart3
+                id: chart4
                 title: "Taskwise Time Spent"
                 anchors.fill: parent
                 theme: ChartView.ChartThemeHighContrast
@@ -32,23 +32,40 @@ Page{
                 antialiasing: true
 
                 BarSeries {
-                    id: mySeries
-                    axisX: BarCategoryAxis { categories: ["Task 1", "Task 2", "Task 3", "Task 4" ] }
-                    BarSet { label: "Time"; values: [chart3.timecat[0], chart3.timecat[1], chart3.timecat[2], chart3.timecat[3]] }
-               }
+                    id: mySeries2
+                    axisY: ValueAxis {
+                            min: 0
+                            max: 50
+                            tickCount: 5
+                            }
+                }
+
     
                 property variant othersSlice: 0
-                property variant timecat: []
-
-
+                property variant task: []
 
                 Component.onCompleted: {
-                    DbInit.initializeDatabase();
-                    DemoData.record_demo_data();
                     var quadrant_data = Model.get_tasks_spent_hours();
-                    chart3.timecat = quadrant_data;
-
+                    var count = 0;
+                    var timeval;
+                    var timecat = [];
+                        for (var key in quadrant_data) {
+                        task[count] = key;
+                        timeval = quadrant_data[key];
+                        count = count+1;
+                    }
+                    var count2 = Object.keys(quadrant_data).length;
+                    for (count = 0; count < count2; count++)
+                        {
+                            timecat[count] = quadrant_data[task[count]];
+                            console.log("Dashboard 3 Timecat in task: " + timecat[count])
+                    }
+                    mySeries2.append("Time", timecat);
+                    mySeries2.axisX.categories =  task;
                 }
+
+
+
             }
 
      }
@@ -117,6 +134,7 @@ Page{
                 }       
 
         }
+
 
     }
 */

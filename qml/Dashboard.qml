@@ -56,28 +56,28 @@ import "../models/DemoData.js" as DemoData
                         iconName: "calendar"
                         text: "Activities"
                         onTriggered:{
-                            apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Activity_Page.qml"))
+                            apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Activity_Page.qml"))
                         }
                     },
                     Action {
                         iconName: "view-list-symbolic"
                         text: "Tasks"
                         onTriggered:{
-                            apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Task_Page.qml"))
+                            apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Task_Page.qml"))
                         }
                     },
                     Action {
                         iconName: "folder-symbolic"
                         text: "Projects"
                         onTriggered:{
-                            apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Project_Page.qml"))
+                            apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Project_Page.qml"))
                         }
                     },
                     Action {
                         iconName: "settings"
                         text: "Settings"
                         onTriggered:{
-                            apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Settings_Page.qml"))
+                            apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Settings_Page.qml"))
                         }
                     }
                 ]
@@ -276,23 +276,40 @@ import "../models/DemoData.js" as DemoData
 
                     BarSeries {
                         id: mySeries
-                        axisX: BarCategoryAxis { categories: ["Project 1", "Project 2", "Project 3", "Project 4" ] }
-                        BarSet { label: "Time"; values: [2, 2, 3, 4, 5, 6] }
+                        axisY: ValueAxis {
+                                min: 0
+                                max: 50
+                                tickCount: 5
+                             }
                     }
         
                     property variant othersSlice: 0
                     property variant timecat: []
+                    property variant project: []
 
 
 
-                    Component.onCompleted: {
-                        DbInit.initializeDatabase();
-                        DemoData.record_demo_data();
-                        var quadrant_data = Model.get_quadrant_difference();
-                        chart.timecat = quadrant_data;
-
+                Component.onCompleted: {
+                    var quadrant_data = Model.get_projects_spent_hours();
+                    chart.timecat = quadrant_data;
+                    var count = 0;
+                    var timeval;
+                    for (var key in quadrant_data) {
+                        project[count] = key;
+                        timeval = quadrant_data[key];
+                        count = count+1;
                     }
+                    var count2 = Object.keys(quadrant_data).length;
+                    for (count = 0; count < count2; count++)
+                        {
+                            timecat[count] = quadrant_data[project[count]];
+                            console.log("Timecat: " + timecat[count]);
+                    }
+                    mySeries.append("Time", timecat);
+                    mySeries.axisX.categories =  project;
+
                 }
+            }
 
         }
 
@@ -318,25 +335,42 @@ import "../models/DemoData.js" as DemoData
 
                 BarSeries {
                     id: mySeries2
-                    axisX: BarCategoryAxis { categories: ["Task 1", "Task 2", "Task 3", "Task 4" ] }
-                    BarSet { label: "Time"; values: [2, 2, 3, 4, 5, 6] }
+                    axisY: ValueAxis {
+                            min: 0
+                            max: 50
+                            tickCount: 5
+                            }
                 }
+
     
                 property variant othersSlice: 0
                 property variant timecat: []
+                property variant task: []
 
 
 
                 Component.onCompleted: {
-                    DbInit.initializeDatabase();
-                    DemoData.record_demo_data();
-                    var quadrant_data = Model.get_quadrant_difference();
+                    var quadrant_data = Model.get_tasks_spent_hours();
                     chart.timecat = quadrant_data;
+                    var count = 0;
+                    var timeval;
+                     for (var key in quadrant_data) {
+                        task[count] = key;
+                        timeval = quadrant_data[key];
+                        count = count+1;
+                    }
+                    var count2 = Object.keys(quadrant_data).length;
+                    for (count = 0; count < count2; count++)
+                        {
+                            timecat[count] = quadrant_data[task[count]];
+                    }
+                    mySeries2.append("Time", timecat);
+                    mySeries2.axisX.categories =  task;
+                }
 
                 }
-            }
 
-     }
+        }
 
 
 
