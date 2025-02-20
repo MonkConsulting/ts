@@ -31,12 +31,64 @@ Page{
     title: "Timesheet"
         header: PageHeader {
         title: timeSheet.title
+        ActionBar {
+                numberOfSlots: 1
+                anchors.right: parent.right
+            //    enable: true
+                actions: [
+                    Action {
+                        iconName: "save"
+                        text: "Save"
+                        onTriggered:{
+                            save_timesheet();
+                            console.log("Timesheet Save Button clicked");
+
+                        }
+                    }
+                ]
+        }
     }
 
     ListModel {
         id: projectModel1
     }    
-    
+
+    function prepare_subproject_list(){
+        var subprojects = Model.fetch_sub_project(project_id, workpersonaSwitchState)
+        console.log("In prepare_subproject_list()")  
+        if (subprojects.length > 0)
+        {    
+            myRow9.visible = true
+            for (var subproject = 0; subproject < subprojects.length; subproject++) {
+//                projectModel1.append({'id': subprojects[subproject].id, 'name': subprojects[subproject].name})
+                subprojectModel.append({'name': subprojects[subproject].name})
+            }       
+            for (var subproject = 0; subproject < subprojectModel.count; subproject++) {
+                console.log("ProjectModel1 " + "id: " + projectModel1.get(project).id + " Project: " + projectModel1.get(project).name)
+//                console.log("SubProjectModel " + " Subproject: " + subprojectModel.get(project).name)
+            }
+        }
+    }
+
+
+
+
+    function save_timesheet() {
+        console.log("Timesheet Saved");
+        var timesheet_data = {
+            'dateTime': date_text.text,
+            'project': selectedProjectId,
+            'task': selectedTaskId,
+            'subprojectId': selectedsubProjectId,
+            'subTask': combo4.editText,
+            'description': description_text.text,
+            'manualSpentHours': hours_text.text,
+            'spenthours': hours_text.text,
+            'isManualTimeRecord': isManualTime
+        }
+        Model.create_timesheet(timesheet_data)
+    }
+
 
     function set_project_id(project_name) {
         for (var project = 0; project < projectModel1.count; project++) {
@@ -46,6 +98,17 @@ Page{
             }
         }         
     }
+
+
+    function set_subproject_id(subproject_name) {
+        for (var subproject = 0; subproject < subprojectModel.count; project++) {
+            if(subprojectModel.get(subproject).name === subproject_name) {
+//                console.log("ProjectModel1 " + "id: " + projectModel1.get(project).id + " Project: " + projectModel1.get(project).name)
+                selectedsubProjectId = subprojectModel.get(subproject).id            
+            }
+        }         
+    }
+
 
 
     function prepare_project_list() {
@@ -87,6 +150,24 @@ Page{
         } 
      }
 
+
+
+    function prepare_subtask_list(task_id) {
+        var tasks = Model.fetch_sub_tasks(task_id, workpersonaSwitchState)
+        subtaskModel.clear();
+//        taskModel1.clear();
+        selectedTaskId = 0;
+        console.log("Passed Task ID: " + task_id)
+        for (var task = 0; task < tasks.length; task++) {
+            subtaskModel.append({'name': tasks[task].name})
+//            taskModel1.append({'id': tasks[task].id, 'name': tasks[task].name})
+        }
+        for (var task = 0; task < taskModel.count; task++) {
+//            console.log("TaskModel1 " + "id: " + taskModel1.get(task).id + " Task: " + taskModel1.get(task).name)
+            console.log("SubTaskModel " + " Task: " + subtaskModel.get(task).name)
+        } 
+     }
+
     function formatTime(seconds) {
         var hours = Math.floor(seconds / 3600);  
         var minutes = Math.floor((seconds % 3600) / 60);  
@@ -112,7 +193,11 @@ Page{
     property bool running: false
     property int selectedProjectId: 0
     property int selectedTaskId: 0 
-
+    property bool hasSubProject: false;
+    property bool edithasSubProject: false;
+    property bool hasSubTask: false;
+    property bool edithasSubTask: false;
+    property int selectedSubTaskId: 0
 
     Timer {
         id: stopwatchTimer
@@ -219,6 +304,7 @@ Page{
                             onActivated: {
                                 console.log("In onActivated")
                                 set_project_id(editText) 
+//                                prepare_subproject_list()
                                 prepare_task_list(selectedProjectId)
                                 console.log("Project ID: " + selectedProjectId + " edittext: " + editText)                        
                             }        
@@ -241,9 +327,79 @@ Page{
 
                 }       
         }
+/************************************************************
+*       Added Sub Project below                             *
+************************************************************/
+        Row{
+                id: myRow9
+                anchors.top: myRow2.bottom
+                anchors.horizontalCenter:parent.horizontalCenter 
+                topPadding: 10
+                visible: false
+                Column{
+                    id: myCol8
+                        leftPadding: units.gu(5)
+                        Rectangle {
+                            width: units.gu(10)
+                            height: units.gu(5)
+                            Label {
+                                id: subproject_label                             
+                                text: "Sub Project"
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+                                //textSize: Label.Large
+                        }
+                    }
+                }
+                Column{
+                    id: myCol9
+                    leftPadding: units.gu(5)
+                    LomiriShape{                        
+                        width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
+                        height: 40
+                        ComboBox {
+                            id: combo3
+                            editable: true
+                            width: parent.width
+                            height: parent.height
+                            anchors.centerIn: parent.centerIn
+                            flat: true
+                            model:  ListModel {
+                                        id: subprojectModel
+                                    }  
+
+                            onActivated: {
+                                console.log("In onActivated")
+                                set_subproject_id(editText) 
+//                                prepare_task_list(selectedProjectId)
+                                console.log("Sub Project ID: " + selectedsubProjectId + " edittext: " + editText)                        
+                            }        
+                            onHighlighted: {
+                                console.log("In onHighlighted")
+                                console.log("Combobox height: " + combo1.height)
+                            }
+                            onAccepted: {
+                                console.log("In onAccepted")
+                                if (find(editText) != -1)
+                                {
+                                    set_subproject_id(editText) 
+//                                    prepare_task_list(selectedProjectId)
+                                    console.log("Sub Project ID: " + selectedsubProjectId)                        
+                                }
+                            } 
+
+                        }
+                }
+
+                }       
+        }
+
+
+/**********************************************************/
+
         Row{
                 id: myRow3
-                anchors.top: myRow2.bottom
+                anchors.top: myRow9.bottom
                 anchors.horizontalCenter:parent.horizontalCenter 
                 topPadding: 10
                 Column{
@@ -281,6 +437,7 @@ Page{
                                 onActivated: {
                                     console.log("In onActivated")
                                     set_task_id(editText) 
+                                    myRow10.visible = true
                                     console.log("Task ID: " + selectedTaskId)                        
                                 }        
                                 onHighlighted: {
@@ -301,9 +458,75 @@ Page{
                 }
     
         }
+
+/************************************************************
+*       Added Sub Task below                             *
+************************************************************/
+        Row{
+                id: myRow10
+                anchors.top: myRow3.bottom
+                anchors.horizontalCenter:parent.horizontalCenter 
+                topPadding: 10
+                visible: false
+               Column{
+                    id: myCol10
+                        leftPadding: units.gu(5)
+                        Rectangle {
+                            width: units.gu(10)
+                            height: units.gu(5)
+                            Label {
+                                id: subtask_label                             
+                                text: "Sub Task"
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+                                //textSize: Label.Large
+                        }
+                    }
+                }
+                Column{
+                    id: myCol11
+                    leftPadding: units.gu(5)
+                    LomiriShape{                        
+                        width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
+                        height: 40
+                        ComboBox {
+                            id: combo4
+                            editable: true
+                            width: parent.width
+                            height: parent.height
+                            anchors.centerIn: parent.centerIn
+                            flat: true
+                            model:  ListModel {
+                                        id: subtaskModel
+                                    }  
+
+                            onActivated: {
+                                console.log("In onActivated")
+                            }        
+                            onHighlighted: {
+                                console.log("In onHighlighted")
+                            }
+                            onAccepted: {
+                                console.log("In onAccepted")
+                                if (find(editText) != -1)
+                                {
+                                    console.log("Sub Task: " + editText)                        
+                                }
+                            } 
+
+                        }
+                }
+
+                }       
+        }
+
+
+/**********************************************************/
+
+
         Row{
                 id: myRow4
-                anchors.top: myRow3.bottom
+                anchors.top: myRow10.bottom
                 anchors.horizontalCenter:parent.horizontalCenter 
                 topPadding: 10
                 Column{
@@ -361,12 +584,13 @@ Page{
                 id: myRow6
                 anchors.top: myRow5.bottom
                 anchors.horizontalCenter:parent.horizontalCenter 
-                topPadding: units.gu(10)
+                topPadding: units.gu(5)
                 Column{
                        leftPadding: units.gu(5)
                         Button {
                                 objectName: "button_start"
                                 width: units.gu(10)
+                                iconName: "media-playback-start"
                                 action: Action {
                                     text: i18n.tr("Start")
                                     property bool flipped
@@ -417,12 +641,136 @@ Page{
                                 action: Action {
                                     text: i18n.tr("Manual")
                                     property bool flipped
-                                    onTriggered: flipped = !flipped
+                                    onTriggered: {flipped = !flipped
+                                    isManualTime = true}
                                 }
                                 color: action.flipped ? LomiriColors.blue : LomiriColors.slate
                         }
                 }       
         }
+
+/**********************************************************
+* 18022025: Added Slider for the Quadrants         *
+**********************************************************/
+
+                            Row {
+                                id: myRow7
+                                anchors.top: myRow6.bottom
+                                topPadding: units.gu(5)                                
+                                leftPadding: units.gu(5)
+//                                spacing: isDesktop() ? 10 : phoneLarg() ? 15 : 20
+
+                                Label {
+                                    id: priority
+                                    height: units.gu(10)
+                                    text: "Select Priority Quadrant"
+//                                    font.pixelSize: isDesktop() ? 18 : phoneLarg() ? 30 : 40
+                                    
+                                }
+                                Row{
+                                    id: myRow11
+                                    width: units.gu(20)
+                                    anchors.top: priority.bottom
+                                    topPadding: units.gu(5)                                
+                                    leftPadding: units.gu(10)
+                                    Column{
+                                           leftPadding: units.gu(5)
+                                    }
+                                    Column{
+                                           leftPadding: units.gu(5)
+                                        Slider {
+                                            id: mySlider
+    //                                        function formatValue(v) { return v.toFixed(2) }
+                                            anchors.centerIn: parent
+                                            minimumValue: 1
+                                            maximumValue: 4
+                                            value: 0
+                                            live: false
+                                        }
+                                    }
+                                }
+
+                            }
+
+/*********************************************************/
+
+    /********************************
+    * The Legends for the slider *
+    ********************************/
+
+        LomiriShape {
+            id: rect3
+            anchors.top: myRow7.bottom
+            width: parent.width
+            height: units.gu(10)
+
+                Column{
+                        id: myCollegend1
+                        topPadding: units.gu(5)
+                        spacing: 2
+                        leftPadding: 10
+                        Row{
+                                spacing: 2
+                                 Label {
+                                        id: myLabel_1
+                                        text: qsTr("1: ")
+                                    }
+                            
+                                Label {
+                                        id: myLabel_2
+                                        text: qsTr("Important, Urgent")
+                                    }
+                            }
+                        Row{
+                                spacing: 2
+                                 Label {
+                                        id: myLabel_3
+                                        text: qsTr("2: ")
+                                    }
+                            
+                                Label {
+                                        id: myLabel_4
+                                        text: qsTr("Important, Not Urgent")
+                                    }
+                        }       
+
+                }
+                Column{
+                        id: myCollegend2
+                        anchors.left: myCollegend1.right
+                        topPadding: units.gu(5)
+                        spacing: 2
+                        leftPadding: 10
+                        Row{
+                                spacing: 2
+                                    Label {
+                                            id: myLabel_5
+                                            text: qsTr("3: ")
+                                        }
+                                
+                                Label {
+                                        id: myLabel_6
+                                        text: qsTr("Not Important, Urgent")
+                                    }
+                        }       
+                        Row{
+                                spacing: 2
+                                    Label {
+                                            id: myLabel_7
+                                            text: qsTr("4: ")
+                                        }
+                                
+                                Label {
+                                        id: myLabel_8
+                                        text: qsTr("Not Important, Not Urgent")
+                                    }
+                        }       
+
+                }
+
+        }   
+/**********************************************************/
+
 
         Component.onCompleted: {
             console.log("From Timesheet " + columns);

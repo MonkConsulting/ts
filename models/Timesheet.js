@@ -151,6 +151,7 @@ function convert_time(value) {
 */
 
 function create_timesheet(data) {
+    console.log("In create_timesheet");
     var db = Sql.LocalStorage.openDatabaseSync("timemanagement", "1.0", "Time Management", 1000000);
     db.transaction(function(tx) {
         var unitAmount = 0;
