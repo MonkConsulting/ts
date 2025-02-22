@@ -50,8 +50,14 @@ Page{
     }
 
     ListModel {
+        id: instanceModel1
+    }   
+
+    ListModel {
         id: projectModel1
     }    
+
+
 
     function prepare_subproject_list(){
         var subprojects = Model.fetch_sub_project(project_id, workpersonaSwitchState)
@@ -71,11 +77,28 @@ Page{
     }
 
 
+    function floattoint(x) {
+    return Number.parseFloat(x).toFixed(0);
+    }
+
+    function prepare_instance_list() {
+        var instances = Model.get_accounts_list()
+        console.log("In prepare_instance_list()")      
+        for (var instance = 0; instance < instances.length; instance++) {
+            instanceModel1.append({'id': instances[instance].id, 'name': instances[instance].name})
+            instanceModel.append({'name': instances[instance].name})
+        }       
+        for (var instance = 0; instance < instanceModel.count; project++) {
+            console.log("InstanceModel " + " Project: " + instanceModel.get(instance).name)
+        } 
+    }
+
 
 
     function save_timesheet() {
         console.log("Timesheet Saved");
         var timesheet_data = {
+            'instance_id': selectedInstanceId,
             'dateTime': date_text.text,
             'project': selectedProjectId,
             'task': selectedTaskId,
@@ -84,10 +107,23 @@ Page{
             'description': description_text.text,
             'manualSpentHours': hours_text.text,
             'spenthours': hours_text.text,
-            'isManualTimeRecord': isManualTime
+            'isManualTimeRecord': isManualTime,
+            'quadrant': floattoint(mySlider.value)
         }
+        console.log("Data.quadrant: " + timesheet_data.quadrant)
         Model.create_timesheet(timesheet_data)
     }
+
+
+    function set_instance_id(instance_name) {
+        for (var instance = 0; instance < instanceModel.count; instance++) {
+            if(instanceModel.get(instance).name === project_name) {
+                console.log("set_instance_id " + "id: " + instanceModel.get(instance).id + " Instance: " + instanceModel.get(instance).name)
+                selectedInstanceId = instanceModel.get(instance).id            
+            }
+        }         
+    }
+
 
 
     function set_project_id(project_name) {
@@ -192,6 +228,8 @@ Page{
     property int storedElapsedTime: 0
     property bool running: false
     property int selectedProjectId: 0
+    property int selectedInstanceId: 0
+    property int selectedsubProjectId: 0
     property int selectedTaskId: 0 
     property bool hasSubProject: false;
     property bool edithasSubProject: false;
@@ -218,10 +256,72 @@ Page{
         width: parent.width
         height: parent.height
 
+
         Row{
-                id: myRow1
+                id: myRow1a
                 anchors.horizontalCenter:parent.horizontalCenter 
                 topPadding: 40
+                Column{
+                        leftPadding: units.gu(5)
+                        Rectangle {
+                            width: units.gu(10)
+                            height: units.gu(5)
+                             Label {
+                                id: instance_label                            
+                                text: "Instance"
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+                                //textSize: Label.Large
+                            }
+                        }
+                }
+                Column{
+                       leftPadding: units.gu(5)
+                       LomiriShape{                        
+                            width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
+                            height: 40
+                            
+                    ComboBox {
+                            id: combo5
+                            editable: true
+                            width: parent.width
+                            height: parent.height
+                            anchors.centerIn: parent.centerIn
+                            flat: true
+                            model:  ListModel {
+                                        id: instanceModel
+                                    }  
+
+                            onActivated: {
+                                set_instance_id(editText) 
+                                console.log("Instance ID: " + selectedInstanceId + " edittext: " + editText)                        
+                            }        
+                            onHighlighted: {
+                                console.log("In onHighlighted")
+                                console.log("Combobox height: " + combo1.height)
+                            }
+                            onAccepted: {
+                                console.log("In onAccepted")
+                                if (find(editText) != -1)
+                                {
+                                    set_instance_id(editText) 
+                                    console.log("Instance ID: " + selectedProjectId)                        
+                                }
+                            } 
+
+                        }
+                }
+                }       
+        }
+
+
+
+
+        Row{
+                id: myRow1
+                anchors.top: myRow1a.bottom
+                anchors.horizontalCenter:parent.horizontalCenter 
+                topPadding: 10
                 Column{
                         leftPadding: units.gu(5)
                         Rectangle {
@@ -241,10 +341,23 @@ Page{
                         TextField {
                             id: date_text
                             width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
-                            text: Qt.formatDate(date_field.date, "dddd, dd-MMMM-yyyy")
                             MouseArea {
                                 anchors.fill: parent
-                                onClicked: { date_field.visible = !date_field.visible }
+                                onClicked: { 
+                                    
+                                    if(date_field.visible === false)
+                                    {
+                                        date_field.visible = !date_field.visible 
+                                        date_text.text = ""
+                                    }
+                                    else
+                                    {
+                                        date_field.visible = !date_field.visible 
+                                        date_text.text = Qt.formatDate(date_field.date, "dddd, dd-MMMM-yyyy")
+
+                                    }
+                                    
+                                }
                             }
                     }
                     DatePicker {
@@ -290,7 +403,12 @@ Page{
                     LomiriShape{                        
                         width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
                         height: 40
-                        ComboBox {
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: { date_field.visible = !date_field.visible }
+                        }
+                        
+                    ComboBox {
                             id: combo1
                             editable: true
                             width: parent.width
@@ -429,7 +547,6 @@ Page{
                                 anchors.centerIn: parent.centerIn
                                 flat: true
 
-
                                 model:  ListModel {
                                             id: taskModel
                                         }  
@@ -438,8 +555,9 @@ Page{
                                     console.log("In onActivated")
                                     set_task_id(editText) 
                                     myRow10.visible = true
-                                    console.log("Task ID: " + selectedTaskId)                        
-                                }        
+                                    console.log("Task ID: " + selectedTaskId)   
+                                    date_field.visible = false                     
+                                 }        
                                 onHighlighted: {
                                     console.log("In onHighlighted")
                                 }
@@ -502,6 +620,7 @@ Page{
 
                             onActivated: {
                                 console.log("In onActivated")
+                                date_field.visible = false                     
                             }        
                             onHighlighted: {
                                 console.log("In onHighlighted")
@@ -548,9 +667,10 @@ Page{
                         TextField {
                             id: description_text
                             width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
-                            text: "Enter Description"
-                        }
-                }       
+                            text: "Enter Description"                   
+                        }                        
+                    }
+             
         }
         Row{
                 id: myRow5
@@ -653,52 +773,71 @@ Page{
 * 18022025: Added Slider for the Quadrants         *
 **********************************************************/
 
-                            Row {
-                                id: myRow7
-                                anchors.top: myRow6.bottom
-                                topPadding: units.gu(5)                                
-                                leftPadding: units.gu(5)
-//                                spacing: isDesktop() ? 10 : phoneLarg() ? 15 : 20
-
-                                Label {
-                                    id: priority
-                                    height: units.gu(10)
-                                    text: "Select Priority Quadrant"
-//                                    font.pixelSize: isDesktop() ? 18 : phoneLarg() ? 30 : 40
-                                    
+        Row{
+                id: myRow7
+                anchors.top: myRow6.bottom
+                anchors.horizontalCenter:parent.horizontalCenter 
+                topPadding: 10
+                Column{
+                        leftPadding: units.gu(15)
+                        Rectangle {
+                            width: units.gu(10)
+                            height: units.gu(5)
+                             Label {
+                                id: priority_label                            
+                                text: "Priority"
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+                                //textSize: Label.Large
+                            }
+                        }
+                }
+                Column{
+                       leftPadding: units.gu(10)
+                        Slider {
+                            id: mySlider
+                            minimumValue: 1
+                            maximumValue: 4
+                            stepSize: 100
+                            value: 0
+                            live: true
+                            onValueChanged: {
+                                var selection = floattoint(value)
+                                if(selection === "1")
+                                {
+                                    priority_label.text = "Important, Urgent"
                                 }
-                                Row{
-                                    id: myRow11
-                                    width: units.gu(20)
-                                    anchors.top: priority.bottom
-                                    topPadding: units.gu(5)                                
-                                    leftPadding: units.gu(10)
-                                    Column{
-                                           leftPadding: units.gu(5)
-                                    }
-                                    Column{
-                                           leftPadding: units.gu(5)
-                                        Slider {
-                                            id: mySlider
-    //                                        function formatValue(v) { return v.toFixed(2) }
-                                            anchors.centerIn: parent
-                                            minimumValue: 1
-                                            maximumValue: 4
-                                            value: 0
-                                            live: false
-                                        }
-                                    }
+                                if(selection === "2")
+                                {
+                                    priority_label.text = "Important, Not Urgent"
                                 }
-
+                                if(selection === "3")
+                                {
+                                    priority_label.text = "Not Important, Urgent"
+                                }
+                                if(selection === "4")
+                                {
+                                    priority_label.text = "Not Important, Not Urgent"
+                                }
                             }
 
-/*********************************************************/
+                    }
 
-    /********************************
-    * The Legends for the slider *
-    ********************************/
+                }       
+        }
 
-        LomiriShape {
+
+
+/***************************************************************/
+
+
+
+
+    /***************************************
+    * The Legends for the slider  (Removed)*
+    ***************************************/
+
+/*        LomiriShape {
             id: rect3
             anchors.top: myRow7.bottom
             width: parent.width
@@ -768,17 +907,14 @@ Page{
 
                 }
 
-        }   
+        }   */
 /**********************************************************/
 
 
         Component.onCompleted: {
             console.log("From Timesheet " + columns);
-//            console.log("From Timesheet myRow2 " + myRow2);
-//            console.log("From Timesheet myRow2.myCol1 " + myRow2.myCol1);
-//            console.log("From Timesheet myRow2.myCol1.combo1 " + myRow2.myCol1.combo1);
-//            console.log("From Timesheet myRow2.myCol1.combo1.projectModel " + myRow2.myCol1.combo1.projectModel);
             console.log("From Timesheet projectModel " + projectModel);
+            prepare_instance_list()
             prepare_project_list()
 
         }
