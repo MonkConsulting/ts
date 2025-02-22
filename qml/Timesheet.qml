@@ -779,7 +779,7 @@ Page{
                 anchors.horizontalCenter:parent.horizontalCenter 
                 topPadding: 10
                 Column{
-                        leftPadding: units.gu(15)
+                        leftPadding: units.gu(3)
                         Rectangle {
                             width: units.gu(10)
                             height: units.gu(5)
@@ -793,12 +793,13 @@ Page{
                         }
                 }
                 Column{
-                       leftPadding: units.gu(10)
+                       leftPadding: units.gu(12)
                         Slider {
                             id: mySlider
                             minimumValue: 1
                             maximumValue: 4
                             stepSize: 100
+                            width: units.gu(20)
                             value: 0
                             live: true
                             onValueChanged: {
