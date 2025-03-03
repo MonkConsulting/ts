@@ -11,8 +11,8 @@ MainView {
     applicationName: "tsapp.monk"
 
 //    width: Screen.desktopAvailableWidth < units.gu(130) ? units.gu(40) : units.gu(130)
-    width: units.gu(45) //GM: for testing with only one column
-    height: units.gu(89)
+    width: units.gu(50) //GM: for testing with only one column
+    height: units.gu(95)
   
     
 
@@ -23,12 +23,12 @@ MainView {
         primaryPage: page1
         layouts: [
             PageColumnsLayout {
-                when: width > units.gu(80) && width < units.gu(130)
+                when: width > units.gu(50) && width < units.gu(130)
                 // column #0
                 PageColumn {
-                    minimumWidth: units.gu(45)
-                    maximumWidth: units.gu(50)
-                    preferredWidth: width > units.gu(90) ? units.gu(45) : units.gu(40)
+                    minimumWidth: units.gu(50)
+                    maximumWidth: units.gu(80)
+                    preferredWidth: width > units.gu(90) ? units.gu(60) : units.gu(50)
                 }
                 // column #1
                 PageColumn {
@@ -45,9 +45,9 @@ MainView {
                 when: width >= units.gu(130) 
                 // column #0
                 PageColumn {
-                    minimumWidth: units.gu(45)
-                    maximumWidth: units.gu(50)
-                    preferredWidth: units.gu(50)
+                    minimumWidth: units.gu(65)
+                    maximumWidth: units.gu(80)
+                    preferredWidth: units.gu(80)
                 }
                 // column #1
                 PageColumn {

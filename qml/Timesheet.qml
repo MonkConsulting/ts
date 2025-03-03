@@ -59,51 +59,46 @@ Page{
 
 
 
-    function prepare_subproject_list(){
-        var subprojects = Model.fetch_sub_project(project_id, workpersonaSwitchState)
-        console.log("In prepare_subproject_list()")  
-        if (subprojects.length > 0)
-        {    
-            myRow9.visible = true
-            for (var subproject = 0; subproject < subprojects.length; subproject++) {
-//                projectModel1.append({'id': subprojects[subproject].id, 'name': subprojects[subproject].name})
-                subprojectModel.append({'name': subprojects[subproject].name})
-            }       
-            for (var subproject = 0; subproject < subprojectModel.count; subproject++) {
-                console.log("ProjectModel1 " + "id: " + projectModel1.get(project).id + " Project: " + projectModel1.get(project).name)
-//                console.log("SubProjectModel " + " Subproject: " + subprojectModel.get(project).name)
-            }
-        }
-    }
 
 
     function floattoint(x) {
     return Number.parseFloat(x).toFixed(0);
     }
+ 
 
-    function prepare_instance_list() {
-        var instances = Model.get_accounts_list()
-        console.log("In prepare_instance_list()")      
-        for (var instance = 0; instance < instances.length; instance++) {
-            instanceModel1.append({'id': instances[instance].id, 'name': instances[instance].name})
-            instanceModel.append({'name': instances[instance].name})
-        }       
-        for (var instance = 0; instance < instanceModel.count; project++) {
-            console.log("InstanceModel " + " Project: " + instanceModel.get(instance).name)
-        } 
+    function clearAllFields(){
+        selectedProjectId = 0
+        selectedTaskId = 0
+        selectedsubProjectId = 0
+        selectedSubTaskId = 0
+//        combo5.editText = ""
+        combo1.editText = ""
+        combo3.editText = ""
+        task_field.editText = ""
+        combo4.editText = ""
     }
 
+    function datetoiso(datevar){
+        console.log("Date is: " + datevar);
+        var datemilli = new Date(datevar).toUTCString();
+//        var datevar = datemilli[1].toISOString();
+        var monthno = new Date("February"+'-1-01').getMonth()+1;
+        console.log("In datetoiso: " + datevar)
+         console.log(datemilli);
+    }
 
 
     function save_timesheet() {
         console.log("Timesheet Saved");
+        datetoiso(datestr);
+        console.log("Date in save is: " + datestr);
         var timesheet_data = {
             'instance_id': selectedInstanceId,
             'dateTime': date_text.text,
             'project': selectedProjectId,
             'task': selectedTaskId,
             'subprojectId': selectedsubProjectId,
-            'subTask': combo4.editText,
+            'subTask': selectedSubTaskId,
             'description': description_text.text,
             'manualSpentHours': hours_text.text,
             'spenthours': hours_text.text,
@@ -112,47 +107,52 @@ Page{
         }
         console.log("Data.quadrant: " + timesheet_data.quadrant)
         Model.create_timesheet(timesheet_data)
+        selectedInstanceId = 0
+        date_text.text = ""
+        selectedProjectId = 0
+        selectedTaskId = 0
+        selectedsubProjectId = 0
+        selectedSubTaskId = 0
+        combo5.editText = ""
+        combo1.editText = ""
+        combo3.editText = ""
+        task_field.editText = ""
+        combo4.editText = ""
+        hours_text.readOnly = true
+        elapsedTime = 0
     }
 
 
-    function set_instance_id(instance_name) {
+
+
+    function prepare_instance_list() {
+        var instances = Model.get_accounts_list()
+        console.log("In prepare_instance_list()")      
+        for (var instance = 0; instance < instances.length; instance++) {
+            instanceModel1.append({'id': instances[instance].id, 'name': instances[instance].name})
+            instanceModel.append({'name': instances[instance].name})
+        }       
         for (var instance = 0; instance < instanceModel.count; instance++) {
-            if(instanceModel.get(instance).name === project_name) {
-                console.log("set_instance_id " + "id: " + instanceModel.get(instance).id + " Instance: " + instanceModel.get(instance).name)
-                selectedInstanceId = instanceModel.get(instance).id            
-            }
-        }         
-    }
+            console.log("InstanceModel " + " Project: " + instanceModel.get(instance).name)
 
-
-
-    function set_project_id(project_name) {
-        for (var project = 0; project < projectModel1.count; project++) {
-            if(projectModel1.get(project).name === project_name) {
-                console.log("ProjectModel1 " + "id: " + projectModel1.get(project).id + " Project: " + projectModel1.get(project).name)
-                selectedProjectId = projectModel1.get(project).id            
-            }
-        }         
-    }
-
-
-    function set_subproject_id(subproject_name) {
-        for (var subproject = 0; subproject < subprojectModel.count; project++) {
-            if(subprojectModel.get(subproject).name === subproject_name) {
-//                console.log("ProjectModel1 " + "id: " + projectModel1.get(project).id + " Project: " + projectModel1.get(project).name)
-                selectedsubProjectId = subprojectModel.get(subproject).id            
-            }
-        }         
+        } 
+        combo5.currentIndex = instanceModel1.get(0).id
+        combo5.editText = instanceModel1.get(0).name
+        prevInstanceId = instanceModel1.get(0).id
+        selectedInstanceId = instanceModel1.get(0).id
+        
     }
 
 
 
     function prepare_project_list() {
-        var projects = Model.fetch_projects(false, workpersonaSwitchState)
-        console.log("In prepare_project_list()")      
+        var projects = Model.fetch_projects(selectedInstanceId, workpersonaSwitchState)
+        console.log("In prepare_project_list()  " + selectedInstanceId)      
+        projectModel.clear();
+        projectModel1.clear();
         for (var project = 0; project < projects.length; project++) {
-            projectModel1.append({'id': projects[project].id, 'name': projects[project].name})
-            projectModel.append({'name': projects[project].name})
+            projectModel1.append({'id': projects[project].id, 'name': projects[project].name, 'projectHasSubProject': projects[project].projectHasSubProject})
+            projectModel.append({'name': projects[project].name + "[" + projects[project].id + "]"})
         }       
         for (var project = 0; project < projectModel.count; project++) {
             console.log("ProjectModel1 " + "id: " + projectModel1.get(project).id + " Project: " + projectModel1.get(project).name)
@@ -160,49 +160,140 @@ Page{
         } 
     }
 
-    function set_task_id(task_name) {
-        for (var task = 0; task < taskModel1.count; task++) {
-            if(taskModel1.get(task).name === task_name) {
-                console.log("TaskModel1 " + "id: " + taskModel1.get(task).id + " Task: " + taskModel1.get(task).name)
-                selectedTaskId = taskModel1.get(task).id            
+
+    function prepare_subproject_list(){
+        var subprojects = Model.fetch_sub_project(selectedProjectId, workpersonaSwitchState)
+        console.log("In prepare_subproject_list()")  
+        subprojectModel.clear();
+        if (subprojects.length > 0)
+        {    
+            myRow9.visible = true
+            for (var subproject = 0; subproject < subprojects.length; subproject++) {
+                subprojectModel.append({'name': subprojects[subproject].name + "[" + subprojects[subproject].id + "]"})
+            }       
+            for (var subproject = 0; subproject < subprojectModel.count; subproject++) {
+                console.log("SubProjectModel " + " Subproject: " + subprojectModel.get(subproject).name)
             }
-        }         
+        }
     }
 
     function prepare_task_list(project_id) {
-        var tasks = Model.fetch_tasks_list(project_id, false, workpersonaSwitchState)
+        var tasks = Model.fetch_tasks_list(project_id, selectedsubProjectId, workpersonaSwitchState)
         taskModel.clear();
         taskModel1.clear();
         selectedTaskId = 0;
         console.log("Passed Project ID: " + project_id)
-//        task_field.text = "Select Task";
         for (var task = 0; task < tasks.length; task++) {
-            taskModel.append({'name': tasks[task].name})
-            taskModel1.append({'id': tasks[task].id, 'name': tasks[task].name})
-        }
-        for (var task = 0; task < taskModel.count; task++) {
-            console.log("TaskModel1 " + "id: " + taskModel1.get(task).id + " Task: " + taskModel1.get(task).name)
-            console.log("TaskModel " + " Task: " + taskModel.get(task).name)
+            taskModel1.append({'id': tasks[task].id, 'name': tasks[task].name, 'taskHasSubTask': tasks[task].taskHasSubTask})
+            taskModel.append({'name': tasks[task].name + "[" + tasks[task].id + "]"})
         } 
      }
-
 
 
     function prepare_subtask_list(task_id) {
-        var tasks = Model.fetch_sub_tasks(task_id, workpersonaSwitchState)
+        var subtasks = Model.fetch_sub_tasks(task_id, workpersonaSwitchState)
         subtaskModel.clear();
-//        taskModel1.clear();
-        selectedTaskId = 0;
         console.log("Passed Task ID: " + task_id)
-        for (var task = 0; task < tasks.length; task++) {
-            subtaskModel.append({'name': tasks[task].name})
-//            taskModel1.append({'id': tasks[task].id, 'name': tasks[task].name})
-        }
-        for (var task = 0; task < taskModel.count; task++) {
-//            console.log("TaskModel1 " + "id: " + taskModel1.get(task).id + " Task: " + taskModel1.get(task).name)
-            console.log("SubTaskModel " + " Task: " + subtaskModel.get(task).name)
+        for (var subtask = 0; subtask < subtasks.length; subtask++) {
+           subtaskModel.append({'name': subtasks[subtask].name + "[" + subtasks[subtask].id + "]"})
         } 
      }
+
+    function set_instance_id(instance_name) {
+        for (var instance = 0; instance < instanceModel.count; instance++) {
+            if(instanceModel1.get(instance).name === instance_name) {
+                console.log("set_instance_id " + "id: " + instanceModel1.get(instance).id + " Instance: " + instanceModel1.get(instance).name)
+                selectedInstanceId = instanceModel1.get(instance).id            
+            }
+        prepare_project_list()
+
+        }         
+    }
+
+
+
+    function set_project_id(project_name) {
+        for (var project = 0; project < project_name.length; ++project) {
+            if (project_name.substring(project, project + 1) === "[") {
+            selectedProjectId = parseInt(project_name.substring(project + 1, ((project_name.length)-1)))
+            break
+            }  
+        }  
+        const name =    project_name.split("[")
+        for (var project = 0; project < projectModel1.count; project++) {
+            if(projectModel1.get(project).name === name[0]) {
+                if (projectModel1.get(project).projectHasSubProject) {
+                    myRow9.visible = true
+                    prepare_subproject_list()
+                } else {
+                    myRow9.visible = false
+                    selectedsubProjectId = 0
+                }
+/*                combo3.currentIndex = -1
+                task_field.currentIndex = -1
+                combo4.currentIndex = -1
+                myRow10.visible = false*/
+            }
+            var index = prevproject.indexOf("[")
+            console.log("Index of [ " + index)
+        }
+        if (prevproject != name[0]){
+            console.log("prevproject = " + prevproject + " name = " + name[0])
+            combo3.currentIndex = -1
+            task_field.currentIndex = -1
+            combo4.currentIndex = -1
+            myRow10.visible = false
+        }
+        prevproject = name[0]
+        console.log("Set Project Id: Name = " + name[0])
+        console.log("selectedProjectId = " + selectedProjectId)    
+    }
+
+
+    function set_subproject_id(subproject_name) {
+        for (var subproject = 0; subproject < subproject_name.length; subproject++) {
+            if(subproject_name.substring(subproject, subproject + 1) === "[") {
+                selectedsubProjectId = parseInt(subproject_name.substring(subproject + 1, ((subproject_name.length)-1)))
+            }
+        }         
+        console.log("selectedsubProjectId = " + selectedsubProjectId)    
+    }
+
+
+    function set_task_id(task_name) {
+        for (var task = 0; task < task_name.length; task++) {
+            if(task_name.substring(task, task + 1) === "[") {
+                selectedTaskId = parseInt(task_name.substring(task + 1, ((task_name.length)-1)))
+            }
+        }
+        const name =    task_name.split("[")
+        for (var task = 0; task < taskModel1.count; task++) {
+            if(taskModel1.get(task).name === name[0]) {
+                if (taskModel1.get(task).taskHasSubTask) {
+                    myRow10.visible = true
+                    prepare_subtask_list(selectedTaskId)
+                } 
+                else {
+                    myRow10.visible = false
+                }
+            combo4.currentIndex = -1
+            }
+        }
+        console.log("Set Task Id: Name = " + name[0])
+        console.log("selectedTaskId = " + selectedTaskId)    
+    }
+
+    function set_subtask_id(subtask_name) {
+        for (var subtask = 0; subtask < subtask_name.length; subtask++) {
+            if(subtask_name.substring(subtask, subtask + 1) === "[") {
+                selectedSubTaskId = parseInt(subtask_name.substring(subtask + 1, ((subtask_name.length)-1)))
+            }
+        }         
+        console.log("selectedSubTaskId = " + selectedSubTaskId)    
+    }
+
+
+
 
     function formatTime(seconds) {
         var hours = Math.floor(seconds / 3600);  
@@ -220,7 +311,7 @@ Page{
         id: taskModel1
     }
 
-    property bool workpersonaSwitchState: false
+    property bool workpersonaSwitchState: true
     property bool isTimesheetClicked: false
     property bool isManualTime: false
     property var currentTime: false
@@ -236,6 +327,10 @@ Page{
     property bool hasSubTask: false;
     property bool edithasSubTask: false;
     property int selectedSubTaskId: 0
+    property var datestr: ""
+    property var prevInstanceId: 0
+    property var defaultInstance: ""
+    property var prevproject: ""
 
     Timer {
         id: stopwatchTimer
@@ -290,15 +385,18 @@ Page{
                             flat: true
                             model:  ListModel {
                                         id: instanceModel
-                                    }  
+                                    }
 
                             onActivated: {
                                 set_instance_id(editText) 
+                                if (prevInstanceId != selectedInstanceId){
+                                    console.log("Calling clearAllFields")
+                                    clearAllFields()
+                                }
+                                prevInstanceId = selectedInstanceId
                                 console.log("Instance ID: " + selectedInstanceId + " edittext: " + editText)                        
                             }        
                             onHighlighted: {
-                                console.log("In onHighlighted")
-                                console.log("Combobox height: " + combo1.height)
                             }
                             onAccepted: {
                                 console.log("In onAccepted")
@@ -354,6 +452,7 @@ Page{
                                     {
                                         date_field.visible = !date_field.visible 
                                         date_text.text = Qt.formatDate(date_field.date, "dddd, dd-MMMM-yyyy")
+                                        datestr = Qt.formatDate(date_field.date, "yyyy-MM-dd")
 
                                     }
                                     
@@ -372,7 +471,6 @@ Page{
                                 return d;
                             }
                             maximum: Date.prototype.getInvalidDate.call()
-        //                    Component.onCompleted: set(new Date()) // 12022025 GM: commented out for testing 
                     }
 
                 }       
@@ -402,7 +500,7 @@ Page{
                     leftPadding: units.gu(5)
                     LomiriShape{                        
                         width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
-                        height: 40
+                        height: 60
                         MouseArea {
                             anchors.fill: parent
                             onClicked: { date_field.visible = !date_field.visible }
@@ -421,19 +519,23 @@ Page{
 
                             onActivated: {
                                 console.log("In onActivated")
-                                set_project_id(editText) 
-//                                prepare_subproject_list()
-                                prepare_task_list(selectedProjectId)
-                                console.log("Project ID: " + selectedProjectId + " edittext: " + editText)                        
+                                if (prevproject != editText.substring(0, editText.indexOf("[")))
+                                {
+                                    console.log("prevproject != editText")
+                                    console.log("prevproject: " + prevproject + " editText: " + editText)
+                                    set_project_id(editText) 
+    //                                prepare_subproject_list()
+                                    prepare_task_list(selectedProjectId)
+                                    console.log("Project ID: " + selectedProjectId + " edittext: " + editText)
+                                }                        
                             }        
                             onHighlighted: {
-                                console.log("In onHighlighted")
-                                console.log("Combobox height: " + combo1.height)
                             }
                             onAccepted: {
                                 console.log("In onAccepted")
                                 if (find(editText) != -1)
                                 {
+                                    prevproject = editText
                                     set_project_id(editText) 
                                     prepare_task_list(selectedProjectId)
                                     console.log("Project ID: " + selectedProjectId)                        
@@ -474,7 +576,7 @@ Page{
                     leftPadding: units.gu(5)
                     LomiriShape{                        
                         width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
-                        height: 40
+                        height: 60
                         ComboBox {
                             id: combo3
                             editable: true
@@ -493,8 +595,6 @@ Page{
                                 console.log("Sub Project ID: " + selectedsubProjectId + " edittext: " + editText)                        
                             }        
                             onHighlighted: {
-                                console.log("In onHighlighted")
-                                console.log("Combobox height: " + combo1.height)
                             }
                             onAccepted: {
                                 console.log("In onAccepted")
@@ -538,7 +638,7 @@ Page{
                        leftPadding: units.gu(5)
                         LomiriShape{                        
                             width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
-                            height: 40
+                            height: 60
                             ComboBox {
                                 id: task_field
                                 editable: true
@@ -554,12 +654,9 @@ Page{
                                 onActivated: {
                                     console.log("In onActivated")
                                     set_task_id(editText) 
-                                    myRow10.visible = true
                                     console.log("Task ID: " + selectedTaskId)   
-                                    date_field.visible = false                     
                                  }        
                                 onHighlighted: {
-                                    console.log("In onHighlighted")
                                 }
                                 onAccepted: {
                                     console.log("In onAccepted")
@@ -606,7 +703,7 @@ Page{
                     leftPadding: units.gu(5)
                     LomiriShape{                        
                         width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
-                        height: 40
+                        height: 60
                         ComboBox {
                             id: combo4
                             editable: true
@@ -623,7 +720,6 @@ Page{
                                 date_field.visible = false                     
                             }        
                             onHighlighted: {
-                                console.log("In onHighlighted")
                             }
                             onAccepted: {
                                 console.log("In onAccepted")
@@ -667,7 +763,7 @@ Page{
                         TextField {
                             id: description_text
                             width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
-                            text: "Enter Description"                   
+//                            text: "Enter Description"                   
                         }                        
                     }
              
@@ -697,6 +793,7 @@ Page{
                             id: hours_text
                             width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
                             text: formatTime(elapsedTime)
+                            readOnly: true
                         }
                 }       
         }
@@ -709,8 +806,8 @@ Page{
                        leftPadding: units.gu(5)
                         Button {
                                 objectName: "button_start"
-                                width: units.gu(10)
-                                iconName: "media-playback-start"
+                               width: units.gu(10)
+                                iconName: "save"
                                 action: Action {
                                     text: i18n.tr("Start")
                                     property bool flipped
@@ -727,11 +824,7 @@ Page{
                                         currentTime = new Date()
                                         stopwatchTimer.start();
                                     }
-                                    running = !running
-/*                                    if (taskssmartBtn != null) {
-                                        timestart = true
-                                        idstarttime = selectedTaskId
-                                    }*/                                
+                                    running = !running                                
                                 }
                         }
                 }
@@ -762,7 +855,10 @@ Page{
                                     text: i18n.tr("Manual")
                                     property bool flipped
                                     onTriggered: {flipped = !flipped
-                                    isManualTime = true}
+                                    isManualTime = true
+                                    hours_text.readOnly = false
+                                    running = !running
+                                    stopwatchTimer.stop();}
                                 }
                                 color: action.flipped ? LomiriColors.blue : LomiriColors.slate
                         }
