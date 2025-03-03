@@ -72,7 +72,7 @@ import "../models/DemoData.js" as DemoData
                         iconName: "sync"
                         text: "Sync"
                         onTriggered:{
-                            apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Sync_Page.qml"))
+                            apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Sync_Page.qml"))
                         }
                     },
                     Action {

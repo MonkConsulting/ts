@@ -31,7 +31,7 @@ Page{
             Action {
                 iconName: "add"
                 onTriggered: {
-                    apLayout.addPageToNextColumn(settings, Qt.resolvedUrl('Account_Page.qml'))
+                    apLayout.addPageToCurrentColumn(settings, Qt.resolvedUrl('Account_Page.qml'))
                 }
             }
         ]
