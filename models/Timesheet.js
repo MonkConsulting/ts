@@ -5,7 +5,7 @@
 */
 
 function get_accounts_list() {
-    var db = Sql.LocalStorage.openDatabaseSync("timemanagement", "1.0", "Time Management", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     var accountlist = [];
     db.transaction(function(tx) {
         var accounts = tx.executeSql('SELECT * FROM users');
@@ -24,7 +24,7 @@ function get_accounts_list() {
 */
 
 function fetch_projects(instance_id, is_work_state) {
-    var db = Sql.LocalStorage.openDatabaseSync("timemanagement", "1.0", "Time Management", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     var projectList = [];
     db.transaction(function(tx) {
         if (is_work_state) {
@@ -52,7 +52,7 @@ function fetch_projects(instance_id, is_work_state) {
 */
 
 function fetch_sub_project(project_id, is_work_state) {
-    var db = Sql.LocalStorage.openDatabaseSync("timemanagement", "1.0", "Time Management", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     var subProjectsList = [];
     db.transaction(function(tx) {
         if (is_work_state) {
@@ -78,13 +78,18 @@ function fetch_sub_project(project_id, is_work_state) {
 */
 
 function fetch_tasks_list(project_id, sub_project_id, is_work_state) {
-    var db = Sql.LocalStorage.openDatabaseSync("timemanagement", "1.0", "Time Management", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     var tasks_list = [];
     db.transaction(function(tx) {
         if (is_work_state) {
             var tasks = tx.executeSql('SELECT * FROM project_task_app\
                                  where project_id = ? AND account_id != 0 AND sub_project_id = ?',
-                                [project_id, sub_project_id]);
+                                [project_id, sub_project_id != 0 ? sub_project_id : null]);
+            if (sub_project_id == 0) {
+                tasks = tx.executeSql('SELECT * FROM project_task_app\
+                                     where project_id = ? AND account_id != 0',
+                                    [project_id]);
+            }
         } else {
             var tasks = tx.executeSql('SELECT * FROM project_task_app\
                                      where account_id is NULL \
@@ -112,12 +117,13 @@ function fetch_tasks_list(project_id, sub_project_id, is_work_state) {
 */
 
 function fetch_sub_tasks(task_id, is_work_state) {
-    var db = Sql.LocalStorage.openDatabaseSync("timemanagement", "1.0", "Time Management", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     var sub_tasks_list = [];
     db.transaction(function(tx) {
         if (is_work_state) {
             var sub_tasks = tx.executeSql('SELECT * FROM project_task_app\
                                          where parent_id = ?', [task_id]);
+            console.log('\n\n fetch_sub_tasks >>>>>>>>>>>>>>>>>', task_id)
         } else {
             var sub_tasks = tx.executeSql('SELECT * FROM project_task_app\
                                          where account_id IS NULL AND parent_id = ?',
@@ -152,7 +158,7 @@ function convert_time(value) {
 
 function create_timesheet(data) {
     console.log("In create_timesheet");
-    var db = Sql.LocalStorage.openDatabaseSync("timemanagement", "1.0", "Time Management", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     db.transaction(function(tx) {
         var unitAmount = 0;
         if (data.isManualTimeRecord) {

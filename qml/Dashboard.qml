@@ -17,7 +17,6 @@
 import QtQuick 2.7
 import Lomiri.Components 1.3
 import QtCharts 2.0
-//import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.11
 import Qt.labs.settings 1.0
 import "../models/Main.js" as Model
@@ -39,10 +38,6 @@ import "../models/DemoData.js" as DemoData
                 anchors.right: parent.right
             //    enable: true
                 actions: [
-                    Action {
-                        iconName: "home"
-                        text: "Home"
-                    },
                     Action {
                         iconName: "clock"
                         text: "Timesheet"
@@ -71,6 +66,13 @@ import "../models/DemoData.js" as DemoData
                         text: "Projects"
                         onTriggered:{
                             apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Project_Page.qml"))
+                        }
+                    },
+                    Action {
+                        iconName: "sync"
+                        text: "Sync"
+                        onTriggered:{
+                            apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Sync_Page.qml"))
                         }
                     },
                     Action {
