@@ -17,6 +17,7 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
+import Lomiri.Components.Popups 1.3
 import Lomiri.Components.Pickers 1.3
 import QtCharts 2.0
 import QtQuick.Window 2.2
@@ -48,6 +49,10 @@ Page{
                 ]
         }
     }
+
+
+
+
 
     ListModel {
         id: instanceModel1
@@ -106,6 +111,7 @@ Page{
             'quadrant': floattoint(mySlider.value)
         }
         console.log("Data.quadrant: " + timesheet_data.quadrant)
+        PopupUtils.open(savepopover)
         Model.create_timesheet(timesheet_data)
         selectedInstanceId = 0
         date_text.text = ""
@@ -118,6 +124,7 @@ Page{
         combo3.editText = ""
         task_field.editText = ""
         combo4.editText = ""
+        description_text.text = ""
         hours_text.readOnly = true
         elapsedTime = 0
     }
@@ -354,10 +361,10 @@ Page{
 
         Row{
                 id: myRow1a
-                anchors.horizontalCenter:parent.horizontalCenter 
+                anchors.left: parent.left 
                 topPadding: 40
                 Column{
-                        leftPadding: units.gu(5)
+                        leftPadding: units.gu(2)
                         Rectangle {
                             width: units.gu(10)
                             height: units.gu(5)
@@ -371,10 +378,10 @@ Page{
                         }
                 }
                 Column{
-                       leftPadding: units.gu(5)
+                       leftPadding: units.gu(1)
                        LomiriShape{                        
-                            width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
-                            height: 40
+                            width: units.gu(30)
+                            height: 60
                             
                     ComboBox {
                             id: combo5
@@ -418,10 +425,10 @@ Page{
         Row{
                 id: myRow1
                 anchors.top: myRow1a.bottom
-                anchors.horizontalCenter:parent.horizontalCenter 
+                anchors.left: parent.left 
                 topPadding: 10
                 Column{
-                        leftPadding: units.gu(5)
+                        leftPadding: units.gu(2)
                         Rectangle {
                             width: units.gu(10)
                             height: units.gu(5)
@@ -435,7 +442,7 @@ Page{
                         }
                 }
                 Column{
-                       leftPadding: units.gu(5)
+                       leftPadding: units.gu(1)
                         TextField {
                             id: date_text
                             width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
@@ -478,11 +485,11 @@ Page{
         Row{
                 id: myRow2
                 anchors.top: myRow1.bottom
-                anchors.horizontalCenter:parent.horizontalCenter 
+                anchors.left: parent.left 
                 topPadding: 10
                 Column{
                     id: myCol
-                        leftPadding: units.gu(5)
+                        leftPadding: units.gu(2)
                         Rectangle {
                             width: units.gu(10)
                             height: units.gu(5)
@@ -497,7 +504,7 @@ Page{
                 }
                 Column{
                     id: myCol1
-                    leftPadding: units.gu(5)
+                    leftPadding: units.gu(1)
                     LomiriShape{                        
                         width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
                         height: 60
@@ -553,12 +560,12 @@ Page{
         Row{
                 id: myRow9
                 anchors.top: myRow2.bottom
-                anchors.horizontalCenter:parent.horizontalCenter 
+                anchors.left: parent.left 
                 topPadding: 10
                 visible: false
                 Column{
                     id: myCol8
-                        leftPadding: units.gu(5)
+                        leftPadding: units.gu(2)
                         Rectangle {
                             width: units.gu(10)
                             height: units.gu(5)
@@ -573,7 +580,7 @@ Page{
                 }
                 Column{
                     id: myCol9
-                    leftPadding: units.gu(5)
+                    leftPadding: units.gu(1)
                     LomiriShape{                        
                         width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
                         height: 60
@@ -618,10 +625,10 @@ Page{
         Row{
                 id: myRow3
                 anchors.top: myRow9.bottom
-                anchors.horizontalCenter:parent.horizontalCenter 
+                anchors.left: parent.left 
                 topPadding: 10
                 Column{
-                        leftPadding: units.gu(5)
+                        leftPadding: units.gu(2)
                         Rectangle {
                             width: units.gu(10)
                             height: units.gu(5)
@@ -635,7 +642,7 @@ Page{
                     }
                 }
                 Column{
-                       leftPadding: units.gu(5)
+                       leftPadding: units.gu(1)
                         LomiriShape{                        
                             width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
                             height: 60
@@ -680,12 +687,12 @@ Page{
         Row{
                 id: myRow10
                 anchors.top: myRow3.bottom
-                anchors.horizontalCenter:parent.horizontalCenter 
+                anchors.left: parent.left 
                 topPadding: 10
                 visible: false
                Column{
                     id: myCol10
-                        leftPadding: units.gu(5)
+                        leftPadding: units.gu(2)
                         Rectangle {
                             width: units.gu(10)
                             height: units.gu(5)
@@ -700,7 +707,7 @@ Page{
                 }
                 Column{
                     id: myCol11
-                    leftPadding: units.gu(5)
+                    leftPadding: units.gu(1)
                     LomiriShape{                        
                         width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
                         height: 60
@@ -742,10 +749,10 @@ Page{
         Row{
                 id: myRow4
                 anchors.top: myRow10.bottom
-                anchors.horizontalCenter:parent.horizontalCenter 
+                anchors.left: parent.left 
                 topPadding: 10
                 Column{
-                        leftPadding: units.gu(5)
+                        leftPadding: units.gu(2)
                         Rectangle {
                             width: units.gu(10)
                             height: units.gu(5)
@@ -759,7 +766,7 @@ Page{
                     }
                 }
                 Column{
-                       leftPadding: units.gu(5)
+                       leftPadding: units.gu(1)
                         TextField {
                             id: description_text
                             width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
@@ -771,10 +778,10 @@ Page{
         Row{
                 id: myRow5
                 anchors.top: myRow4.bottom
-                anchors.horizontalCenter:parent.horizontalCenter 
+                anchors.left: parent.left 
                 topPadding: 10
                 Column{
-                        leftPadding: units.gu(5)
+                        leftPadding: units.gu(2)
                         Rectangle {
                             width: units.gu(10)
                             height: units.gu(5)
@@ -788,7 +795,7 @@ Page{
                     }
                 }
                 Column{
-                       leftPadding: units.gu(5)
+                       leftPadding: units.gu(1)
                         TextField {
                             id: hours_text
                             width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
@@ -800,10 +807,10 @@ Page{
         Row{
                 id: myRow6
                 anchors.top: myRow5.bottom
-                anchors.horizontalCenter:parent.horizontalCenter 
+                anchors.horizontalCenter: parent.horizontalCenter 
                 topPadding: units.gu(5)
                 Column{
-                       leftPadding: units.gu(5)
+//                       leftPadding: units.gu(2)
                         Button {
                                 objectName: "button_start"
                                width: units.gu(10)
@@ -829,7 +836,7 @@ Page{
                         }
                 }
                 Column{
-                       leftPadding: units.gu(5)
+                       leftPadding: units.gu(1)
                         Button {
                                 objectName: "button_stop"
                                 width: units.gu(10)
@@ -847,7 +854,7 @@ Page{
                         }
                 }
                 Column{
-                       leftPadding: units.gu(5)
+                       leftPadding: units.gu(1)
                         Button {
                                 objectName: "button_manual"
                                 width: units.gu(10)
@@ -872,10 +879,10 @@ Page{
         Row{
                 id: myRow7
                 anchors.top: myRow6.bottom
-                anchors.horizontalCenter:parent.horizontalCenter 
+                anchors.left: parent.left 
                 topPadding: 10
                 Column{
-                        leftPadding: units.gu(3)
+                        leftPadding: units.gu(2)
                         Rectangle {
                             width: units.gu(10)
                             height: units.gu(5)
@@ -927,84 +934,42 @@ Page{
 
 /***************************************************************/
 
+            Rectangle {
+                id: popuprect
+                width: units.gu(20)
+                height: units.gu(20)
+                border.color: "black"
+                border.width: 2
+                radius: 10
+                anchors.centerIn: parent
+                visible: false
+/***************************************************************/
 
+               Component {
+                    id: savepopover
 
+                    Popover {
+                        id: popover
+                        autoClose: true
+                        anchors.centerIn: parent
 
-    /***************************************
-    * The Legends for the slider  (Removed)*
-    ***************************************/
-
-/*        LomiriShape {
-            id: rect3
-            anchors.top: myRow7.bottom
-            width: parent.width
-            height: units.gu(10)
-
-                Column{
-                        id: myCollegend1
-                        topPadding: units.gu(5)
-                        spacing: 2
-                        leftPadding: 10
-                        Row{
-                                spacing: 2
-                                 Label {
-                                        id: myLabel_1
-                                        text: qsTr("1: ")
-                                    }
-                            
-                                Label {
-                                        id: myLabel_2
-                                        text: qsTr("Important, Urgent")
-                                    }
-                            }
-                        Row{
-                                spacing: 2
-                                 Label {
-                                        id: myLabel_3
-                                        text: qsTr("2: ")
-                                    }
-                            
-                                Label {
-                                        id: myLabel_4
-                                        text: qsTr("Important, Not Urgent")
-                                    }
-                        }       
-
+                        Label {
+                            id: save_label
+                            anchors.centerIn: parent                            
+                            text: "Timesheet Saved!"
+                            font.bold: true
+                            color: LomiriColors.green
+                        }
+                        
+                    }
                 }
-                Column{
-                        id: myCollegend2
-                        anchors.left: myCollegend1.right
-                        topPadding: units.gu(5)
-                        spacing: 2
-                        leftPadding: 10
-                        Row{
-                                spacing: 2
-                                    Label {
-                                            id: myLabel_5
-                                            text: qsTr("3: ")
-                                        }
-                                
-                                Label {
-                                        id: myLabel_6
-                                        text: qsTr("Not Important, Urgent")
-                                    }
-                        }       
-                        Row{
-                                spacing: 2
-                                    Label {
-                                            id: myLabel_7
-                                            text: qsTr("4: ")
-                                        }
-                                
-                                Label {
-                                        id: myLabel_8
-                                        text: qsTr("Not Important, Not Urgent")
-                                    }
-                        }       
+/**************************************************************/        
+        
+        }
 
-                }
 
-        }   */
+
+
 /**********************************************************/
 
 
@@ -1017,6 +982,7 @@ Page{
         }
 
     }
+
 
 
 
