@@ -37,10 +37,10 @@ MainView {
         anchors.fill: parent
         property bool isMultiColumn: true
         property Page currentPage: page2
-        //primaryPage: page2
+        primaryPage: page2
         layouts: [
             PageColumnsLayout {
-                when: width > units.gu(50) && width < units.gu(130)
+                when: width > units.gu(80) && width < units.gu(130)
                 // column #0
                 PageColumn {
                     minimumWidth: units.gu(50)
