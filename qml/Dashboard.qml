@@ -29,11 +29,23 @@ import "../models/DemoData.js" as DemoData
         id: mainPage
         title: "Timesheet"
         anchors.fill: parent
+        property bool isMultiColumn: apLayout.columns > 1
+        property bool bootscreen: false
+        property var page: 0
+
+/* 04/03/2025: below lines were added to instantiate all pages to be able to add them to a variable */
+
+        Timesheet{
+            id:timeSheet
+        }
 
         header: PageHeader {
             id: header
             title: "Dashboard"
+            visible: bootscreen
             ActionBar {
+                id: actionbar
+                visible: isMultiColumn ? false : true
                 numberOfSlots: 1
                 anchors.right: parent.right
             //    enable: true
@@ -43,7 +55,9 @@ import "../models/DemoData.js" as DemoData
                         text: "Timesheet"
                         onTriggered:{
                             apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Timesheet.qml"))
-                            apLayout.removePages(page4)
+                            console.log("Calling setCurrentPage Primarypage is " + apLayout.primaryPage)
+                            page = 1
+                            apLayout.setCurrentPage(page)
 
                         }
                     },
@@ -52,6 +66,9 @@ import "../models/DemoData.js" as DemoData
                         text: "Activities"
                         onTriggered:{
                             apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Activity_Page.qml"))
+                            page = 2
+                            apLayout.setCurrentPage(page)
+
                         }
                     },
                     Action {
@@ -59,6 +76,8 @@ import "../models/DemoData.js" as DemoData
                         text: "Tasks"
                         onTriggered:{
                             apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Task_Page.qml"))
+                            page = 3
+                            apLayout.setCurrentPage(page)
                         }
                     },
                     Action {
@@ -66,6 +85,8 @@ import "../models/DemoData.js" as DemoData
                         text: "Projects"
                         onTriggered:{
                             apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Project_Page.qml"))
+                            page = 4
+                            apLayout.setCurrentPage(page)
                         }
                     },
                     Action {
@@ -73,6 +94,8 @@ import "../models/DemoData.js" as DemoData
                         text: "Sync"
                         onTriggered:{
                             apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Sync_Page.qml"))
+                            page = 5
+                            apLayout.setCurrentPage(page)
                         }
                     },
                     Action {
@@ -80,6 +103,8 @@ import "../models/DemoData.js" as DemoData
                         text: "Settings"
                         onTriggered:{
                             apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Settings_Page.qml"))
+                            page = 6
+                            apLayout.setCurrentPage(page)
                         }
                     }
                 ]
@@ -400,6 +425,7 @@ import "../models/DemoData.js" as DemoData
                     interval: 2000; running: true; repeat: false
                     onTriggered: {
                         splashrect.visible = false
+                        bootscreen = true
     //                    window.timeout()
                     }
                 }

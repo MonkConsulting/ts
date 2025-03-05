@@ -143,7 +143,7 @@ Page{
             console.log("InstanceModel " + " Project: " + instanceModel.get(instance).name)
 
         } 
-        combo5.currentIndex = instanceModel1.get(0).id
+        combo5.currentIndex = instanceModel1.get(0).id //What is the error here?
         combo5.editText = instanceModel1.get(0).name
         prevInstanceId = instanceModel1.get(0).id
         selectedInstanceId = instanceModel1.get(0).id
