@@ -99,7 +99,7 @@ Page{
         console.log("Date in save is: " + datestr);
         var timesheet_data = {
             'instance_id': selectedInstanceId,
-            'dateTime': date_text.text,
+            'dateTime': datestr,
             'project': selectedProjectId,
             'task': selectedTaskId,
             'subprojectId': selectedsubProjectId,
@@ -974,7 +974,7 @@ Page{
 
 
         Component.onCompleted: {
-            console.log("From Timesheet " + columns);
+            console.log("From Timesheet " + apLayout.columns);
             console.log("From Timesheet projectModel " + projectModel);
             prepare_instance_list()
             prepare_project_list()

@@ -10,7 +10,7 @@
 */
 
 function get_quadrant_difference() {
-    var db = Sql.LocalStorage.openDatabaseSync("timemanagement", "1.0", "Time Management", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     var quadrant_data = {0: 0, 1:0, 2:0, 3:0};
     db.transaction(function(tx) {
         var fetch_quadrant = tx.executeSql('select quadrant_id, sum(unit_amount) as total from account_analytic_line_app group by quadrant_id');
@@ -62,6 +62,7 @@ function get_projects_spent_hours() {
     for (var fetch = 0; fetch < spent_hours.length; fetch++) {
         var project = get_project_name(spent_hours[fetch].project_id)
         project_details[project] = spent_hours[fetch].total;
+        console.log("In get_projects_spent_hours, project is: " + project)
     }
     return project_details;
 }
@@ -88,7 +89,7 @@ function get_tasks_spent_hours() {
 */
 
 function get_project_name(project_id) {
-    var db = Sql.LocalStorage.openDatabaseSync("timemanagement", "1.0", "Time Management", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     var project_name = '';
     db.transaction(function(tx) {
         var project = tx.executeSql('select name from project_project_app where id = ?', [project_id]);
@@ -106,7 +107,7 @@ function get_project_name(project_id) {
 */
 
 function get_task_name(task_id) {
-    var db = Sql.LocalStorage.openDatabaseSync("timemanagement", "1.0", "Time Management", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     var task_name = '';
     db.transaction(function(tx) {
         var task = tx.executeSql('select name from project_task_app where id = ?', [task_id]);
@@ -125,7 +126,7 @@ function get_task_name(task_id) {
 */
 
 function get_spent_hours({group_by=false, dateFilter=false} = {}) {
-    var db = Sql.LocalStorage.openDatabaseSync("timemanagement", "1.0", "Time Management", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     var query_string = `select * from account_analytic_line_app`;
     if (group_by) {
         query_string = `select ${group_by}, sum(unit_amount) as total from account_analytic_line_app`;

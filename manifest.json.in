@@ -9,7 +9,7 @@
             "desktop":  "tsapp.desktop"
         }
     },
-    "version": "0.1.25",
+    "version": "0.1.26",
     "maintainer": "Monk Consulting <girish@monkconsulting.io>",
     "framework" : "@CLICK_FRAMEWORK@"
 }

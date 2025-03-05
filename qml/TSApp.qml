@@ -43,9 +43,9 @@ MainView {
                 when: width > units.gu(80) && width < units.gu(130)
                 // column #0
                 PageColumn {
-                    minimumWidth: units.gu(50)
-                    maximumWidth: units.gu(65)
-                    preferredWidth: width > units.gu(90) ? units.gu(60) : units.gu(50)
+                    minimumWidth: units.gu(25)
+                    maximumWidth: units.gu(35)
+                    preferredWidth: width > units.gu(90) ? units.gu(35) : units.gu(25)
                 }
                 // column #1
                 PageColumn {

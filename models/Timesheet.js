@@ -159,17 +159,22 @@ function convert_time(value) {
 function create_timesheet(data) {
     console.log("In create_timesheet");
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    db.transaction(function(tx) {
-        var unitAmount = 0;
-        if (data.isManualTimeRecord) {
-            unitAmount = convert_time(data.manualSpentHours);
-        } else {
-            unitAmount = convert_time(data.spenthours);
-        }
-        tx.executeSql('INSERT INTO account_analytic_line_app \
-            (account_id, record_date, project_id, task_id, name, sub_project_id, sub_task_id, quadrant_id,  \
-            unit_amount, last_modified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-             [data.instance_id, data.dateTime, data.project, data.task, data.description, data.subprojectId,
-              data.subTask, data.quadrant, unitAmount, new Date().toISOString()]);
-    });
+    try{
+        db.transaction(function(tx) {
+            var unitAmount = 0;
+            if (data.isManualTimeRecord) {
+                unitAmount = convert_time(data.manualSpentHours);
+            } else {
+                unitAmount = convert_time(data.spenthours);
+            }
+            tx.executeSql('INSERT INTO account_analytic_line_app \
+                (account_id, record_date, project_id, task_id, name, sub_project_id, sub_task_id, quadrant_id,  \
+                unit_amount, last_modified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [data.instance_id, data.dateTime, data.project, data.task, data.description, data.subprojectId,
+                data.subTask, data.quadrant, unitAmount, new Date().toISOString()]);
+        });
+    }
+    catch (err) {
+        console.log("create_timesheet: Error saving data in database: " + err)
+    };
 }

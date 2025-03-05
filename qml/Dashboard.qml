@@ -158,10 +158,10 @@ import "../models/DemoData.js" as DemoData
                         // You can also manipulate slices dynamically, like append a slice or set a slice exploded
                         //othersSlice = pieSeries.append("Others", 42.0);
                         //Any animation or labels to be added here
-                        DbInit.initializeDatabase();
-                        DemoData.record_demo_data();
+//                        DbInit.initializeDatabase();
+//                        DemoData.record_demo_data();
                         var quadrant_data = Model.get_quadrant_difference();
-                        console.log('\n\n quadrant_data', quadrant_data)
+                        console.log('\n\n quadrant_data', quadrant_data[0])
                         chart.timecat = quadrant_data;
 
                         pieSeries.find("Important, Urgent").exploded = true;
