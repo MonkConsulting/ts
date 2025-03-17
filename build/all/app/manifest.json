@@ -1,7 +1,7 @@
 {
     "name": "tsapp.monk",
     "description": "Time Management (Beta Release)",
-    "architecture": "@CLICK_ARCH@",
+    "architecture": "all",
     "title": "Time Management (Beta Release)",
     "hooks": {
         "tsapp": {
@@ -11,5 +11,5 @@
     },
     "version": "0.1.27",
     "maintainer": "Monk Consulting <girish@monkconsulting.io>",
-    "framework" : "@CLICK_FRAMEWORK@"
+    "framework" : "ubuntu-sdk-20.04.1"
 }
