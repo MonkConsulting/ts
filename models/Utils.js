@@ -1,5 +1,10 @@
+.import QtQuick.LocalStorage 2.7 as Sql
+
+
+
+
 function initializeDatabase() {
-    var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
 
     db.transaction(function(tx) {
         
@@ -18,7 +23,7 @@ function initializeDatabase() {
 }
 
 function insertData(name, link, database, username, selectedconnectwithId, apikey) {
-    var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
 
     db.transaction(function(tx) {
         var result = tx.executeSql('SELECT id, COUNT(*) AS count FROM users WHERE link = ? AND database = ? AND username = ?', [link, database, username]);
@@ -37,7 +42,7 @@ function insertData(name, link, database, username, selectedconnectwithId, apike
 }
 
 function queryData() {
-    var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
 
     db.transaction(function(tx) {
         var result = tx.executeSql('SELECT * FROM users');
@@ -51,7 +56,7 @@ function queryData() {
 }
 
 function prepare_database() {
-    var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
 
     db.transaction(function(tx) {
         tx.executeSql('CREATE TABLE IF NOT EXISTS users (\
@@ -185,7 +190,7 @@ function prepare_database() {
 }
 
 function accountlistDataGet(){
-    var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     var accountlist = [];
 
     db.transaction(function(tx) {
@@ -199,7 +204,7 @@ function accountlistDataGet(){
 }
 
 function fetch_projects(selectedAccountUserId) {
-    var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     var projectList = []
     db.transaction(function(tx) {
         if(workpersonaSwitchState){
@@ -216,7 +221,7 @@ function fetch_projects(selectedAccountUserId) {
 }
 
 function fetch_sub_project(project_id) {
-    var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     var subProjectsList = []
     db.transaction(function(tx) {
         if(workpersonaSwitchState){
@@ -232,7 +237,8 @@ function fetch_sub_project(project_id) {
 }
 
 function fetch_tasks_list(project_id, sub_project_id) {
-    var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var workpersonaSwitchState = true;
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     var tasks_list = []
     db.transaction(function(tx) {
         if(workpersonaSwitchState){

@@ -83,14 +83,6 @@ Page{
         combo4.editText = ""
     }
 
-    function datetoiso(datevar){
-        console.log("Date is: " + datevar);
-        var datemilli = new Date(datevar).toUTCString();
-//        var datevar = datemilli[1].toISOString();
-        var monthno = new Date("February"+'-1-01').getMonth()+1;
-        console.log("In datetoiso: " + datevar)
-         console.log(datemilli);
-    }
 
 
     function save_timesheet() {
@@ -110,7 +102,9 @@ Page{
             'isManualTimeRecord': isManualTime,
             'quadrant': floattoint(mySlider.value)
         }
+        myComponent.myFlag = true
         console.log("Data.quadrant: " + timesheet_data.quadrant)
+        console.log("dbDirty is: " + mainView.dbDirty)
         PopupUtils.open(savepopover)
         Model.create_timesheet(timesheet_data)
         selectedInstanceId = 0
@@ -318,6 +312,7 @@ Page{
         id: taskModel1
     }
 
+    property var textval: ""
     property bool workpersonaSwitchState: true
     property bool isTimesheetClicked: false
     property bool isManualTime: false
@@ -410,7 +405,7 @@ Page{
                                 if (find(editText) != -1)
                                 {
                                     set_instance_id(editText) 
-                                    console.log("Instance ID: " + selectedProjectId)                        
+                                    console.log("Instance ID: " + selectedInstanceId)                        
                                 }
                             } 
 
@@ -454,6 +449,7 @@ Page{
                                     {
                                         date_field.visible = !date_field.visible 
                                         date_text.text = ""
+//                                        myComponent.customFlag()
                                     }
                                     else
                                     {
@@ -976,6 +972,7 @@ Page{
         Component.onCompleted: {
             console.log("From Timesheet " + apLayout.columns);
             console.log("From Timesheet projectModel " + projectModel);
+            console.log("From Timesheet textval: " + textval)
             prepare_instance_list()
             prepare_project_list()
 

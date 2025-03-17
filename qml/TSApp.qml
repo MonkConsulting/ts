@@ -25,27 +25,32 @@ MainView {
     
     objectName: "TS"  
     applicationName: "tsapp.monk"
+    property bool init: true
 
-//    width: Screen.desktopAvailableWidth < units.gu(130) ? units.gu(40) : units.gu(130)
+//  width: Screen.desktopAvailableWidth < units.gu(130) ? units.gu(40) : units.gu(130)
     width: units.gu(50) //GM: for testing with only one column
     height: units.gu(95)
   
-    
-
+/*    MyComponent{
+        id: myComponent
+        myFlag: false
+    }
+*/
     AdaptivePageLayout {
         id: apLayout
         anchors.fill: parent
-        property bool isMultiColumn: true
-        property Page currentPage: page2
-        primaryPage: page2
+        property bool isMultiColumn: true       
+        property Page currentPage: splash_page
+        primaryPage: splash_page
+
         layouts: [
             PageColumnsLayout {
                 when: width > units.gu(80) && width < units.gu(130)
                 // column #0
                 PageColumn {
-                    minimumWidth: units.gu(25)
-                    maximumWidth: units.gu(35)
-                    preferredWidth: width > units.gu(90) ? units.gu(35) : units.gu(25)
+                    minimumWidth: units.gu(20)
+                    maximumWidth: units.gu(30)
+                    preferredWidth: width > units.gu(90) ? units.gu(30) : units.gu(20)
                 }
                 // column #1
                 PageColumn {
@@ -59,9 +64,9 @@ MainView {
                 when: width >= units.gu(130) 
                 // column #0
                 PageColumn {
-                    minimumWidth: units.gu(25)
-                    maximumWidth: units.gu(35)
-                    preferredWidth: units.gu(35)
+                    minimumWidth: units.gu(20)
+                    maximumWidth: units.gu(30)
+                    preferredWidth: units.gu(30)
                 }
                 // column #1
                 PageColumn {
@@ -76,115 +81,106 @@ MainView {
             }
         ]
  
+        Splash{
+            id:splash_page
+        }
         Menu{
-            id:page1
+            id:menu_page
         }
         Dashboard{
-            id:page2
-        }
-
-                
+            id:dashboard_page
+        }                
         Timesheet{
-            id:page3
+            id:timesheet_page
         }        
         Activity_Page{
-            id:page4
+            id:activity_page
         }
         Task_Page{
-            id:page5
+            id:task_page
         }
         Project_Page{
-            id:page6
+            id:project_page
         }
         Sync_Page{
-            id:page7
+            id:sync_page
         }
         Settings_Page{
-            id:page8
+            id:settings_page
+        }
+    
+        function setFirstScreen()
+        {
+            console.log("First Screen " + columns);
+            switch (columns){
+                case 1: 
+                    primaryPage = dashboard_page;
+                    currentPage = dashboard_page
+                    break
+                case 2:  
+                    primaryPage = menu_page;
+                    currentPage = dashboard_page
+                    addPageToNextColumn(primaryPage,currentPage);
+                    break
+                case 3:
+                    primaryPage = menu_page;
+                    currentPage = dashboard_page
+                    addPageToNextColumn(primaryPage,currentPage);
+                    break
+            }
+            init = false; 
         }
 
 
         function setCurrentPage(page){
-            console.log("In setCurrentPage Page is :" + page)
+            console.log("In setCurrentPage Page is :" + page + "Current Page" + currentPage)
             switch(page){
+                case 0:
+                    currentPage = dashboard_page
+                    break
                 case 1:
-                    currentPage = page3
+                    currentPage = timesheet_page
                     break
                 case 2:
-                    currentPage = page4
+                    currentPage = activity_page
                     break
                 case 3:
-                    currentPage = page5
+                    currentPage = task_page
                     break
                 case 4:
-                    currentPage = page6
+                    currentPage = project_page
                     break
                 case 5:
-                    currentPage = page7
+                    currentPage = sync_page
                     break
                 case 6:
-                    currentPage = page8
+                    currentPage = settings_page
                     break                                                                             
             }
         }
 
 
         onColumnsChanged: {
-          
-
-       
-
-
-           console.log("currentPage: " + currentPage + "Primarypage: " + primaryPage + " column changed " + columns + " width " + units.gu(width));
-
-            switch (columns){
-                case 1:  primaryPage = page2;
-                         addPageToCurrentColumn(primaryPage,currentPage);
-
-                    break
-                case 2:  primaryPage = page1;
-                         addPageToNextColumn(primaryPage,currentPage);
-                    break
-                case 3:primaryPage = page1;
-                         addPageToNextColumn(primaryPage,currentPage);
-                    break
+            console.log("onColumnsChanged: "+ columns + " width " + units.gu(width));
+            if(init === false){ 
+                console.log("currentPage: " + currentPage + "Primarypage: " + primaryPage + " column changed " + columns + " width " + units.gu(width));
+                switch (columns){
+                    case 1: primaryPage = dashboard_page;                            
+                            addPageToCurrentColumn(primaryPage,currentPage);
+                        break
+                    case 2:  primaryPage = menu_page;
+                             addPageToNextColumn(primaryPage,currentPage);
+                        break
+                    case 3:  primaryPage = menu_page;
+                             addPageToNextColumn(primaryPage,currentPage);
+                        break
+                }
 
             }
-/*
-           if(columns > 1){
-            currentPage = primaryPage
-            primaryPage = page1     
-            addPageToNextColumn(primaryPage,currentPage);
-           }
-           else{
-            if(currentPage != null)
-            {
-                primaryPage = currentPage     
-
-            }
-
-
-           }*/
-/*
-           if (columns > 1 ){
-            addPageToNextColumn(page1, page2);
-            addPageToNextColumn(page2, page4);
-           }
-            else
-            {
-              removePages(page2)
-              removePages(page4)
-
-            }*/
         }
     
         Component.onCompleted: {
-           console.log("From OnComplete " + columns);
-/*           if (apLayout.columns > 1){
-                apLayout.addPageToNextColumn(page1, page2);
-                apLayout.addPageToNextColumn(page2, page4);
-            }*/
-            currentPage = primaryPage;
+            console.log("From OnComplete " + columns); 
         }
         
     }

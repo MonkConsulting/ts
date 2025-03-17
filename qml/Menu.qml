@@ -25,159 +25,177 @@ import "../models/DemoData.js" as DemoData
 
 
 
-    Page {
-        id: listpage
-        title: "Menu"
-        anchors.fill: parent
-        header: PageHeader {
-            id: header
-            title: listpage.title
-        }
+Page {
+    id: listpage
+    title: "Menu"
+    anchors.fill: parent
+    header: PageHeader {
+        id: header
+        title: listpage.title
+    }
 
-        property var page: 0
-        LomiriShape{
-            anchors.top: header.bottom
-            width: parent.width
-            height: parent.height
-        
-            Column {
-                anchors.fill: parent
-                ListItem {
-                    Rectangle{
+    property var page: 0
+    LomiriShape{
+        anchors.top: header.bottom
+        width: parent.width
+        height: parent.height
+    
+        Column {
+            anchors.fill: parent
+            ListItem {
+                Rectangle{
+                    width: 40
+                    height: 40
+                    Icon {
+                        anchors.verticalCenter: parent.verticalCenter
                         width: 40
                         height: 40
-                        Icon {
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 40
-                            height: 40
-                            name: "alarm-clock"
-                        }
-                    }
-                    Label {
-                            anchors.centerIn: parent
-                            horizontalAlignment: Text.AlignHCenter
-                            text: "Timesheet"
-                    }
-                    onClicked: {
-                        apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Timesheet.qml"));
-                        page = 1;
-                        apLayout.setCurrentPage(page)
-
-                    } 
-                }
-                ListItem {
-                    Rectangle{
-                        width: 40
-                        height: 40
-                        Icon {
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 40
-                            height: 40
-                            name: "calendar"
-                        }
-                    }                    
-                    Label {
-                            anchors.centerIn: parent
-                            horizontalAlignment: Text.AlignHCenter
-                            text: "Activities"
-                    }
-                    onClicked: {
-                        apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Activity_Page.qml"))
-                        page = 2;
-                        apLayout.setCurrentPage(page)
+                        name: "home"
                     }
                 }
-                ListItem {
-                    Rectangle{
-                        width: 40
-                        height: 40
-                        Icon {
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 40
-                            height: 40
-                            name: "view-list-symbolic"
-                        }
-                    }                    
-                    Label {
-                            anchors.centerIn: parent
-                            horizontalAlignment: Text.AlignHCenter
-                            text: "Tasks"
-                    }
-                    onClicked: {
-                        apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Task_Page.qml"))
-                        page = 3;
-                        apLayout.setCurrentPage(page)
-                    }
-                 }   
-                ListItem {
-                    Rectangle{
-                        width: 40
-                        height: 40
-                        Icon {
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 40
-                            height: 40
-                            name: "folder-symbolic"
-                        }
-                    }
-                    Label {
-                            anchors.centerIn: parent
-                            horizontalAlignment: Text.AlignHCenter
-                            text: "Projects"
-                    }
-                    onClicked: {
-                        apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Project_Page.qml"))
-                        page = 4;
-                        apLayout.setCurrentPage(page)
-                    }                
+                Label {
+                        anchors.centerIn: parent
+                        horizontalAlignment: Text.AlignHCenter
+                        text: "Dashboard"
                 }
-                ListItem {
-                    Rectangle{
+                onClicked: {
+                    apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Dashboard.qml"));
+                    page = 0;
+                    apLayout.setCurrentPage(page)
+                } 
+            }                
+            ListItem {
+                Rectangle{
+                    width: 40
+                    height: 40
+                    Icon {
+                        anchors.verticalCenter: parent.verticalCenter
                         width: 40
                         height: 40
-                        Icon {
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 40
-                            height: 40
-                            name: "sync"
-                        }
+                        name: "alarm-clock"
                     }
-                    Label {
-                            anchors.centerIn: parent
-                            horizontalAlignment: Text.AlignHCenter
-                            text: "Sync"
-                    }
-                    onClicked: {
-                        apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Sync_Page.qml"))
-                        page = 5;
-                        apLayout.setCurrentPage(page)
-                    }                
                 }
-                ListItem {
-                    Rectangle{
+                Label {
+                        anchors.centerIn: parent
+                        horizontalAlignment: Text.AlignHCenter
+                        text: "Timesheet"
+                }
+                onClicked: {
+                    apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Timesheet.qml"),{"textval":"Hahaha"});
+                    page = 1;
+                    apLayout.setCurrentPage(page)
+                } 
+            }
+            ListItem {
+                Rectangle{
+                    width: 40
+                    height: 40
+                    Icon {
+                        anchors.verticalCenter: parent.verticalCenter
                         width: 40
                         height: 40
-                        Icon {
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 40
-                            height: 40
-                            name: "settings"
-                        }
+                        name: "calendar"
                     }
-                    Label {
-                            anchors.centerIn: parent
-                            horizontalAlignment: Text.AlignHCenter
-                            text: "Settings"
-                    }
-                    onClicked: {
-                        apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Settings_Page.qml"))
-                        page = 6;
-                        apLayout.setCurrentPage(page)
-                    }                
+                }                    
+                Label {
+                        anchors.centerIn: parent
+                        horizontalAlignment: Text.AlignHCenter
+                        text: "Activities"
                 }
-
-
+                onClicked: {
+                    apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Activity_Page.qml"))
+                    page = 2;
+                    apLayout.setCurrentPage(page)
+                }
+            }
+            ListItem {
+                Rectangle{
+                    width: 40
+                    height: 40
+                    Icon {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 40
+                        height: 40
+                        name: "view-list-symbolic"
+                    }
+                }                    
+                Label {
+                        anchors.centerIn: parent
+                        horizontalAlignment: Text.AlignHCenter
+                        text: "Tasks"
+                }
+                onClicked: {
+                    apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Task_Page.qml"))
+                    page = 3;
+                    apLayout.setCurrentPage(page)
+                }
+                }   
+            ListItem {
+                Rectangle{
+                    width: 40
+                    height: 40
+                    Icon {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 40
+                        height: 40
+                        name: "folder-symbolic"
+                    }
+                }
+                Label {
+                        anchors.centerIn: parent
+                        horizontalAlignment: Text.AlignHCenter
+                        text: "Projects"
+                }
+                onClicked: {
+                    apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Project_Page.qml"))
+                    page = 4;
+                    apLayout.setCurrentPage(page)
+                }                
+            }
+            ListItem {
+                Rectangle{
+                    width: 40
+                    height: 40
+                    Icon {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 40
+                        height: 40
+                        name: "sync"
+                    }
+                }
+                Label {
+                        anchors.centerIn: parent
+                        horizontalAlignment: Text.AlignHCenter
+                        text: "Sync"
+                }
+                onClicked: {
+                    apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Sync_Page.qml"))
+                    page = 5;
+                    apLayout.setCurrentPage(page)
+                }                
+            }
+            ListItem {
+                Rectangle{
+                    width: 40
+                    height: 40
+                    Icon {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 40
+                        height: 40
+                        name: "settings"
+                    }
+                }
+                Label {
+                        anchors.centerIn: parent
+                        horizontalAlignment: Text.AlignHCenter
+                        text: "Settings"
+                }
+                onClicked: {
+                    apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Settings_Page.qml"))
+                    page = 6;
+                    apLayout.setCurrentPage(page)
+                }                
             }
         }
-
     }
+}

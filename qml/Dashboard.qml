@@ -30,30 +30,31 @@ import "../models/DemoData.js" as DemoData
         title: "Timesheet"
         anchors.fill: parent
         property bool isMultiColumn: apLayout.columns > 1
-        property bool bootscreen: false
         property var page: 0
-
-/* 04/03/2025: below lines were added to instantiate all pages to be able to add them to a variable */
-
-        Timesheet{
-            id:timeSheet
-        }
 
         header: PageHeader {
             id: header
             title: "Dashboard"
-            visible: bootscreen
+            visible: true
             ActionBar {
                 id: actionbar
                 visible: isMultiColumn ? false : true
                 numberOfSlots: 1
                 anchors.right: parent.right
-            //    enable: true
                 actions: [
+/*                   Action {
+                        iconName: "torch-on"
+                        text: "Theme"
+                        onTriggered:{
+                            mainView.theme.name = 'Lomiri.Components.Themes.SuruDark'
+
+                        }
+                    },*/
                     Action {
                         iconName: "clock"
                         text: "Timesheet"
                         onTriggered:{
+//                            myComponent.myFlag = true
                             apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Timesheet.qml"))
                             console.log("Calling setCurrentPage Primarypage is " + apLayout.primaryPage)
                             page = 1
@@ -111,330 +112,114 @@ import "../models/DemoData.js" as DemoData
             }       
          }
 
-        Flickable {
-            id:flick1
-            width: parent.width; height: parent.height
-            anchors.horizontalCenter: parent.horizontalCenter
-            contentWidth: parent.width; contentHeight: 3500
+    property variant project_timecat: []
+    property variant project: []
+    property variant project_data: []
 
-            rebound: Transition {
-                NumberAnimation {
-                    properties: "x,y"
-                    duration: 1000
-                    easing.type: Easing.OutBounce
-                }
-            }
+    property variant task_timecat: []
+    property variant task: []
+    property variant task_data: []
 
-            LomiriShape {
-            id: rect1
-            anchors.top: header.bottom
-            width: parent.width
-            height: units.gu(40)
-            sourceFillMode: LomiriShape.PreserveAspectFit 
-
-                ChartView {
-                    id: chart
-                    z: 100
-                    title: "Time Spent this week"
-                    margins { top: 50; bottom: 0; left: 0; right: 0 }
-                    backgroundRoundness: 0
-                    anchors { fill: parent; margins: 0; top: header.bottom }
-                    antialiasing: true
-                    legend.visible: false
-        
-                    property variant othersSlice: 0
-                    property variant timecat: []
-
-
-                    PieSeries {
-                        id: pieSeries
-                        size: 0.7
-                        PieSlice { label: "Important, Urgent"; value: chart.timecat[0] } //  Data from Js
-                        PieSlice { label: "Important, Not Urgent"; value: chart.timecat[1] }
-                        PieSlice { label: "Not Important, Urgent"; value: chart.timecat[2]}
-                        PieSlice { label: "Not Important, Not Urgent"; value: chart.timecat[3]}
-                    }
-                    Component.onCompleted: {
-                        // You can also manipulate slices dynamically, like append a slice or set a slice exploded
-                        //othersSlice = pieSeries.append("Others", 42.0);
-                        //Any animation or labels to be added here
-//                        DbInit.initializeDatabase();
-//                        DemoData.record_demo_data();
-                        var quadrant_data = Model.get_quadrant_difference();
-                        console.log('\n\n quadrant_data', quadrant_data[0])
-                        chart.timecat = quadrant_data;
-
-                        pieSeries.find("Important, Urgent").exploded = true;
-                    }
-                }
-
-            }
-    /****************
-    * Chart 2 comes below
-    *****************/
-
-        LomiriShape {
-            id: rect2
-            anchors.top: rect1.bottom
-            width: parent.width
-            height: units.gu(40)
-
-                ChartView {
-                    id: chart2
-                    z: 100
-                    title: "Time Spent this month"
-    //                            x: -10
-    //                            y: -10
-                    margins { top: 50; bottom: 0; left: 0; right: 0 }
-                    backgroundRoundness: 0
-                    anchors { fill: parent; margins: 0; top: header.bottom }
-                    antialiasing: true
-                    legend.visible: false
-        
-                    property variant othersSlice: 0
-                    property variant timecat: []
-
-
-                    PieSeries {
-                        id: pieSeries2
-                        size: 0.7
-                        PieSlice { label: "Important, Urgent"; value: chart.timecat[0] } //  Data from Js
-                        PieSlice { label: "Important, Not Urgent"; value: chart.timecat[1] }
-                        PieSlice { label: "Not Important, Urgent"; value: chart.timecat[2]}
-                        PieSlice { label: "Not Important, Not Urgent"; value: chart.timecat[3]}
-                    }
-                    Component.onCompleted: {
-                        var quadrant_data = Model.get_quadrant_current_month();
-                        console.log('\n\n quadrant_data', quadrant_data)
-                        chart.timecat = quadrant_data;
-                    }
-
-
-
-
-                }
-
+    function get_project_chart_data(){
+        console.log("get_project_chart_data called");
+        project_data = Model.get_projects_spent_hours();
+        var count = 0;
+        var timeval;
+            for (var key in project_data) {
+            project[count] = key;
+            timeval = project_data[key];
+            count = count+1;
         }
-
-    /********************************
-    * The manually added Legend box *
-    ********************************/
-
-        LomiriShape {
-            id: rect3
-            anchors.top: rect2.bottom
-            width: parent.width
-            height: units.gu(10)
-
-                Column{
-                        id: myCol1
-                        spacing: 2
-                        leftPadding: 10
-                        Row{
-                                spacing: 2
-                                Rectangle { color: "lightskyblue" 
-                                            width: 20 
-                                            height: 20 
-                                }
-                                Text {
-                                        id: myLabel_1
-                                        text: qsTr("Important, Urgent")
-                                    }
-                            }
-                        Row{
-                                spacing: 2
-                                Rectangle { color: "deepskyblue"
-                                            width: 20 
-                                            height: 20 
-                                }
-                                Text {
-                                        id: myLabel_2
-                                        text: qsTr("Important, Not Urgent")
-                                    }
-                        }       
-
-                }
-            Column{
-                    id: myCol2
-                    anchors.left: myCol1.right
-                    spacing: 2
-                    leftPadding: 10
-                    Row{
-                            spacing: 2
-                            Rectangle { color: "steelblue" 
-                                        width: 20 
-                                        height: 20 
-                            }
-                            Text {
-                                    id: myLabel_3
-                                    text: qsTr("Not Important, Urgent")
-                                }
-                    }       
-                    Row{
-                            spacing: 2
-                            Rectangle { color: "#0e1a24" 
-                                        width: 20 
-                                        height: 20 
-                            }
-                            Text {
-                                    id: myLabel_4
-                                    text: qsTr("Not Important, Not Urgent")
-                                }
-                    }       
-
-            }
-
-        }   
-/**************************
-* Projectwise graph       *
-**************************/
-        LomiriShape {
-            id: rect4
-            anchors.top: rect3.bottom
-            width: parent.width
-            height: units.gu(40)
-
-                ChartView {
-                    id: chart3
-                    title: "Projectwise Time Spent"
-                    anchors.fill: parent
-                    legend.alignment: Qt.AlignBottom
-                    antialiasing: true
-
-                    BarSeries {
-                        id: mySeries
-                        axisY: ValueAxis {
-                                min: 0
-                                max: 50
-                                tickCount: 5
-                             }
-                    }
-        
-                    property variant othersSlice: 0
-                    property variant timecat: []
-                    property variant project: []
-
-
-
-                Component.onCompleted: {
-                    var quadrant_data = Model.get_projects_spent_hours();
-                    chart.timecat = quadrant_data;
-                    var count = 0;
-                    var timeval;
-                    for (var key in quadrant_data) {
-                        project[count] = key;
-                        timeval = quadrant_data[key];
-                        count = count+1;
-                    }
-                    var count2 = Object.keys(quadrant_data).length;
-                    for (count = 0; count < count2; count++)
-                        {
-                            timecat[count] = quadrant_data[project[count]];
-                            console.log("Timecat: " + timecat[count]);
-                    }
-                    mySeries.append("Time", timecat);
-                    mySeries.axisX.categories =  project;
-
-                }
-            }
-
-        }
-
-/************************/
-
-
-/**************************
-* Taskwise graph          *
-**************************/
-    LomiriShape {
-        id: rect5
-        anchors.top: rect4.bottom
-        width: parent.width
-        height: units.gu(40)
-
-            ChartView {
-                id: chart4
-                title: "Taskwise Time Spent"
-                anchors.fill: parent
-                theme: ChartView.ChartThemeHighContrast
-                legend.alignment: Qt.AlignBottom
-                antialiasing: true
-
-                BarSeries {
-                    id: mySeries2
-                    axisY: ValueAxis {
-                            min: 0
-                            max: 50
-                            tickCount: 5
-                            }
-                }
-
-    
-                property variant othersSlice: 0
-                property variant timecat: []
-                property variant task: []
-
-
-
-                Component.onCompleted: {
-                    var quadrant_data = Model.get_tasks_spent_hours();
-                    chart.timecat = quadrant_data;
-                    var count = 0;
-                    var timeval;
-                     for (var key in quadrant_data) {
-                        task[count] = key;
-                        timeval = quadrant_data[key];
-                        count = count+1;
-                    }
-                    var count2 = Object.keys(quadrant_data).length;
-                    for (count = 0; count < count2; count++)
-                        {
-                            timecat[count] = quadrant_data[task[count]];
-                    }
-                    mySeries2.append("Time", timecat);
-                    mySeries2.axisX.categories =  task;
-                }
-
-                }
-
-        }
-
-
-
-/************************/
-
-    }
-/* Splash Screen. We cann add text as well with App name */
-
-            Rectangle{
-                id: splashrect
-                anchors.fill: parent
-                width: units.gu(45)
-                height: units.gu(75)
-                color: "#ffffff"
-                border.color: "black"
-                border.width: 1
-                Image {
-                    id: image
-                    anchors.centerIn: parent
-                    width: units.gu(45)
-                    height: units.gu(40)
-                    source: "time_management_logo_4_3.jpg"
-                }
-                Timer {
-                    interval: 2000; running: true; repeat: false
-                    onTriggered: {
-                        splashrect.visible = false
-                        bootscreen = true
-    //                    window.timeout()
-                    }
-                }
-
-            }
-/***************************************/
-
-        Scrollbar {
-            flickableItem: flick1
-            align: Qt.AlignTrailing
+        var count2 = Object.keys(project_data).length;
+        for (count = 0; count < count2; count++)
+            {
+                project_timecat[count] = project_data[project[count]];
         }
     }
+
+
+    function get_task_chart_data(){
+        console.log("get_task_chart_data called");
+        task_data = Model.get_tasks_spent_hours();
+        var count = 0;
+        var timeval;
+            for (var key in task_data) {
+            task[count] = key;
+            timeval = task_data[key];
+            count = count+1;
+        }
+        var count2 = Object.keys(task_data).length;
+        for (count = 0; count < count2; count++)
+            {
+                task_timecat[count] = task_data[task[count]];
+        }
+    }
+
+    Flickable {
+        id:flick1
+        width: parent.width; height: parent.height
+        anchors.top: header.bottom
+        anchors.horizontalCenter: parent.horizontalCenter
+        contentWidth: parent.width; contentHeight: 3500
+
+        rebound: Transition {
+            NumberAnimation {
+                properties: "x,y"
+                duration: 1000
+                easing.type: Easing.OutBounce
+            }
+        }
+
+        Loader{
+            id:load
+            anchors.left: parent.left
+            anchors.right: parent.right
+            source: "Charts1.qml"
+        }
+
+        Loader{
+            id:load2
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: load.bottom
+            source: "Charts2.qml"
+        }
+
+        Loader{
+            id:load3
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: load2.bottom
+            source: "Charts3.qml"
+        }
+
+        Loader{
+            id:load4
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: load3.bottom
+            source: "Charts4.qml"
+        }
+
+        onFlickEnded: {
+                load.active = false
+                load2.active = false
+                load3.active = false
+                load4.active = false
+                console.log("Flickable flick ended")
+                load.active = true             
+                load2.active = true             
+                load3.active = true             
+                load4.active = true             
+        }
+
+
+    }
+
+
+    Scrollbar {
+        flickableItem: flick1
+        align: Qt.AlignTrailing
+    }
+
+}

@@ -25,15 +25,15 @@ import "../models/Project.js" as Project
 
 Page{
     id: project
-    title: "Project"
+    title: "New Project"
     header: PageHeader {
         title: project.title
         trailingActionBar.actions: [
             Action {
-                iconName: "add"
+                iconName: "save"
                 onTriggered: {
-                    rightPanelVisible = true;
-//                    apLayout.addPageToNextColumn(project, Qt.resolvedUrl("Project_Create.qml"))
+//                    rightPanelVisible = true;
+//                    save_project();
 
                 }
             }
@@ -42,7 +42,7 @@ Page{
     property var filterprojectlistData: []
     property var listData: []
     property int currentRecordId: 0
-    property var rightPanelVisible: false;
+    property var rightPanelVisible: true;
     property var workpersonaSwitchState: true;
     property bool isProjectEdit: false
     property bool isEditProjectClicked: false
@@ -55,334 +55,7 @@ Page{
         listData = projectsList;
         projectListView.model = projectsList;
     }
-    Rectangle {
-        width: parent.width
-        visible: !rightPanelVisible
-        anchors.top: header.bottom
-        anchors.fill: parent
-        anchors.topMargin: header.height
-        // height: parent.height
-        Flickable {
-            id: projectFlickable
-            anchors.fill: parent
-            contentHeight: column.height
-            flickableDirection: Flickable.VerticalFlick
-            // clip: true 
-            width: parent.width
-            property string edit_id: ""
-            Column {
-                id: column
-                width: parent.width
-                spacing: 0
-                
-                Repeater {
-                    id: projectListView
-                    model: listData
-                    delegate: Column {
-                        width: parent.width
-                        Rectangle {
-                            id: menRow
-                            width: parent.width
-                            height: units.gu(10)
-                            color: currentRecordId === modelData.id ? "#F5F5F5" : "#FFFFFF"  
-                            border.color: "#CCCCCC"
-                            border.width: 2
 
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: {
-                                    currentRecordId = modelData.id;
-                                    // rightPanel.visible = true
-                                    rightPanelVisible = true;
-                                    projectFlickable.edit_id= modelData.id;
-                                    rightPanel.loadprojectData();
-                                }
-                            }
-
-                            Row {
-                                width: parent.width
-                                height: units.gu(5)
-                                spacing: 0  
-
-                                ToolButton {
-                                    id: down_next
-                                    width: units.gu(5)
-                                    height: units.gu(5)
-                                    anchors.top: parent.top
-                                    anchors.topMargin: 1
-                                    background: Rectangle {
-                                        color: "transparent"  
-                                    }
-                                    contentItem: Ubuntu.Icon {
-                                        name: dataId.shown ? "down" : "next"
-                                    }
-                                    onClicked: {
-                                        onClicked:{
-                                            dataId.shown = !dataId.shown
-                                        }
-                                    }
-                                }
-
-                                Column {
-                                    width: parent.width - (units.gu(5))  
-                                    spacing: 0
-
-                                    Row {
-                                        width: parent.width
-                                        height: units.gu(5)
-                                        spacing: units.gu(5) 
-
-                                        Rectangle {
-                                            width: 10  
-                                            height: units.gu(10)
-                                            anchors.top: parent.top
-                                            anchors.topMargin: 1
-                                            color: modelData.color_pallet != null ? modelData.color_pallet : '#FFFFFF'
-                                        }
-                                        Row {
-                                            spacing: 10
-                                            anchors.left: parent.left
-                                            anchors.leftMargin: units.gu(2)
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            width: parent.width * 0.4
-                                            id: left_row
-
-
-                                            Image {
-                                                id: starImageList
-                                                source: modelData.favorites > 0 ? "images/star-active.svg" : "images/starinactive.svg" 
-                                                width: units.gu(2)
-                                                height: units.gu(2)
-                                                smooth: true  
-                                            }
-
-                                            Text {
-                                                text: "Project: " + modelData.name
-                                                
-                                                font.pixelSize: units.gu(1)
-                                                color: "#000000"
-                                                anchors.verticalCenter: parent.verticalCenter
-                                                width: parent.width * 0.8  
-                                                elide: Text.ElideRight
-                                            }
-                                        }
-
-                                        Text {
-                                            text: " "
-                                            font.pixelSize: units.gu(1)
-                                            color: "#000000"  
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            anchors.left: left_row.right
-                                            // anchors.leftMargin: units.gu(5)
-                                            width: parent.width * 0.4
-                                            elide: Text.ElideRight
-                                        }
-                                        
-                                        Text {
-                                            text: modelData.status
-                                            font.pixelSize: units.gu(1)
-                                            color: "#000000"  
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            anchors.right: parent.right
-                                            horizontalAlignment: Text.AlignRight 
-                                            anchors.rightMargin: units.gu(5)
-                                            width: parent.width * 0.3
-                                        }
-                                    }
-
-                                    Row {
-                                        width: parent.width
-                                        height: units.gu(5)  
-                                        spacing: units.gu(5)
-
-                                        
-                                        Text {
-                                            id: enddate_id
-                                            text: "End Date: " + modelData.planned_end_date
-                                            font.pixelSize: units.gu(1)
-                                            color: "#000000"
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            anchors.left: parent.left
-                                            anchors.leftMargin: units.gu(5)
-                                            width: parent.width * 0.4
-
-                                        }
-
-                                        
-                                        Text {
-                                            text: "Allocated Hours: " + modelData.allocated_hours
-                                            font.pixelSize: units.gu(1)
-                                            color: "#000000"
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            anchors.left: enddate_id.right
-                                            // anchors.leftMargin: units.gu(5)
-                                            width: parent.width * 0.4
-                                        }
-
-                                        
-                                        Text {
-                                            text: "(" + modelData.total_tasks + ") Tasks"
-                                            font.pixelSize: units.gu(1)
-                                            color: "#000000"
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            anchors.right: parent.right
-                                            horizontalAlignment: Text.AlignRight 
-                                            anchors.rightMargin: units.gu(5)
-                                            width: parent.width * 0.3
-                                        }
-                                    }
-                                }
-                            }
-
-                        }
-                        Repeater {
-                            model: modelData.children
-                            id: dataId
-                            property bool shown: false
-                            delegate:Rectangle{
-                                width: parent.width - (units.gu(5))
-                                height: dataId.shown ?  units.gu(5) : 0
-                                color: currentRecordId === modelData.id ? "#F5F5F5" : "#FFFFFF"  
-                                border.color: "#CCCCCC"
-                                border.width:1
-                                id: paneSettingsList
-                                visible: height > 0
-                                anchors.left: parent.left
-                                anchors.leftMargin: units.gu(5)
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    onClicked: {
-                                        currentRecordId = modelData.id;
-                                        rightPanelVisible = true;
-                                        projectFlickable.edit_id= modelData.id;
-                                        rightPanel.loadprojectData();
-                                    }
-                                }
-
-                                Row {
-                                    height: units.gu(5)
-                                    width: parent.width
-                                    
-                                    spacing: 0  
-                                    
-
-                                    Column {
-                                        width: parent.width
-                                         // - units.gu(5)  
-                                        spacing: 0
-
-                                        Row {
-                                            width: parent.width
-                                            height: units.gu(5)
-                                            spacing: units.gu(5) 
-                                            Rectangle {
-                                                width: units.gu(1)  
-                                                height: units.gu(5)
-                                                anchors.top: parent.top
-                                                anchors.leftMargin: units.gu(1)
-                                                color: modelData.color_pallet != null ? modelData.color_pallet : '#FFFFFF'
-                                            }
-
-                                            Row {
-                                                spacing: 10
-                                                anchors.left: parent.left
-                                                anchors.leftMargin: units.gu(1)
-                                                anchors.verticalCenter: parent.verticalCenter
-                                                width: parent.width * 0.4
-                                                id: left_row
-
-                                                Image {
-                                                    id: starImageList
-                                                    source: modelData.favorites > 0 ? "images/star-active.svg" : "images/starinactive.svg" 
-                                                    width: units.gu(2)
-                                                    height: units.gu(2)
-                                                    smooth: true
-                                                }
-
-                                                Text {
-                                                    text: "Project: " + modelData.name
-                                                    font.pixelSize: units.gu(1)
-                                                    color: "#000000"
-                                                    anchors.verticalCenter: parent.verticalCenter
-                                                    width: parent.width * 0.8  
-                                                    elide: Text.ElideRight
-                                                }
-                                            }
-                                            
-                                            Text {
-                                                text: modelData.parentProject
-                                                font.pixelSize: units.gu(1)
-                                                color: "#000000"  
-                                                anchors.verticalCenter: parent.verticalCenter
-                                                anchors.left: left_row.right
-                                                anchors.leftMargin: units.gu(5)
-                                                width: parent.width * 0.4
-                                                elide: Text.ElideRight
-                                            }
-                                            
-                                            Text {
-                                                text: modelData.status
-                                                font.pixelSize: units.gu(1)
-                                                color: "#000000"  
-                                                anchors.verticalCenter: parent.verticalCenter
-                                                anchors.right: parent.right
-                                                horizontalAlignment: Text.AlignRight 
-                                                anchors.rightMargin: units.gu(5)
-                                                width: parent.width * 0.3
-                                            }
-                                        }
-
-                                        Row {
-                                            width: parent.width
-                                            height: units.gu(5)
-                                            spacing: units.gu(5)
-
-                                            
-                                            Text {
-                                                id: enddate_id
-                                                text: "End Date: " + modelData.planned_end_date
-                                                font.pixelSize: units.gu(1)
-                                                color: "#000000"
-                                                anchors.verticalCenter: parent.verticalCenter
-                                                anchors.left: parent.left
-                                                anchors.leftMargin: units.gu(5)
-                                                width: parent.width * 0.4
-
-                                            }
-
-                                            
-                                            Text {
-                                                text: "Allocated Hours: " + modelData.allocated_hours
-                                                font.pixelSize: units.gu(1)
-                                                color: "#000000"
-                                                anchors.verticalCenter: parent.verticalCenter
-                                                anchors.left: enddate_id.right
-                                                anchors.leftMargin: units.gu(5)
-                                                width: parent.width * 0.4
-                                            }
-
-                                            
-                                            Text {
-                                                text: "(" + modelData.total_tasks + ") Tasks"
-                                                font.pixelSize: units.gu(1)
-                                                color: "#000000"
-                                                anchors.verticalCenter: parent.verticalCenter
-                                                anchors.right: parent.right
-                                                horizontalAlignment: Text.AlignRight 
-                                                anchors.rightMargin: units.gu(5)
-                                                width: parent.width * 0.3
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     Rectangle {
         id: rightPanel
@@ -416,26 +89,7 @@ Page{
                 anchors.top: parent.top
                 spacing: 5  
 
-                Button {
-                    id: crossButton
-                    width: units.gu(2)
-                    height: units.gu(2)
-                    anchors.leftMargin: units.gu(2)
-                    
-                    
 
-                    Image {
-                        source: "images/cross.svg" 
-                        width: units.gu(2)
-                        height: units.gu(2)
-                    }
-
-                    onClicked: {
-                        // rightPanel.visible = false 
-                        rightPanelVisible = false;
-                        currentRecordId = -1
-                    }
-                } 
                 Timer {
                     id: projectEditTimer
                     interval: 2000  
@@ -502,9 +156,8 @@ Page{
             Flickable {
                 id: flickableContainerProject
                 width: parent.width
-                
                 height: parent.height  
-                contentHeight: projectItemedit.childrenRect.height
+//                contentHeight: projectItemedit.childrenRect.height
                 anchors.fill: parent
                 flickableDirection: Flickable.VerticalFlick  
                 anchors.top: parent.top
