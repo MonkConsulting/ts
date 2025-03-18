@@ -18,6 +18,7 @@ import QtQuick 2.6
 import Lomiri.Components 1.3
 import QtQuick.Window 2.2
 import QtQuick.Layouts 1.11
+import "../models/DbInit.js" as DbInit
 
 MainView {
 
@@ -181,6 +182,7 @@ MainView {
     
         Component.onCompleted: {
             console.log("From OnComplete " + columns); 
+            DbInit.initializeDatabase();
         }
         
     }
