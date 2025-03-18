@@ -87,7 +87,6 @@ Page{
 
     function save_timesheet() {
         console.log("Timesheet Saved");
-        datetoiso(datestr);
         console.log("Date in save is: " + datestr);
         var timesheet_data = {
             'instance_id': selectedInstanceId,
@@ -102,7 +101,7 @@ Page{
             'isManualTimeRecord': isManualTime,
             'quadrant': floattoint(mySlider.value)
         }
-        myComponent.myFlag = true
+//        myComponent.myFlag = true
         console.log("Data.quadrant: " + timesheet_data.quadrant)
         console.log("dbDirty is: " + mainView.dbDirty)
         PopupUtils.open(savepopover)
