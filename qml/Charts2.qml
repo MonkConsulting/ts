@@ -21,7 +21,7 @@ import "../models/Main.js" as Model
                     title: "Time Spent this month"
                     margins { top: 50; bottom: 0; left: 0; right: 0 }
                     backgroundRoundness: 0
-                    anchors { fill: parent; margins: 0; top: header.bottom }
+                    anchors { fill: parent; margins: 0}
                     antialiasing: true
                     legend.visible: false
         

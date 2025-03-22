@@ -42,11 +42,6 @@ import "../models/Main.js" as Model
                         var quadrant_data = Model.get_quadrant_difference();
                         console.log('\n\n quadrant_data', quadrant_data[0])
                         chart.timecat = quadrant_data;
-                        if(myComponent.myFlag){
-                            chart.timecat[0] = 30;
-                            pieSeries.find("Important, Urgent").value = chart.timecat[0];
-                        }
-
 
                         pieSeries.find("Important, Urgent").exploded = true;
                     }

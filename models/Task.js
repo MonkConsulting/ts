@@ -53,6 +53,7 @@ function fetch_tasks_lists(recordid) {
             var accunt_id = tx.executeSql('SELECT name FROM users WHERE id = ?',[result.rows.item(i).account_id]);
             var accountName = accunt_id.rows.length > 0 ? accunt_id.rows.item(0).name || "" : "";
 
+
             var id = result.rows.item(i).id
             var spentHoursQuery = tx.executeSql('SELECT unit_amount FROM account_analytic_line_app WHERE task_id = ?', [id]);
 
@@ -82,7 +83,6 @@ function fetch_tasks_lists(recordid) {
             var totalHours = Math.floor(totalMinutes / 60);
             var remainingMinutes = totalMinutes % 60;
             var spentHours =  totalHours + ":" + (remainingMinutes < 10 ? "0" : "") + remainingMinutes;
-//            console.log("IN Tasks.js Account ID: " + result.rows.item(i).account_id);
 
             tasklist.push({'id': result.rows.item(i).id, 'color_pallet': color_pallet, 
                 'name': result.rows.item(i).name, 'allocated_hours': result.rows.item(i).initial_planned_hours, 
@@ -90,12 +90,40 @@ function fetch_tasks_lists(recordid) {
                 'favorites':result.rows.item(i).favorites,'spentHours':spentHours, 'timerRunning': false, 
                 'account_id': result.rows.item(i).account_id, 'parent_id': result.rows.item(i).parent_id, 
                 'description': result.rows.item(i).description, 'start_date':result.rows.item(i).start_date,
-                'end_date':result.rows.item(i).end_date, 'deadline':result.rows.item(i).deadline})
-            filtertasklistData.push({'id': result.rows.item(i).id, 'name': result.rows.item(i).name, 'allocated_hours': result.rows.item(i).initial_planned_hours, 'state': result.rows.item(i).state,'parentTask': parentTask, 'accountName':accountName,'favorites':result.rows.item(i).favorites,'spentHours':spentHours, 'timerRunning': false})
+                'end_date':result.rows.item(i).end_date, 'deadline':result.rows.item(i).deadline, 
+                'user_id': result.rows.item(i).user_id, 'project_id': result.rows.item(i).project_id});
+
+
+                filtertasklistData.push({'id': result.rows.item(i).id, 'name': result.rows.item(i).name, 
+                'allocated_hours': result.rows.item(i).initial_planned_hours, 'state': result.rows.item(i).state,
+                'parentTask': parentTask, 'accountName':accountName,'favorites':result.rows.item(i).favorites,
+                'spentHours':spentHours, 'timerRunning': false});
         }
-    })
+    });
     return tasklist
 }
+
+function fetch_task_details(taskrec){
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var workpersonaSwitchState = true;
+    var taskdata = []
+    console.log("In fetch_task_details: " + taskrec[0].id + " " + taskrec[0].project_id + " " + taskrec[0].parent_id);
+    db.transaction(function(tx) {    
+        var project = tx.executeSql('SELECT name FROM project_project_app WHERE id = ?', taskrec[0].project_id);
+        var parentname = tx.executeSql('SELECT name FROM project_task_app WHERE id = ?', taskrec[0].parent_id);
+        if(workpersonaSwitchState){
+            var account = tx.executeSql('SELECT name FROM users WHERE id = ?', taskrec[0].account_id);
+            var user = tx.executeSql('SELECT name FROM res_users_app WHERE id = ?', taskrec[0].user_id);
+        }
+        console.log("get_task_details: project: " + project.rows.item(0).name)
+        console.log("get_task_details: parentname: " + user.rows.item(0).name)
+//        console.log("get_task_details: user: " + user.rows.item(0).name)
+//        taskdata.push({'project': project.rows.item(0).name, 'parentname': parentname.rows.item(0).name, 'user': user.rows.item(0).name})
+        taskdata.push({'project': project.rows.item(0).name, 'user': user.rows.item(0).name})
+})
+    return taskdata    
+}
+
 
 function filterTaskList(query) {
     tasksListModel.clear(); 
@@ -151,7 +179,7 @@ function getAssigneeList(){
     var assigneelist = [];
 
     db.transaction(function(tx) {
-            var result1 = tx.executeSql('SELECT * FROM users');
+            var result1 = tx.executeSql('SELECT * FROM res_users_app');
             for (var i = 0; i < result1.rows.length; i++) {
                 console.log("getAssigneeList: " + result1.rows.item(i).name)
                 assigneelist.push({'id': result1.rows.item(i).id, 'name': result1.rows.item(i).name})

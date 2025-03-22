@@ -42,7 +42,7 @@ import "../models/DemoData.js" as DemoData
                 numberOfSlots: 1
                 anchors.right: parent.right
                 actions: [
-/*                   Action {
+                   /*Action {
                         iconName: "torch-on"
                         text: "Theme"
                         onTriggered:{

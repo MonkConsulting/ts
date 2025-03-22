@@ -52,13 +52,21 @@ Page{
     function get_task_list(recordid){
 //            var tasks = Utils.fetch_tasks_list(projectid, subProjectId)
             var tasks = Task.fetch_tasks_lists(recordid)
+            var deadline
+            console.log("get_task_list: Deadlline: " + tasks[0].deadline)
             taskModel.clear();
             for (var task = 0; task < tasks.length; task++) {
+                if(tasks[task].deadline === 0){
+                    deadline = "" 
+                }
+                else{
+                    deadline = String(tasks[task].deadline)
+                }
                 taskModel.append({'id': tasks[task].id, 'name': tasks[task].name, 
                 'taskHasSubTask': tasks[task].taskHasSubTask, 'favorites':tasks[task].favorites, 
                 'spentHours': tasks[task].spentHours, 'allocated_hours': tasks[task].allocated_hours, 
                 'state': tasks[task].state, 'parentTask': tasks[task].parentTask, 
-                'accountName': tasks[task].accountName})
+                'accountName': tasks[task].accountName, 'deadline': deadline})
             } 
         }
 
@@ -78,42 +86,50 @@ Page{
             id: taskDelegate
             LomiriShape{
                 width: parent.width
+                height: units.gu(10)
                 Row {
-                    height: units.gu(12)
+                    height: units.gu(10)
                     spacing: 10
                     Column{
+                       leftPadding: units.gu(3)
+                        width: units.gu(40)
+                        height: units.gu(10)
+/*                        Label{ 
+                           id: tasklabel 
+                            text: "Task: "}*/
+                        Text { 
+                            id: tasktext
+                            width: units.gu(20)
+//                            anchors.left: tasklabel.left
+                            text: name 
+                            clip: true
+                            }
+/*                        Label{ 
+                            id: idlabel
+                            text: "ID: "}*/
+                        Text { 
+                            anchors.left:tasktext.left
+                            text: spentHours }
+                    }
+                    Column{
+                        width: units.gu(10)
+                        height: units.gu(10)
+//                        Label{ text: "Spent Hours: "}
+                        Text {
+                            id: deadlinetext
+                            text: deadline
+//                            text: "2025/03/21"
+                         }
+//                        Label{ text: " "}
+//                        Text { text: allocated_hours }
                         Image {
                             id: starImageList
+                            anchors.right: parent.right
                            source: favorites > 0 ? "images/star-active.svg" : "images/starinactive.svg" 
-                            width: 20
-                            height: 20
+                            width: units.gu(3)
+                            height: units.gu(3)
                             smooth: true  
                         }
-                    }
-                    Column{
-                        width: 200
-                        height: units.gu(10)
-                        Label{ 
-                           id: tasklabel 
-                            text: "Task: "}
-                        Text { 
-                            anchors.left: tasklabel.left
-                            text: name 
-                            }
-                        Label{ 
-                            id: idlabel
-                            text: "ID: "}
-                        Text { 
-                            anchors.left:idlabel.left
-                            text: id }
-                    }
-                    Column{
-                        width: 150
-                        height: units.gu(10)
-                        Label{ text: "Spent Hours: "}
-                        Text { text: spentHours }
-                        Label{ text: "Planned: "}
-                        Text { text: allocated_hours }
                     }
 
                 }
@@ -143,7 +159,7 @@ Page{
 
            Component.onCompleted: {
                       get_task_list(0)
-
+ 
 
             }
         }

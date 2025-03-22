@@ -182,7 +182,7 @@ Page{
         taskModel.clear();
         taskModel1.clear();
         selectedTaskId = 0;
-        console.log("Passed Project ID: " + project_id)
+        console.log("Passed Project ID: " + project_id + " SubProjectID: " + selectedsubProjectId + " Tasks Found: " + tasks.length)
         for (var task = 0; task < tasks.length; task++) {
             taskModel1.append({'id': tasks[task].id, 'name': tasks[task].name, 'taskHasSubTask': tasks[task].taskHasSubTask})
             taskModel.append({'name': tasks[task].name + "[" + tasks[task].id + "]"})
@@ -223,16 +223,15 @@ Page{
         for (var project = 0; project < projectModel1.count; project++) {
             if(projectModel1.get(project).name === name[0]) {
                 if (projectModel1.get(project).projectHasSubProject) {
-                    myRow9.visible = true
+//                    myRow9.visible = true
                     prepare_subproject_list()
+                    hasSubProject = true
                 } else {
-                    myRow9.visible = false
+//                    myRow9.visible = false
+                    subprojectModel.clear();
                     selectedsubProjectId = 0
+                    hasSubProject = false
                 }
-/*                combo3.currentIndex = -1
-                task_field.currentIndex = -1
-                combo4.currentIndex = -1
-                myRow10.visible = false*/
             }
             var index = prevproject.indexOf("[")
             console.log("Index of [ " + index)
@@ -242,7 +241,7 @@ Page{
             combo3.currentIndex = -1
             task_field.currentIndex = -1
             combo4.currentIndex = -1
-            myRow10.visible = false
+//            myRow10.visible = false
         }
         prevproject = name[0]
         console.log("Set Project Id: Name = " + name[0])
@@ -251,11 +250,24 @@ Page{
 
 
     function set_subproject_id(subproject_name) {
+        console.log("In set_subproject_id: subproject_name: " + subproject_name)
         for (var subproject = 0; subproject < subproject_name.length; subproject++) {
             if(subproject_name.substring(subproject, subproject + 1) === "[") {
                 selectedsubProjectId = parseInt(subproject_name.substring(subproject + 1, ((subproject_name.length)-1)))
             }
-        }         
+        }
+/*******************************************/
+        const name =    subproject_name.split("[")
+           console.log("In set_subproject_id: name[0]: " + name[0] + " prevsubproject: " + prevsubproject)
+         
+        if (prevsubproject != name[0]){
+            console.log("<><><>prevsubproject = " + prevsubproject + " name = " + name[0])
+            task_field.currentIndex = -1
+            combo4.currentIndex = -1
+        }
+        prevsubproject = name[0]
+
+/******************************************/
         console.log("selectedsubProjectId = " + selectedsubProjectId)    
     }
 
@@ -269,16 +281,26 @@ Page{
         const name =    task_name.split("[")
         for (var task = 0; task < taskModel1.count; task++) {
             if(taskModel1.get(task).name === name[0]) {
+                console.log("GM: in set_task_id")
                 if (taskModel1.get(task).taskHasSubTask) {
-                    myRow10.visible = true
+//                    myRow10.visible = true
                     prepare_subtask_list(selectedTaskId)
+                    hasSubTask = true
                 } 
                 else {
-                    myRow10.visible = false
+//                      myRow10.visible = false
+                        subtaskModel.clear();
+                       hasSubTask = false
+
                 }
-            combo4.currentIndex = -1
             }
         }
+        if (prevtask != name[0]){
+            console.log("prevtask = " + prevtask + " name = " + name[0])
+            combo4.currentIndex = -1
+        }
+        prevtask = name[0]
+
         console.log("Set Task Id: Name = " + name[0])
         console.log("selectedTaskId = " + selectedTaskId)    
     }
@@ -332,6 +354,8 @@ Page{
     property var prevInstanceId: 0
     property var defaultInstance: ""
     property var prevproject: ""
+    property var prevsubproject: ""
+    property var prevtask: ""
 
     Timer {
         id: stopwatchTimer
@@ -373,43 +397,43 @@ Page{
                 }
                 Column{
                        leftPadding: units.gu(1)
-                       LomiriShape{                        
-                            width: units.gu(30)
-                            height: 60
+                    LomiriShape{                        
+                        width: units.gu(30)
+                        height: 60
                             
-                    ComboBox {
-                            id: combo5
-                            editable: true
-                            width: parent.width
-                            height: parent.height
-                            anchors.centerIn: parent.centerIn
-                            flat: true
-                            model:  ListModel {
-                                        id: instanceModel
-                                    }
+                        ComboBox {
+                                id: combo5
+                                editable: true
+                                width: parent.width
+                                height: parent.height
+                                anchors.centerIn: parent.centerIn
+                                flat: true
+                                model:  ListModel {
+                                            id: instanceModel
+                                        }
 
-                            onActivated: {
-                                set_instance_id(editText) 
-                                if (prevInstanceId != selectedInstanceId){
-                                    console.log("Calling clearAllFields")
-                                    clearAllFields()
-                                }
-                                prevInstanceId = selectedInstanceId
-                                console.log("Instance ID: " + selectedInstanceId + " edittext: " + editText)                        
-                            }        
-                            onHighlighted: {
-                            }
-                            onAccepted: {
-                                console.log("In onAccepted")
-                                if (find(editText) != -1)
-                                {
+                                onActivated: {
                                     set_instance_id(editText) 
-                                    console.log("Instance ID: " + selectedInstanceId)                        
+                                    if (prevInstanceId != selectedInstanceId){
+                                        console.log("Calling clearAllFields")
+                                        clearAllFields()
+                                    }
+                                    prevInstanceId = selectedInstanceId
+                                    console.log("Instance ID: " + selectedInstanceId + " edittext: " + editText)                        
+                                }        
+                                onHighlighted: {
                                 }
-                            } 
+                                onAccepted: {
+                                    console.log("In onAccepted")
+                                    if (find(editText) != -1)
+                                    {
+                                        set_instance_id(editText) 
+                                        console.log("Instance ID: " + selectedInstanceId)                        
+                                    }
+                                } 
 
+                            }
                         }
-                }
                 }       
         }
 
@@ -476,7 +500,7 @@ Page{
                     }
 
                 }       
-        }
+            }
         Row{
                 id: myRow2
                 anchors.top: myRow1.bottom
@@ -515,6 +539,7 @@ Page{
                             height: parent.height
                             anchors.centerIn: parent.centerIn
                             flat: true
+                            clip: true
                             model:  ListModel {
                                         id: projectModel
                                     }  
@@ -526,8 +551,11 @@ Page{
                                     console.log("prevproject != editText")
                                     console.log("prevproject: " + prevproject + " editText: " + editText)
                                     set_project_id(editText) 
-    //                                prepare_subproject_list()
-                                    prepare_task_list(selectedProjectId)
+                                    console.log("hasSubProject: " + hasSubProject)
+                                    if (!hasSubProject)
+                                    {
+                                        prepare_task_list(selectedProjectId)
+                                    }
                                     console.log("Project ID: " + selectedProjectId + " edittext: " + editText)
                                 }                        
                             }        
@@ -539,8 +567,12 @@ Page{
                                 {
                                     prevproject = editText
                                     set_project_id(editText) 
-                                    prepare_task_list(selectedProjectId)
-                                    console.log("Project ID: " + selectedProjectId)                        
+                                    console.log("hasSubProject: " + hasSubProject)
+                                    if (!hasSubProject)
+                                    {
+                                        prepare_task_list(selectedProjectId)
+                                    }
+                                     console.log("Project ID: " + selectedProjectId)                        
                                 }
                             } 
 
@@ -557,7 +589,7 @@ Page{
                 anchors.top: myRow2.bottom
                 anchors.left: parent.left 
                 topPadding: 10
-                visible: false
+                visible: true
                 Column{
                     id: myCol8
                         leftPadding: units.gu(2)
@@ -592,9 +624,12 @@ Page{
 
                             onActivated: {
                                 console.log("In onActivated")
-                                set_subproject_id(editText) 
-//                                prepare_task_list(selectedProjectId)
-                                console.log("Sub Project ID: " + selectedsubProjectId + " edittext: " + editText)                        
+                                if (prevsubproject != editText.substring(0, editText.indexOf("[")))
+                                {
+                                    set_subproject_id(editText) 
+                                    prepare_task_list(selectedProjectId)
+                                    console.log("Sub Project ID: " + selectedsubProjectId + " edittext: " + editText)
+                                }                        
                             }        
                             onHighlighted: {
                             }
@@ -655,8 +690,11 @@ Page{
 
                                 onActivated: {
                                     console.log("In onActivated")
-                                    set_task_id(editText) 
-                                    console.log("Task ID: " + selectedTaskId)   
+                                    if (prevtask != editText.substring(0, editText.indexOf("[")))
+                                    {
+                                        set_task_id(editText) 
+                                        console.log("Task ID: " + selectedTaskId)  
+                                    } 
                                  }        
                                 onHighlighted: {
                                 }
@@ -677,14 +715,14 @@ Page{
         }
 
 /************************************************************
-*       Added Sub Task below                             *
+*       Added Sub Task below                                *
 ************************************************************/
         Row{
                 id: myRow10
                 anchors.top: myRow3.bottom
                 anchors.left: parent.left 
                 topPadding: 10
-                visible: false
+                visible: true
                Column{
                     id: myCol10
                         leftPadding: units.gu(2)
@@ -762,8 +800,10 @@ Page{
                 }
                 Column{
                        leftPadding: units.gu(1)
-                        TextField {
+                        TextArea {
                             id: description_text
+                            autoSize: true
+                            maximumLineCount: 0
                             width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
 //                            text: "Enter Description"                   
                         }                        

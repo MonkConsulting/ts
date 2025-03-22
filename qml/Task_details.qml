@@ -64,13 +64,14 @@ Page{
     property bool workpersonaSwitchState: true
     property bool isReadOnly: true
     property var tasks: []
+    property var taskdata: []
     property var startdatestr: ""
     property var enddatestr: ""
     property var deadlinestr: ""
-    property var project: ""
+/*    property var project: ""
     property var parentname: ""
     property var account: ""
-    property var user: ""
+    property var user: "" */
     property int selectedAccountUserId: 0
     property int selectedProjectId: 0 
     property int selectedparentId: 0
@@ -79,24 +80,11 @@ Page{
 
     function get_task_list(recordid){
             console.log("In get_task_list()");
-            tasks = Task.fetch_tasks_lists(recordid);
+            var tasklist = Task.fetch_tasks_lists(recordid);
+            console.log("Tasks: " + tasklist[0].name);
+            return tasklist
+       }
 
-/*            taskModel.clear();
-               taskModel.append({'id': tasks[task].id, 'name': tasks[task].name, 
-                'taskHasSubTask': tasks[task].taskHasSubTask, 'favorites':tasks[task].favorites, 
-                'spentHours': tasks[task].spentHours, 'allocated_hours': tasks[task].allocated_hours, 
-                'state': tasks[task].state, 'parentTask': tasks[task].parentTask, 
-                'accountName': tasks[task].accountName})*/
-        }
-    function get_task_details(){
-        project = tx.executeSql('SELECT name FROM project_project_app WHERE id = ?', tasks[0].project_id);
-        parentname = tx.executeSql('SELECT name FROM project_task_app WHERE id = ?', tasks[0].parent_id);
-        if(workpersonaSwitchState){
-            account = tx.executeSql('SELECT name FROM users WHERE id = ?', tasks[0].account_id);
-            user = tx.executeSql('SELECT name FROM res_users_app WHERE id = ?', tasks[0].userId);
-        }
-                                
-    }
 
     function save_task_data(){
         var selectedProjectId = tasks[0].project_id
@@ -231,7 +219,7 @@ Page{
                             id: assignee_text
                             readOnly: isReadOnly
                             width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
-                            text: user
+                            text: taskdata[0].user
 
                         }
                 }       
@@ -296,7 +284,7 @@ Page{
                         id: project_text
                         readOnly: isReadOnly
                         width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
-                        text: project
+                        text: taskdata[0].project
 
                     }
                 }
@@ -334,7 +322,7 @@ Page{
                         readOnly: isReadOnly
                         width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
                         anchors.centerIn: parent.centerIn
-                        text: parentname
+                        text: taskdata[0].parentname ? taskdata[0].parentname : ""
 
                     }
                 }       
@@ -622,6 +610,9 @@ Page{
                                                         console.log("Favorites is: " + favorites);
                                                     }
                                                 }
+                                                else{
+                                                    console.log("Favorites is: " + favorites + " Index is: " + index);
+                                                }
                                             }
                                         }
                                     }
@@ -671,10 +662,12 @@ Page{
 
 
         Component.onCompleted: {
+            tasks = get_task_list(recordid);
             console.log("From Task Page " + apLayout.columns);
             console.log("From Task Page ID " + recordid);
-            tasks = Task.fetch_tasks_lists(recordid)
-            console.log("From Task Page Task Name " + tasks[0].name);
+            console.log("From Task Page  tasks: " + tasks[0].id);
+            taskdata = Task.fetch_task_details(tasks);
+            console.log("Taskdata: " + taskdata[0].project)
             favorites =   tasks[0].favorites;
             console.log("Description is: " + tasks[0].description);
             console.log("OnComplete Favorites is: " + tasks[0].favorites);
