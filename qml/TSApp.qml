@@ -94,9 +94,6 @@ MainView {
         Timesheet{
             id:timesheet_page
         }        
-        Timesheet_Page{
-            id:timesheets_page
-        }        
         Activity_Page{
             id:activity_page
         }
@@ -149,18 +146,15 @@ MainView {
                     currentPage = activity_page
                     break
                 case 3:
-                    currentPage = timesheets_page
-                    break
-                case 4:
                     currentPage = task_page
                     break
-                case 5:
+                case 4:
                     currentPage = project_page
                     break
-                case 6:
+                case 5:
                     currentPage = sync_page
                     break
-                case 7:
+                case 6:
                     currentPage = settings_page
                     break                                                                             
             }
