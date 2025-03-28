@@ -283,12 +283,12 @@ Page{
                                                     python.call('backend.create_update_tasks', [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, fetchedAllTasks, last_user_update], function (obj_data) {
                                                         SyncData.set_tasks(obj_data.settled_tasks, model.user_id);
                                                         SyncData.create_tasks(obj_data.updated_tasks, model.user_id);
-                                                        var timesheets = SyncData.fetchTimesheets(model.user_id)
+                                                        var timesheets = SyncData.fetchTimesheets(model.user_id, last_user_update)
                                                         // python.call("backend.create_timesheets", [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, timesheets], function (res) {
-                                                            python.call("backend.create_update_timesheets", [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, timesheets], function (sheet_res) {
-                                                                // SyncData.update_timesheet_entries(res, model.user_id)
-                                                                SyncData.set_timesheets(sheet_res.settled_timesheets, model.user_id);
-                                                                SyncData.create_timesheets(sheet_res.updated_timesheets, model.user_id);
+                                                        python.call("backend.create_update_timesheets", [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, timesheets], function (sheet_res) {
+                                                            // SyncData.update_timesheet_entries(res, model.user_id)
+                                                            SyncData.set_timesheets(sheet_res.settled_timesheets, model.user_id);
+                                                            SyncData.create_timesheets(sheet_res.updated_timesheets, model.user_id);
                                                         })
                                                         python.call('backend.fetch_activity_type', [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, last_user_update], function(activity_types) {
                                                             SyncData.create_activity_types(activity_types, model.user_id)

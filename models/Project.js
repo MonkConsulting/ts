@@ -11,9 +11,9 @@ function fetch_projects_list(is_work_state) {
 
     db.transaction(function(tx) {
         if (is_work_state) {
-            var result = tx.executeSql('SELECT * FROM project_project_app where parent_id = 0 AND account_id IS NOT NULL order by last_modified desc');
+            var result = tx.executeSql('SELECT * FROM project_project_app where account_id IS NOT NULL order by last_modified desc');
         } else {
-            var result = tx.executeSql('SELECT * FROM project_project_app where parent_id = 0 AND account_id IS NULL');
+            var result = tx.executeSql('SELECT * FROM project_project_app where account_id IS NULL');
         }
         for (var project = 0; project < result.rows.length; project++) {
             var task_total = tx.executeSql('SELECT id, COUNT(*) AS count FROM project_task_app WHERE account_id = ? AND project_id = ?', [result.rows.item(project).account_id, result.rows.item(project).id]);
@@ -65,11 +65,21 @@ function fetch_projects_list(is_work_state) {
     return listData;
 }
 
+/* Name: convertFloatToTime
+* This function will return HH:MM format time based on float value
+* -> value -> float value to convert HH:MM
+*/
+
 function convertFloatToTime(value) {
     var hours = Math.floor(value);
     var minutes = Math.round((value - hours) * 60);
     return hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0');
 }
+
+/* Name: convertDurationToFloat
+* This function will return float value from HH:MM format
+* -> value -> HH:MM format to convert float value
+*/
 
 function convertDurationToFloat(value) {
     let vals = value.split(":");
@@ -80,6 +90,12 @@ function convertDurationToFloat(value) {
     let convertedMinutes = minutes / 60.0;
     return hours + convertedMinutes;
 }
+
+/* Name: createUpdateProject
+* This function will return whether record is saved successfully or not
+* -> project_data -> Object of latest data
+* -> record_id -> to update record
+*/
 
 function createUpdateProject(project_data, record_id) {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
@@ -112,6 +128,12 @@ function createUpdateProject(project_data, record_id) {
     });
     return messageObj;
 }
+
+/* Name: fetch_parent_project_list
+* This function will return list of parent projects
+* -> instance_id -> instance of users record
+* -> is_work_state -> to update record
+*/
 
 function fetch_parent_project_list(instance_id, is_work_state) {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);

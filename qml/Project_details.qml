@@ -576,7 +576,7 @@ Page {
             setInstanceList();
             selectedInstanceId = currentProject.account_id;
             setParentProjectList();
-            selectedParentId = currentProject.parent_id;
+            selectedParentId = currentProject.parent_id || 0;
             for (var i = 0; i < instanceModel.count; i++) {
                 if (instanceModel.get(i).id === selectedInstanceId) {
                     instance_combo.currentIndex = i;

@@ -29,7 +29,7 @@ Page{
     header: PageHeader {
         id: projectheader
         title: project.title
-            ActionBar {
+        ActionBar {
             numberOfSlots: 1
             anchors.right: parent.right
             actions: [
@@ -56,7 +56,8 @@ Page{
                                 'name': projectsList[project_record].name,
                                 'deadline': projectsList[project_record].planned_end_date,
                                 'allocatedHours': projectsList[project_record].allocated_hours,
-                                'favorites': projectsList[project_record].favorites})
+                                'favorites': projectsList[project_record].favorites,
+                                'color_pallet': projectsList[project_record].color_pallet || '#FFFFFF'})
         }
         // listData = projectsList;
         // projectListView.model = projectsList;
@@ -79,18 +80,27 @@ Page{
                     height: units.gu(10)
                     spacing: 10
                     Column{
-                       leftPadding: units.gu(3)
+                        leftPadding: units.gu(3)
                         width: units.gu(35)
                         height: units.gu(10)
-                        Text { 
-                            id: projecttext
-                            width: units.gu(20)
-                            text: name 
-                            clip: true
+                        Row {
+                            spacing: 5
+                            Rectangle {
+                                width: units.gu(2)
+                                height: units.gu(2)
+                                color: color_pallet
+                            }
+                            Text { 
+                                id: projecttext
+                                width: units.gu(20)
+                                text: name
+                                clip: true
+                            }
                         }
-                        Text { 
+                        Text {
                             anchors.left:projecttext.left
-                            text: allocatedHours 
+                            text: allocatedHours
+                            leftPadding: units.gu(3)
                         }
                     }
                     Column{
@@ -119,7 +129,6 @@ Page{
                     }
                 }   
             }
-
         }
 
         LomiriListView {

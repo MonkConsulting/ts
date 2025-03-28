@@ -35,25 +35,24 @@ Page {
                     text: "Save"
                     visible: !isReadOnly
                     onTriggered: {
-                        isReadOnly = !isReadOnly
-                        // var project_data = {'account_id': selectedInstanceId,
-                        //                     'name': project_text.text,
-                        //                     'planned_start_date': planned_start_date_text.text == 'mm/dd/yy' ? 0 : planned_start_date_text.text,
-                        //                     'planned_end_date': planned_end_date_text.text == 'mm/dd/yy' ? 0 : planned_end_date_text.text,
-                        //                     'parent_id': selectedParentId,
-                        //                     'allocated_hours': allocated_hours_text.text,
-                        //                     'description': description_text.text,
-                        //                     'favorites': favorites,
-                        //                     'color': colorComboBox.editText}
-                        // var response = Project.createUpdateProject(project_data, recordid);
-                        // if (response) {
-                        //     isVisibleMessage = true;
-                        //     isSaved = response.is_success;
-                        //     saveMessage = response.message;
-                        //     if (isSaved) {
-                        //         isReadOnly = !isReadOnly;                                
-                        //     }
-                        // }
+                        var timesheet_data = {'account_id': selectedInstanceId,
+                                            'name': description_text.text,
+                                            'record_date': record_date_text,text,
+                                            'project_id': selectedProjectId,
+                                            'sub_project_id': selectedSubProjectId,
+                                            'task_id': selectedTaskId,
+                                            'sub_task_id': selectedSubTaskId,
+                                            'unit_amount': hours_text.text,
+                                            'quadrant_id': parseInt(prioritySlider.value) - 1}
+                        var response = Timesheet.createUpdateTimesheet(timesheet_data, recordid);
+                        if (response) {
+                            isVisibleMessage = true;
+                            isSaved = response.is_success;
+                            saveMessage = response.message;
+                            if (isSaved) {
+                                isReadOnly = !isReadOnly;
+                            }
+                        }
                         // console.log("Save Project clicked", planned_start_date_text.text);
                     }
                 }
@@ -71,7 +70,9 @@ Page {
     property int favorites: 0
     property int selectedInstanceId: 0
     property int selectedProjectId: 0
-    // property var color_indexes: ["#ffffff","#111111","#960334","#FB3778", "#7C0396","#D937FB", "#030396","#3737FB", "#008585","#33FFFF", "#038203","#37FB37", "#787802","#FBFB37", "#964D03","#FB9937"]
+    property int selectedSubProjectId: 0
+    property int selectedTaskId: 0
+    property int selectedSubTaskId: 0
 
     ListModel {
         id: instanceModel
@@ -79,6 +80,18 @@ Page {
 
     ListModel {
         id: projectModel
+    }
+
+    ListModel {
+        id: subProjectModel
+    }
+
+    ListModel {
+        id: taskModel
+    }
+
+    ListModel {
+        id: subTaskModel
     }
 
     function setInstanceList() {
@@ -89,18 +102,49 @@ Page {
         }
     }
 
-    function setParentProjectList() {
-        var parentProjects = Timesheet.fetch_projects(selectedInstanceId, workpersonaSwitchState);
+    function setProjectList() {
+        var projects = Timesheet.fetch_projects(selectedInstanceId, workpersonaSwitchState);
         projectModel.clear();
-        for (var parent = 0; parent < parentProjects.length; parent++) {
-            projectModel.append({'id': parentProjects[parent].id,
-                                 'name': parentProjects[parent].name,
-                                 'projectHasSubProject': parentProjects[parent].projectHasSubProject});
+        for (var project = 0; project < projects.length; project++) {
+            projectModel.append({'id': projects[project].id,
+                                 'name': projects[project].name,
+                                 'projectHasSubProject': projects[project].projectHasSubProject});
         }
     }
 
+    function setSubProjectList() {
+        var subProjects = Timesheet.fetch_sub_project(selectedProjectId, workpersonaSwitchState);
+        subProjectModel.clear();
+        for (var subProject = 0; subProject < subProjects.length; subProject++) {
+            subProjectModel.append({'id': subProjects[subProject].id,
+                                 'name': subProjects[subProject].name});
+        }
+    }
+
+    function setTasksList() {
+        var tasks = Timesheet.fetch_tasks_list(selectedProjectId, selectedSubProjectId, workpersonaSwitchState)
+        taskModel.clear();
+        for (var task = 0; task < tasks.length; task++) {
+            taskModel.append({'id': tasks[task].id,
+                                 'name': tasks[task].name});
+        }
+    }
+
+    function setSubTasksList() {
+        var subtasks = Timesheet.fetch_sub_tasks(selectedTaskId, workpersonaSwitchState)
+        subTaskModel.clear();
+        for (var subtask = 0; subtask < subtasks.length; subtask++) {
+            subTaskModel.append({'id': subtasks[subtask].id,
+                                 'name': subtasks[subtask].name});
+        }
+    }
+
+    function floattoint(value) {
+        return Number.parseFloat(value).toFixed(0);
+    }
+
     Text {
-        id: saveMessageText
+        id: saveMessageTimesheetText
         text: saveMessage
         color: isSaved ? "green": "red"
         anchors.top: header.bottom
@@ -114,13 +158,13 @@ Page {
         anchors.fill: parent
         contentHeight: timesheetsDetailsLomiriShape.height + 1000
         flickableDirection: Flickable.VerticalFlick
-        anchors.top: saveMessageText.bottom
+        anchors.top: saveMessageTimesheetText.bottom
         anchors.topMargin: header.height + units.gu(4)
         width: parent.width
 
         LomiriShape {
             id: timesheetsDetailsLomiriShape
-            anchors.top: saveMessageText.bottom
+            anchors.top: saveMessageTimesheetText.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
@@ -158,50 +202,45 @@ Page {
                         model: instanceModel
                         onAccepted: {
                             selectedInstanceId = instanceModel.get(currentIndex).id;
-                            setParentProjectList()
-                            parent_project_combo.currentIndex = -1
+                            project_combo.currentIndex = -1
+                            subproject_combo.currentIndex = -1;
+                            subproject_combo.editText = ''
+                            selectedSubProjectId = 0
+                            task_combo.currentIndex = -1;
+                            task_combo.editText = ''
+                            selectedTaskId = 0
+                            sub_task_combo.currentIndex = -1;
+                            sub_task_combo.editText = ''
+                            selectedSubTaskId = 0
+                            setProjectList();
+                            setSubProjectList();
+                            setTasksList();
+                            setSubTasksList();
 
                         }
 
                         onCurrentIndexChanged: {
                             if (currentIndex >= 0) {
                                 selectedInstanceId = instanceModel.get(currentIndex).id;
-                                setParentProjectList()
-                                parent_project_combo.currentIndex = -1;
+                                project_combo.currentIndex = -1;
+                                subproject_combo.currentIndex = -1;
+                                subproject_combo.editText = ''
+                                selectedSubProjectId = 0
+                                task_combo.currentIndex = -1;
+                                task_combo.editText = ''
+                                selectedTaskId = 0
+                                sub_task_combo.currentIndex = -1;
+                                sub_task_combo.editText = ''
+                                selectedSubTaskId = 0
+                                setProjectList();
+                                setSubProjectList();
+                                setTasksList();
+                                setSubTasksList();
                             }
                         }
                     }
                 }
             }
-
-            // Row {
-            //     id: projectNameRow
-            //     anchors.top: instanceRow.bottom
-            //     anchors.left: parent.left 
-            //     topPadding: 10
-            //     Column {
-            //         leftPadding: units.gu(2)
-            //         Rectangle {
-            //             width: units.gu(10)
-            //             height: units.gu(5)
-            //              Label {
-            //                 id: project_label
-            //                 text: "Name"
-            //                 anchors.left: parent.left
-            //                 anchors.verticalCenter: parent.verticalCenter
-            //             }
-            //         }
-            //     }
-            //     Column {
-            //        leftPadding: units.gu(3)
-            //         TextField {
-            //             id: project_text
-            //             readOnly: isReadOnly
-            //             width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
-            //             text: currentProject.name
-            //         }
-            //     }
-            // }
 
             Row {
                 id: recordDateRow
@@ -260,7 +299,7 @@ Page {
             }
 
             Row {
-                id: parentProjectRow
+                id: projectRow
                 anchors.top: recordDateRow.bottom
                 anchors.left: parent.left 
                 topPadding: 10
@@ -270,8 +309,8 @@ Page {
                         width: units.gu(10)
                         height: units.gu(5)
                          Label {
-                            id: projectparent_label
-                            text: "Parent"
+                            id: project_label
+                            text: "Project"
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
                         }
@@ -280,7 +319,7 @@ Page {
                 Column {
                    leftPadding: units.gu(3)
                     ComboBox {
-                        id: parent_project_combo
+                        id: project_combo
                         editable: true
                         width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
                         height: units.gu(5)
@@ -294,17 +333,29 @@ Page {
                             if (currentIndex >= 0) {
                                 selectedProjectId = projectModel.get(currentIndex).id;
                             }
+                            subproject_combo.currentIndex = -1;
+                            subproject_combo.editText = ''
+                            selectedSubProjectId = 0
+                            task_combo.currentIndex = -1;
+                            task_combo.editText = ''
+                            selectedTaskId = 0
+                            sub_task_combo.currentIndex = -1;
+                            sub_task_combo.editText = ''
+                            selectedSubTaskId = 0
+                            setSubProjectList();
+                            setTasksList();
+                            setSubTasksList();
                         }
 
                         onDisplayTextChanged: {
-                            inputDebounceTimer.restart();
+                            projectDebounceTimer.restart();
                         }
 
                         Timer {
-                            id: inputDebounceTimer
+                            id: projectDebounceTimer
                             interval: 300
                             onTriggered: {
-                                var enteredText = parent_project_combo.displayText;
+                                var enteredText = project_combo.displayText;
                                 var foundIndex = -1;
                                 for (var i = 0; i < projectModel.count; i++) {
                                     if (projectModel.get(i).name === enteredText) {
@@ -314,11 +365,249 @@ Page {
                                 }
 
                                 if (foundIndex !== -1) {
-                                    parent_project_combo.currentIndex = foundIndex;
+                                    project_combo.currentIndex = foundIndex;
                                     selectedProjectId = projectModel.get(foundIndex).id;
                                 } else {
-                                    parent_project_combo.currentIndex = -1;
+                                    project_combo.currentIndex = -1;
                                     selectedProjectId = 0;
+                                }
+                                subproject_combo.currentIndex = -1;
+                                subproject_combo.editText = ''
+                                selectedSubProjectId = 0
+                                task_combo.currentIndex = -1;
+                                task_combo.editText = ''
+                                selectedTaskId = 0
+                                sub_task_combo.currentIndex = -1;
+                                sub_task_combo.editText = ''
+                                selectedSubTaskId = 0
+                                setSubProjectList();
+                                setTasksList();
+                                setSubTasksList();
+                            }
+                        }
+                    }
+                }
+            }
+
+
+            Row {
+                id: subProjectRow
+                anchors.top: projectRow.bottom
+                anchors.left: parent.left 
+                topPadding: 10
+                Column {
+                    leftPadding: units.gu(2)
+                    Rectangle {
+                        width: units.gu(10)
+                        height: units.gu(5)
+                         Label {
+                            id: subproject_label
+                            text: "Sub Project"
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+                }
+                Column {
+                   leftPadding: units.gu(3)
+                    ComboBox {
+                        id: subproject_combo
+                        editable: true
+                        width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
+                        height: units.gu(5)
+                        anchors.centerIn: parent.centerIn
+                        flat: true
+                        clip: true
+                        textRole: "name"
+                        model: subProjectModel
+                        onCurrentIndexChanged: {
+                            selectedSubProjectId = 0
+                            if (currentIndex >= 0) {
+                                selectedSubProjectId = subProjectModel.get(currentIndex).id;
+                            }
+                            task_combo.currentIndex = -1;
+                            task_combo.editText = ''
+                            selectedTaskId = 0
+                            sub_task_combo.currentIndex = -1;
+                            sub_task_combo.editText = ''
+                            selectedSubTaskId = 0
+                            setTasksList();
+                            setSubTasksList();
+                        }
+
+                        onDisplayTextChanged: {
+                            subProjectDebounceTimer.restart();
+                        }
+
+                        Timer {
+                            id: subProjectDebounceTimer
+                            interval: 300
+                            onTriggered: {
+                                var enteredText = subproject_combo.displayText;
+                                var foundIndex = -1;
+                                for (var i = 0; i < subProjectModel.count; i++) {
+                                    if (subProjectModel.get(i).name === enteredText) {
+                                        foundIndex = i;
+                                        break;
+                                    }
+                                }
+
+                                if (foundIndex !== -1) {
+                                    subproject_combo.currentIndex = foundIndex;
+                                    selectedSubProjectId = subProjectModel.get(foundIndex).id;
+                                } else {
+                                    subproject_combo.currentIndex = -1;
+                                    selectedSubProjectId = 0;
+                                }
+                                task_combo.currentIndex = -1;
+                                task_combo.editText = ''
+                                selectedTaskId = 0
+                                sub_task_combo.currentIndex = -1;
+                                sub_task_combo.editText = ''
+                                selectedSubTaskId = 0
+                                setTasksList();
+                                setSubTasksList();
+                            }
+                        }
+                    }
+                }
+            }
+
+            Row {
+                id: taskRow
+                anchors.top: subProjectRow.bottom
+                anchors.left: parent.left 
+                topPadding: 10
+                Column {
+                    leftPadding: units.gu(2)
+                    Rectangle {
+                        width: units.gu(10)
+                        height: units.gu(5)
+                         Label {
+                            id: task_label
+                            text: "Task"
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+                }
+                Column {
+                   leftPadding: units.gu(3)
+                    ComboBox {
+                        id: task_combo
+                        editable: true
+                        width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
+                        height: units.gu(5)
+                        anchors.centerIn: parent.centerIn
+                        flat: true
+                        clip: true
+                        textRole: "name"
+                        model: taskModel
+                        onCurrentIndexChanged: {
+                            selectedTaskId = 0
+                            if (currentIndex >= 0) {
+                                selectedTaskId = taskModel.get(currentIndex).id;
+                            }
+                            sub_task_combo.currentIndex = -1;
+                            sub_task_combo.editText = ''
+                            selectedSubTaskId = 0
+                            setSubTasksList();
+                        }
+
+                        onDisplayTextChanged: {
+                            taskDebounceTimer.restart();
+                        }
+
+                        Timer {
+                            id: taskDebounceTimer
+                            interval: 300
+                            onTriggered: {
+                                var enteredText = task_combo.displayText;
+                                var foundIndex = -1;
+                                for (var i = 0; i < taskModel.count; i++) {
+                                    if (taskModel.get(i).name === enteredText) {
+                                        foundIndex = i;
+                                        break;
+                                    }
+                                }
+
+                                if (foundIndex !== -1) {
+                                    task_combo.currentIndex = foundIndex;
+                                    selectedTaskId = taskModel.get(foundIndex).id;
+                                } else {
+                                    task_combo.currentIndex = -1;
+                                    selectedTaskId = 0;
+                                }
+                                sub_task_combo.currentIndex = -1;
+                                sub_task_combo.editText = ''
+                                selectedSubTaskId = 0
+                                setSubTasksList();
+                            }
+                        }
+                    }
+                }
+            }
+
+            Row {
+                id: subTaskRow
+                anchors.top: taskRow.bottom
+                anchors.left: parent.left 
+                topPadding: 10
+                Column {
+                    leftPadding: units.gu(2)
+                    Rectangle {
+                        width: units.gu(10)
+                        height: units.gu(5)
+                         Label {
+                            id: sub_task_label
+                            text: "Sub Task"
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+                }
+                Column {
+                   leftPadding: units.gu(3)
+                    ComboBox {
+                        id: sub_task_combo
+                        editable: true
+                        width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
+                        height: units.gu(5)
+                        anchors.centerIn: parent.centerIn
+                        flat: true
+                        clip: true
+                        textRole: "name"
+                        model: subTaskModel
+                        onCurrentIndexChanged: {
+                            selectedSubTaskId = 0
+                            if (currentIndex >= 0) {
+                                selectedSubTaskId = subTaskModel.get(currentIndex).id;
+                            }
+                        }
+
+                        onDisplayTextChanged: {
+                            subTaskDebounceTimer.restart();
+                        }
+
+                        Timer {
+                            id: subTaskDebounceTimer
+                            interval: 300
+                            onTriggered: {
+                                var enteredText = sub_task_combo.displayText;
+                                var foundIndex = -1;
+                                for (var i = 0; i < subTaskModel.count; i++) {
+                                    if (subTaskModel.get(i).name === enteredText) {
+                                        foundIndex = i;
+                                        break;
+                                    }
+                                }
+
+                                if (foundIndex !== -1) {
+                                    sub_task_combo.currentIndex = foundIndex;
+                                    selectedSubTaskId = subTaskModel.get(foundIndex).id;
+                                } else {
+                                    sub_task_combo.currentIndex = -1;
+                                    selectedSubTaskId = 0;
                                 }
                             }
                         }
@@ -326,179 +615,116 @@ Page {
                 }
             }
 
-            // Row{
-            //     id: allocatedHoursRow
-            //     anchors.top: parentProjectRow.bottom
-            //     anchors.left: parent.left 
-            //     topPadding: 10
-            //     Column{
-            //         leftPadding: units.gu(2)
-            //         Rectangle {
-            //             width: units.gu(10)
-            //             height: units.gu(5)
-            //              Label {
-            //                 id: allocatedhours_label
-            //                 text: "Allocated Hours"
-            //                 anchors.left: parent.left
-            //                 anchors.verticalCenter: parent.verticalCenter
-            //             }
-            //         }
-            //     }
-            //     Column {
-            //        leftPadding: units.gu(3)
-            //         TextField {
-            //             id: allocated_hours_text
-            //             readOnly: isReadOnly
-            //             width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
-            //             text: currentProject.allocated_hours
-            //         }
-            //     }
-            // }
+            Row{
+                id: descriptionRow
+                anchors.top: subTaskRow.bottom
+                anchors.left: parent.left 
+                topPadding: 10
+                Column{
+                    leftPadding: units.gu(2)
+                    Rectangle {
+                        width: units.gu(10)
+                        height: units.gu(5)
+                        Label {
+                            id: description_label                             
+                            text: "Description"
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+                }
+                Column{
+                   leftPadding: units.gu(3)
+                    TextField {
+                        id: description_text
+                        // autoSize: true
+                        // maximumLineCount: 0
+                        readOnly: isReadOnly
+                        text: currentTimesheet.description
+                        width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
+                    }
+                }
+            }
 
-            // Row {
-            //     id: descriptionRow
-            //     anchors.top: allocatedHoursRow.bottom
-            //     anchors.left: parent.left 
-            //     topPadding: 10
-            //     Column {
-            //         leftPadding: units.gu(2)
-            //         Rectangle {
-            //             width: units.gu(10)
-            //             height: units.gu(5)
-            //              Label {
-            //                 id: description_label
-            //                 text: "Description"
-            //                 anchors.left: parent.left
-            //                 anchors.verticalCenter: parent.verticalCenter
-            //             }
-            //         }
-            //     }
-            //     Column {
-            //        leftPadding: units.gu(3)
-            //         TextField {
-            //             id: description_text
-            //             readOnly: isReadOnly
-            //             width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
-            //             text: currentProject.description
-            //         }
-            //     }
-            // }
+            Row {
+                id: spentHoursRow
+                anchors.top: descriptionRow.bottom
+                anchors.left: parent.left 
+                topPadding: 10
+                Column{
+                    leftPadding: units.gu(2)
+                    Rectangle {
+                        width: units.gu(10)
+                        height: units.gu(5)
+                        Label {
+                            id: hours_label                             
+                            text: "Spent Hours"
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+                }
+                Column{
+                   leftPadding: units.gu(3)
+                    TextField {
+                        id: hours_text
+                        width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
+                        text: currentTimesheet.spentHours
+                        readOnly: isReadOnly
+                    }
+                }       
+            }
 
-            // Row{
-            //     id: colorSelectionRow
-            //     anchors.top: descriptionRow.bottom
-            //     anchors.left: parent.left 
-            //     topPadding: 10
-            //     Column {
-            //         leftPadding: units.gu(2)
-            //         Rectangle {
-            //             width: units.gu(10)
-            //             height: units.gu(5)
-            //             Label {
-            //                 id: color_label                             
-            //                 text: "Color"
-            //                 anchors.left: parent.left
-            //                 anchors.verticalCenter: parent.verticalCenter
-            //             }
-            //         }
-            //     }
-            //     Column {
-            //        leftPadding: units.gu(3)
-            //         ComboBox {
-            //             id: colorComboBox
-            //             width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
-            //             model: color_indexes
-            //             editable: false
-
-            //             delegate: Item {
-            //                 width: parent.width
-            //                 height: 30
-
-            //                 Rectangle {
-            //                     anchors.fill: parent
-            //                     color: modelData
-            //                     border.color: "#ccc"
-            //                 }
-
-            //                 MouseArea {
-            //                     anchors.fill: parent
-            //                     onClicked: {
-            //                         colorComboBox.currentIndex = index;
-            //                         colorComboBox.popup.visible = false;
-            //                     }
-            //                 }
-            //             }
-
-            //             contentItem: Rectangle {
-            //                 width: 100
-            //                 height: 30
-            //                 color: colorComboBox.model[colorComboBox.currentIndex]
-            //                 border.color: "#ccc"
-            //             }
-            //             currentIndex: 0
-            //         }
-
-
-            //     }
-            // }
-
-            // Row{
-            //     id: priorityRow
-            //     anchors.top: colorSelectionRow.bottom
-            //     anchors.left: parent.left 
-            //     topPadding: 10
-            //     Column {
-            //         leftPadding: units.gu(2)
-            //         Rectangle {
-            //             width: units.gu(10)
-            //             height: units.gu(5)
-            //             Label {
-            //                 id: priority_label                             
-            //                 text: "Priority"
-            //                 anchors.left: parent.left
-            //                 anchors.verticalCenter: parent.verticalCenter
-            //             }
-            //         }
-            //     }
-            //     Column {
-            //        leftPadding: units.gu(3)
-            //         Row {
-            //             width: units.gu(20)
-            //             height: units.gu(20)
-            //             id: img_star
-            //             spacing: 5
-            //             property int selectedPriority: 0
-
-            //             Repeater {
-            //                 model: 1  
-            //                 delegate: Item {
-            //                     width: units.gu(5)  
-            //                     height: units.gu(5)
-
-            //                     Image {
-            //                         id: starImage
-            //                         source: (index < favorites) ? "images/star-active.svg" : "images/starinactive.svg"  
-            //                         anchors.fill: parent
-            //                         smooth: true  
-
-            //                         MouseArea {
-            //                             anchors.fill: parent
-            //                             onClicked: {
-            //                                 if (index + 1 === favorites) {
-            //                                     favorites = !favorites
-            //                                 } else {
-            //                                     favorites = !favorites
-            //                                 }
-            //                             }
-            //                         }
-            //                     }
-            //                 }
-            //             }
-            //         }
-            //     }
-            // }
-
-
+            Row{
+                id: priorityRow
+                anchors.top: spentHoursRow.bottom
+                anchors.left: parent.left 
+                topPadding: 10
+                Column{
+                    leftPadding: units.gu(2)
+                    Rectangle {
+                        width: units.gu(10)
+                        height: units.gu(5)
+                         Label {
+                            id: priority_label
+                            text: "Priority"
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+                }
+                Column{
+                   leftPadding: units.gu(12)
+                    Slider {
+                        id: prioritySlider
+                        minimumValue: 1
+                        maximumValue: 4
+                        stepSize: 100
+                        width: units.gu(20)
+                        // value: 0
+                        live: true
+                        onValueChanged: {
+                            var selection = floattoint(value)
+                            if (selection === "1")
+                            {
+                                priority_label.text = "Important, Urgent"
+                            }
+                            if (selection === "2")
+                            {
+                                priority_label.text = "Important, Not Urgent"
+                            }
+                            if (selection === "3")
+                            {
+                                priority_label.text = "Not Important, Urgent"
+                            }
+                            if (selection === "4")
+                            {
+                                priority_label.text = "Not Important, Not Urgent"
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -508,8 +734,6 @@ Page {
         //     favorites = currentProject.favorites;
             setInstanceList();
             selectedInstanceId = currentTimesheet.instance_id;
-            setParentProjectList();
-            selectedProjectId = currentTimesheet.project_id;
             for (var instance = 0; instance < instanceModel.count; instance++) {
                 if (instanceModel.get(instance).id === selectedInstanceId) {
                     instance_combo.currentIndex = instance;
@@ -517,35 +741,50 @@ Page {
                 }
             }
 
+            setProjectList();
+            selectedProjectId = currentTimesheet.project_id;
             for (var project = 0; project < projectModel.count; project++) {
                 if (projectModel.get(project).id === selectedProjectId) {
-                    parent_project_combo.currentIndex = project;
-                    parent_project_combo.editText = projectModel.get(project).name
+                    project_combo.currentIndex = project;
+                    project_combo.editText = projectModel.get(project).name
                 }
             }
-        //     for (var colorIndex = 0; colorIndex < color_indexes.length; colorIndex++) {
-        //         if (currentProject.selected_color == color_indexes[colorIndex]) {
-        //             colorComboBox.currentIndex = colorIndex;
-        //         }
-        //     }
-        //     currentProject.description = currentProject.description.replace(/<[^>]+>/g, " ") 
-        //                 .replace(/<p>;/g,"")
-        //                 .replace(/&nbsp;/g, "")
-        //                 .replace(/&lt;/g, "<")
-        //                 .replace(/&gt;/g, ">")
-        //                 .replace(/&amp;/g, "&")
-        //                 .replace(/&quot;/g, "\"")
-        //                 .replace(/&#39;/g, "'")
-        //                 .trim() || "";
+
+            setSubProjectList();
+            selectedSubProjectId = currentTimesheet.sub_project_id;
+            for (var sub_project = 0; sub_project < subProjectModel.count; sub_project++) {
+                if (subProjectModel.get(sub_project).id === selectedSubProjectId) {
+                    subproject_combo.currentIndex = sub_project;
+                    subproject_combo.editText = subProjectModel.get(sub_project).name
+                }
+            }
+
+            setTasksList();
+            selectedTaskId = currentTimesheet.task_id;
+            for (var task = 0; task < taskModel.count; task++) {
+                if (taskModel.get(task).id === selectedTaskId) {
+                    task_combo.currentIndex = task;
+                    task_combo.editText = taskModel.get(task).name
+                }
+            }
+
+            setSubTasksList();
+            selectedSubTaskId = currentTimesheet.sub_task_id;
+            for (var sub_task = 0; sub_task < subTaskModel.count; sub_task++) {
+                if (subTaskModel.get(task).id === selectedSubTaskId) {
+                    sub_task_combo.currentIndex = task;
+                    sub_task_combo.editText = subTaskModel.get(task).name
+                }
+            }
+            prioritySlider.value = parseInt(currentTimesheet.quadrant_id || 0) + 1
         } else {
             setInstanceList();
             selectedInstanceId = instanceModel.get(0).id;
-            setParentProjectList();
+            setProjectList();
             instance_combo.currentIndex = instanceModel.get(0).id;
             instance_combo.editText = instanceModel.get(0).id;
             isReadOnly = false;
             currentTimesheet = {'record_date': Qt.formatDate(new Date(), "MM/dd/yyyy")}
-        //     currentProject = {"allocated_hours": "00:00"}
         }
     }
 }
