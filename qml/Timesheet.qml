@@ -104,7 +104,8 @@ Page{
 //        myComponent.myFlag = true
         console.log("Data.quadrant: " + timesheet_data.quadrant)
         console.log("dbDirty is: " + mainView.dbDirty)
-        PopupUtils.open(savepopover)
+//        PopupUtils.open(savepopover)
+        PopupUtils.open(savedialog)
         Model.create_timesheet(timesheet_data)
         selectedInstanceId = 0
         date_text.text = ""
@@ -383,9 +384,10 @@ Page{
                 topPadding: 40
                 Column{
                         leftPadding: units.gu(2)
-                        Rectangle {
+                        LomiriShape {
                             width: units.gu(10)
                             height: units.gu(5)
+                            aspect: LomiriShape.Flat 
                              Label {
                                 id: instance_label                            
                                 text: "Instance"
@@ -447,9 +449,10 @@ Page{
                 topPadding: 10
                 Column{
                         leftPadding: units.gu(2)
-                        Rectangle {
+                        LomiriShape {
                             width: units.gu(10)
                             height: units.gu(5)
+                            aspect: LomiriShape.Flat 
                              Label {
                                 id: date_label                            
                                 text: "Date"
@@ -509,9 +512,10 @@ Page{
                 Column{
                     id: myCol
                         leftPadding: units.gu(2)
-                        Rectangle {
+                        LomiriShape {
                             width: units.gu(10)
                             height: units.gu(5)
+                            aspect: LomiriShape.Flat 
                             Label {
                                 id: project_label                             
                                 text: "Project"
@@ -593,9 +597,10 @@ Page{
                 Column{
                     id: myCol8
                         leftPadding: units.gu(2)
-                        Rectangle {
+                        LomiriShape {
                             width: units.gu(10)
                             height: units.gu(5)
+                            aspect: LomiriShape.Flat 
                             Label {
                                 id: subproject_label                             
                                 text: "Sub Project"
@@ -659,9 +664,10 @@ Page{
                 topPadding: 10
                 Column{
                         leftPadding: units.gu(2)
-                        Rectangle {
+                        LomiriShape {
                             width: units.gu(10)
                             height: units.gu(5)
+                            aspect: LomiriShape.Flat 
                             Label {
                                 id: task_label                             
                                 text: "Task"
@@ -726,9 +732,10 @@ Page{
                Column{
                     id: myCol10
                         leftPadding: units.gu(2)
-                        Rectangle {
+                        LomiriShape {
                             width: units.gu(10)
                             height: units.gu(5)
+                            aspect: LomiriShape.Flat 
                             Label {
                                 id: subtask_label                             
                                 text: "Sub Task"
@@ -786,9 +793,10 @@ Page{
                 topPadding: 10
                 Column{
                         leftPadding: units.gu(2)
-                        Rectangle {
+                        LomiriShape {
                             width: units.gu(10)
                             height: units.gu(5)
+                            aspect: LomiriShape.Flat 
                             Label {
                                 id: description_label                             
                                 text: "Description"
@@ -817,9 +825,10 @@ Page{
                 topPadding: 10
                 Column{
                         leftPadding: units.gu(2)
-                        Rectangle {
+                        LomiriShape {
                             width: units.gu(10)
                             height: units.gu(5)
+                            aspect: LomiriShape.Flat 
                             Label {
                                 id: hours_label                             
                                 text: "Spent Hours"
@@ -918,12 +927,15 @@ Page{
                 topPadding: 10
                 Column{
                         leftPadding: units.gu(2)
-                        Rectangle {
+                        LomiriShape {
                             width: units.gu(10)
                             height: units.gu(5)
+                            aspect: LomiriShape.Flat 
                              Label {
+                                width: units.gu(10)
                                 id: priority_label                            
                                 text: "Priority"
+                                wrapMode: Text.WordWrap
                                 anchors.left: parent.left
                                 anchors.verticalCenter: parent.verticalCenter
                                 //textSize: Label.Large
@@ -1002,7 +1014,22 @@ Page{
         
         }
 
-
+        Item {
+            width: units.gu(80)
+            height: units.gu(80)
+            Component {
+                id: savedialog
+                Dialog {
+                    id: savedialogue
+                    title: "Saved!"
+                    text: "Task has been saved"
+                    Button {
+                        text: "OK"
+                        onClicked: PopupUtils.close(savedialogue)
+                    }
+                }
+            }
+        }
 
 
 /**********************************************************/
@@ -1014,7 +1041,6 @@ Page{
             console.log("From Timesheet textval: " + textval)
             prepare_instance_list()
             prepare_project_list()
-
         }
 
     }

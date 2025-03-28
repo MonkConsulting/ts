@@ -10,66 +10,102 @@ import "../models/DemoData.js" as DemoData
 
 Page{
     id: dashboard
-    title: "Project"
+    title: "Charts"
         header: PageHeader {
         title: dashboard.title
     }
 
 
 
-    LomiriShape {
-        id: rect1
-        anchors.centerIn: parent
-        width: parent.width
-        height: units.gu(40)
+    property variant project_timecat: []
+    property variant project: []
+    property variant project_data: []
 
-                ChartView {
-                    id: chart3
-                    title: "Projectwise Time Spent"
-                    anchors.fill: parent
-                    theme: ChartView.ChartThemeHighContrast
-                    legend.alignment: Qt.AlignBottom
-                    antialiasing: true
+    property variant task_timecat: []
+    property variant task: []
+    property variant task_data: []
 
-                    BarSeries {
-                        id: mySeries
-                        axisY: ValueAxis {
-                                min: 0
-                                max: 50
-                                tickCount: 5
-                             }
-                    }
-        
-                    property variant othersSlice: 0
-                    property variant project: []
-
+    function get_project_chart_data(){
+        console.log("get_project_chart_data called");
+        project_data = Model.get_projects_spent_hours();
+        var count = 0;
+        var timeval;
+            for (var key in project_data) {
+            project[count] = key;
+            timeval = project_data[key];
+            count = count+1;
+        }
+        var count2 = Object.keys(project_data).length;
+        for (count = 0; count < count2; count++)
+            {
+                project_timecat[count] = project_data[project[count]];
+        }
+    }
 
 
-                Component.onCompleted: {
-                    var quadrant_data = Model.get_projects_spent_hours();
-                    var count = 0;
-                    var timeval;
-                    var timecat = [];
-                    for (var key in quadrant_data) {
-                        project[count] = key;
-                        timeval = quadrant_data[key];
-                        count = count+1;
-                    }
-                    var count2 = Object.keys(quadrant_data).length;
-                    for (count = 0; count < count2; count++)
-                        {
-                            timecat[count] = quadrant_data[project[count]];
-                            console.log("Dashboard2 Timecat: " + timecat[count]);
-                    }
-                    mySeries.append("Time", timecat);
-                    mySeries.axisX.categories =  project;
+    function get_task_chart_data(){
+        console.log("get_task_chart_data called");
+        task_data = Model.get_tasks_spent_hours();
+        var count = 0;
+        var timeval;
+            for (var key in task_data) {
+            task[count] = key;
+            timeval = task_data[key];
+            count = count+1;
+        }
+        var count2 = Object.keys(task_data).length;
+        for (count = 0; count < count2; count++)
+            {
+                task_timecat[count] = task_data[task[count]];
+        }
+    }
 
-                }
+    Flickable {
+        id:flick1
+        width: parent.width; height: 80
+        anchors.top: header.bottom
+        anchors.horizontalCenter: parent.horizontalCenter
+        contentWidth: parent.width; contentHeight: 3500
+
+        rebound: Transition {
+            NumberAnimation {
+                properties: "x,y"
+                duration: 1000
+                easing.type: Easing.OutBounce
             }
-
-     }
-
+        }
 
 
+        Loader{
+            id:load3
+            anchors.left: parent.left
+            anchors.right: parent.right
+//            anchors.top: header.bottom
+            source: "Charts3.qml"
+        }
 
+        Loader{
+            id:load4
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: load3.bottom
+            source: "Charts4.qml"
+        }
+
+        onFlickEnded: {
+                load3.active = false
+                load4.active = false
+                console.log("Flickable flick ended")
+                load3.active = true             
+                load4.active = true             
+        }
+
+
+    }
+
+
+    Scrollbar {
+        flickableItem: flick1
+        align: Qt.AlignTrailing
+    }
 }

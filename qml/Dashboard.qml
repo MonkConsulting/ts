@@ -39,25 +39,34 @@ import "../models/DemoData.js" as DemoData
             ActionBar {
                 id: actionbar
                 visible: isMultiColumn ? false : true
-                numberOfSlots: 1
+                numberOfSlots: 2
                 anchors.right: parent.right
                 actions: [
-                   /*Action {
+                   Action {
+                        iconName: "appointment-new"
+                        text: "Theme"
+                        onTriggered:{
+                            apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Timesheet.qml"))
+                            page = 1
+                            apLayout.setCurrentPage(page)
+
+                        }
+                    },
+/*                   Action {
                         iconName: "torch-on"
                         text: "Theme"
                         onTriggered:{
                             mainView.theme.name = 'Lomiri.Components.Themes.SuruDark'
 
                         }
-                    },*/
+                    },*/                    
                     Action {
                         iconName: "clock"
                         text: "Timesheet"
                         onTriggered:{
-//                            myComponent.myFlag = true
-                            apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Timesheet.qml"))
+                            apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Timesheet_Page.qml"))
                             console.log("Calling setCurrentPage Primarypage is " + apLayout.primaryPage)
-                            page = 1
+                            page = 7
                             apLayout.setCurrentPage(page)
 
                         }
@@ -111,6 +120,14 @@ import "../models/DemoData.js" as DemoData
                 ]
             }       
          }
+
+/*    function handle_convergence(){
+            console.log(" In Dashboard convergence: " + apLayout.columns)
+        if (apLayout.columns === 3){
+            apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Dashboard2.qml"))
+        }
+
+    }*/
 
     property variant project_timecat: []
     property variant project: []
@@ -190,7 +207,7 @@ import "../models/DemoData.js" as DemoData
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: load2.bottom
-            source: "Charts3.qml"
+            source: apLayout.columns === 1 ? "Charts3.qml": ""
         }
 
         Loader{
@@ -198,19 +215,37 @@ import "../models/DemoData.js" as DemoData
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: load3.bottom
-            source: "Charts4.qml"
+            source: apLayout.columns === 1 ? "Charts4.qml": ""
         }
+/*        Button{
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: load4.bottom
+            text: "Dashboard 2"
+            onClicked:{
+                console.log("Dashboard from button status is: " + mainPage.status)
+                apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Dashboard2.qml")) 
+            } 
+            
+        } */
 
         onFlickEnded: {
                 load.active = false
                 load2.active = false
-                load3.active = false
-                load4.active = false
+                if (apLayout.columns === 1){
+                    load3.active = false
+                    load4.active = false
+                }
                 console.log("Flickable flick ended")
                 load.active = true             
                 load2.active = true             
-                load3.active = true             
-                load4.active = true             
+                if (apLayout.columns === 1){
+                    load3.active = true             
+                    load4.active = true
+                }
+                else{
+//                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Dashboard2.qml")) 
+                }       
         }
 
 
@@ -221,5 +256,23 @@ import "../models/DemoData.js" as DemoData
         flickableItem: flick1
         align: Qt.AlignTrailing
     }
+    Timer {
+        interval: 100 
+        running: true
+        repeat: false
+        onTriggered: {
+                if( apLayout.columns === 3){
+                    console.log("In Dashboard timer columns: " + apLayout.columns)
+                    apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("Dashboard2.qml"))
+                } 
+        }
+    }
+
+
+    Component.onCompleted: {
+        console.log("Dashboard status is: " + mainPage.status)
+    }
+
+       
 
 }

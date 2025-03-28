@@ -79,28 +79,28 @@ Page{
                     height: units.gu(10)
                     spacing: 10
                     Column{
-                        width: 200
+                        width: units.gu(40)
                         height: units.gu(10)
-                        Label{ 
+/*                        Label{ 
                            id: tasklabel 
-                            text: "Activity: "}
+                            text: "Activity: "}*/
                         Text { 
                             width: units.gu(20)
-                            anchors.left: tasklabel.left
+//                            anchors.left: tasklabel.left
                             text: summary 
                             clip: true
                             }
-                        Label{ 
+/*                        Label{ 
                             id: idlabel
-                            text: "ID: "}
+                            text: "ID: "}*/
                         Text { 
-                            anchors.left:idlabel.left
-                            text: id }
+//                            anchors.left:idlabel.left
+                            text:  id}
                     }
                     Column{
-                        width: 150
+                        width: units.gu(10)
                         height: units.gu(10)
-                        Label{ text: "Due Date: "}
+//                        Label{ text: "Due Date: "}
                         Text { text: due_date }
 /*                        Label{ text: "Planned: "}
                         Text { text: allocated_hours }*/

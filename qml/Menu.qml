@@ -32,6 +32,23 @@ Page {
     header: PageHeader {
         id: header
         title: listpage.title
+            ActionBar {
+                id: actionbar
+                numberOfSlots: 1
+                anchors.right: parent.right
+                actions: [
+                   Action {
+                        iconName: "appointment-new"
+                        text: "Theme"
+                        onTriggered:{
+                            apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Timesheet.qml"))
+                            page = 1
+                            apLayout.setCurrentPage(page)
+
+                        }
+                   }
+                ]
+            }
     }
 
     property var page: 0
@@ -43,13 +60,14 @@ Page {
         Column {
             anchors.fill: parent
             ListItem {
+                height: units.gu(5)
                 Rectangle{
-                    width: 40
-                    height: 40
+                    width: 20
+                    height: units.gu(5)
                     Icon {
                         anchors.verticalCenter: parent.verticalCenter
-                        width: 40
-                        height: 40
+                        width: 20
+                        height: 20
                         name: "home"
                     }
                 }
@@ -59,19 +77,21 @@ Page {
                         text: "Dashboard"
                 }
                 onClicked: {
-                    apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Dashboard.qml"));
                     page = 0;
                     apLayout.setCurrentPage(page)
+                    var incubator = apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Dashboard.qml"));
+
                 } 
             }                
             ListItem {
+                height: units.gu(5)
                 Rectangle{
-                    width: 40
-                    height: 40
+                    width: 20
+                    height: units.gu(5)
                     Icon {
                         anchors.verticalCenter: parent.verticalCenter
-                        width: 40
-                        height: 40
+                        width: 20
+                        height: 20
                         name: "alarm-clock"
                     }
                 }
@@ -81,19 +101,20 @@ Page {
                         text: "Timesheet"
                 }
                 onClicked: {
-                    apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Timesheet.qml"),{"textval":"Hahaha"});
+                    apLayout.addPageToNextColumn(listpage, Qt.resolvedUrl("Timesheet_Page.qml"));
                     page = 1;
                     apLayout.setCurrentPage(page)
                 } 
             }
             ListItem {
+                height: units.gu(5)
                 Rectangle{
-                    width: 40
-                    height: 40
+                    width: 20
+                    height: units.gu(5)
                     Icon {
                         anchors.verticalCenter: parent.verticalCenter
-                        width: 40
-                        height: 40
+                        width: 20
+                        height: 20
                         name: "calendar"
                     }
                 }                    
@@ -109,13 +130,14 @@ Page {
                 }
             }
             ListItem {
+                height: units.gu(5)
                 Rectangle{
-                    width: 40
-                    height: 40
+                    width: 20
+                    height: units.gu(5)
                     Icon {
                         anchors.verticalCenter: parent.verticalCenter
-                        width: 40
-                        height: 40
+                        width: 20
+                        height: 20
                         name: "view-list-symbolic"
                     }
                 }                    
@@ -131,13 +153,14 @@ Page {
                 }
                 }   
             ListItem {
+                height: units.gu(5)
                 Rectangle{
-                    width: 40
-                    height: 40
+                    width: 20
+                    height: units.gu(5)
                     Icon {
                         anchors.verticalCenter: parent.verticalCenter
-                        width: 40
-                        height: 40
+                        width: 20
+                        height: 20
                         name: "folder-symbolic"
                     }
                 }
@@ -153,13 +176,14 @@ Page {
                 }                
             }
             ListItem {
+                height: units.gu(5)
                 Rectangle{
-                    width: 40
-                    height: 40
+                    width: 20
+                    height: units.gu(5)
                     Icon {
                         anchors.verticalCenter: parent.verticalCenter
-                        width: 40
-                        height: 40
+                        width: 20
+                        height: 20
                         name: "sync"
                     }
                 }
@@ -175,13 +199,14 @@ Page {
                 }                
             }
             ListItem {
+                height: units.gu(5)
                 Rectangle{
-                    width: 40
-                    height: 40
+                    width: 20
+                    height: units.gu(5)
                     Icon {
                         anchors.verticalCenter: parent.verticalCenter
-                        width: 40
-                        height: 40
+                        width: 20
+                        height: 20
                         name: "settings"
                     }
                 }

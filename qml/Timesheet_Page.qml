@@ -22,8 +22,7 @@ Page{
                     text: "New"
                     onTriggered:{
                         console.log("Create Timesheet clicked");
-                        // apLayout.addPageToCurrentColumn(project, Qt.resolvedUrl("Project_Create.qml"))
-                        apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet_details.qml"),{"recordid":0});
+                        apLayout.addPageToNextColumn(timesheets, Qt.resolvedUrl("Timesheet.qml"));
                     }
                 }
             ]

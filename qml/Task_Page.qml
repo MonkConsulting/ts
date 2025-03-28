@@ -31,7 +31,7 @@ Page{
             id: taskheader
             title: task.title
                 ActionBar {
-                numberOfSlots: 1
+                numberOfSlots: 2
                 anchors.right: parent.right
             //    enable: true
                     actions: [
@@ -40,10 +40,20 @@ Page{
                             text: "New"
                             onTriggered:{
                                 console.log("Create Task clicked");
-                                apLayout.addPageToCurrentColumn(task, Qt.resolvedUrl("Task_Create.qml"))
+                                apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Task_Create.qml"))
+
+                            }
+                        },
+                        Action {
+                            iconName: "search"
+                            text: "Search"
+                            onTriggered:{
+                                console.log("Search clicked");
+                                tasklist.currentIndex = 5
 
                             }
                         }
+
                     ]
                 }
         }
@@ -66,7 +76,8 @@ Page{
                 'taskHasSubTask': tasks[task].taskHasSubTask, 'favorites':tasks[task].favorites, 
                 'spentHours': tasks[task].spentHours, 'allocated_hours': tasks[task].allocated_hours, 
                 'state': tasks[task].state, 'parentTask': tasks[task].parentTask, 
-                'accountName': tasks[task].accountName, 'deadline': deadline})
+                'accountName': tasks[task].accountName, 'deadline': deadline, 
+                'project_id':tasks[task].project_id, 'project': tasks[task].project})
             } 
         }
 
@@ -92,12 +103,12 @@ Page{
                     spacing: 10
                     Column{
                        leftPadding: units.gu(3)
-                        width: units.gu(40)
+                        width: units.gu(30)
                         height: units.gu(10)
 /*                        Label{ 
                            id: tasklabel 
                             text: "Task: "}*/
-                        Text { 
+                        Label { 
                             id: tasktext
                             width: units.gu(20)
 //                            anchors.left: tasklabel.left
@@ -106,19 +117,31 @@ Page{
                             }
 /*                        Label{ 
                             id: idlabel
-                            text: "ID: "}*/
-                        Text { 
+                            text: "Spent Hours: "}*/
+                        Label { 
                             anchors.left:tasktext.left
+                            text: project }
+                    }
+/**********************************************/
+                    Column{
+                       leftPadding: units.gu(1)
+                        width: units.gu(5)
+                        height: units.gu(10)
+                        Label { 
+//                            anchors.left:tasktext.left
                             text: spentHours }
                     }
+
+/********************************************/
+
                     Column{
+                       leftPadding: units.gu(2)
                         width: units.gu(10)
                         height: units.gu(10)
 //                        Label{ text: "Spent Hours: "}
-                        Text {
+                        Label {
                             id: deadlinetext
-                            text: deadline
-//                            text: "2025/03/21"
+                            text: Qt.formatDate(deadline, "MM/dd/yyyy")
                          }
 //                        Label{ text: " "}
 //                        Text { text: allocated_hours }
@@ -140,6 +163,13 @@ Page{
                         apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Task_details.qml"),{"recordid":id});
                     }
                 }   
+                Keys.onPressed: {
+                    console.log("list: " + event.key + " : " + event.text)
+                    if (event.key === Qt.Key_Return)
+                        apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Task_details.qml"),{"recordid":id});
+                     if (event.key === Qt.Key_Down)
+                        tasklist.currentIndex = index
+                }
             }
 
         }
@@ -149,6 +179,14 @@ Page{
             anchors.fill: parent
 //            anchors.top: taskheader.bottom
             model: taskModel
+
+
+            pullToRefresh {
+                enabled: true
+//                refreshing: model.status === taskModel.Loading
+                onRefresh: get_task_list(0)
+                refreshing: true
+            }            
             delegate: taskDelegate
             highlight: Rectangle { anchors.left: parent.left; anchors.right: parent.right; color: "lightsteelblue"; radius: 5 }
             highlightFollowsCurrentItem: true
@@ -158,8 +196,7 @@ Page{
                 }            
 
            Component.onCompleted: {
-                      get_task_list(0)
- 
+                    get_task_list(0)
 
             }
         }
