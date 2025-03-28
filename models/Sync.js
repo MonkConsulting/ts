@@ -63,6 +63,12 @@ function get_accounts_list() {
 function deleteAccount(account_id) {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     db.transaction(function(tx) {
+        tx.executeSql('DELETE FROM account_analytic_line_app where account_id =' + parseInt(account_id));
+        tx.executeSql('DELETE FROM project_task_app where account_id =' + parseInt(account_id));
+        tx.executeSql('DELETE FROM project_project_app where account_id =' + parseInt(account_id));
+        tx.executeSql('DELETE FROM mail_activity_type_app where account_id =' + parseInt(account_id));
+        tx.executeSql('DELETE FROM mail_activity_app where account_id =' + parseInt(account_id));
+        tx.executeSql('DELETE FROM res_users_app where account_id =' + parseInt(account_id));
         tx.executeSql('DELETE FROM users where id =' + parseInt(account_id));
     });
     return
@@ -83,63 +89,6 @@ function getLastModified(user_id) {
         }
     })   
     return last_modified;
-}
-
-/* Name: create_projects
-* This function will create, update and delete projects which fetched from Odoo
-* In case of project is deleted then it will remove all related data
-* projects -> list of projects fetched from Odoo
-* instance_id -> account Id to map the projects with this users table id
-*/
-
-function create_projects(projects, instance_id) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    if (projects === undefined) {
-        return
-    }
-    db.transaction(function(tx) {
-        var fetchedProjects = projects.projects
-        for (var project = 0; project < fetchedProjects.length; project++) {
-            var result = tx.executeSql('SELECT id, COUNT(*) AS count FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?', [fetchedProjects[project].id, parseInt(instance_id)]);
-            var parent_project_id = false
-            if (fetchedProjects[project].parent_id.length) {
-                var parent_query = tx.executeSql('SELECT id, COUNT(*) AS count FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?', [fetchedProjects[project].parent_id[0], parseInt(instance_id)]);
-                if (parent_query.rows.length !== 0) {
-                    parent_project_id = parent_query.rows.item(0).id
-                }
-            }
-            if (result.rows.item(0).count === 0) {
-                tx.executeSql('INSERT INTO project_project_app \
-                    (name, account_id, parent_id, planned_start_date, \
-                    planned_end_date, allocated_hours, favorites, last_modified, last_update_status, description,  \
-                    odoo_record_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', 
-                    [fetchedProjects[project].name, parseInt(instance_id), parent_project_id,
-                    fetchedProjects[project].date_start, fetchedProjects[project].date, fetchedProjects[project].allocated_hours,
-                    fetchedProjects[project].is_favorite, new Date().toISOString(), fetchedProjects[project].last_update_status, fetchedProjects[project].description, fetchedProjects[project].id]);
-            } else {
-                tx.executeSql("update project_project_app set name = ?,account_id = ?, parent_id = ?, planned_start_date = ?, \
-                    planned_end_date = ?, allocated_hours = ?, favorites = ?, last_update_status = ?, description = ?, last_modified = ?, \
-                    odoo_record_id = ? where id = ?", [fetchedProjects[project].name, parseInt(instance_id), parent_project_id,
-                    fetchedProjects[project].date_start, fetchedProjects[project].date, fetchedProjects[project].allocated_hours,
-                    fetchedProjects[project].is_favorite, fetchedProjects[project].last_update_status, fetchedProjects[project].description, new Date().toISOString(), fetchedProjects[project].id, result.rows.item(0).id])
-            }
-        }
-        var deletedRecords = []
-        var ids_array = ''
-        if (projects.fetch_all_records) {
-            ids_array = projects.existing_projects.join(", ")
-            deletedRecords = tx.executeSql('select id from project_project_app where account_id = '+ instance_id +' AND odoo_record_id not in ('+ ids_array +')');
-        } else {
-            ids_array = projects.deleted_records.join(", ")
-            deletedRecords = tx.executeSql('select id from project_project_app where account_id = '+ instance_id +' AND odoo_record_id in ('+ ids_array +')');
-        }
-        for (var delete_rec = 0; delete_rec < deletedRecords.rows.length; delete_rec++) {
-            tx.executeSql('delete from account_analytic_line_app where project_id =  ?', [deletedRecords.rows.item(delete_rec).id])
-            tx.executeSql('delete from project_task_app where project_id =  ?', [deletedRecords.rows.item(delete_rec).id])
-            tx.executeSql('update project_project_app set parent_id = NULL where parent_id = ?', [deletedRecords.rows.item(delete_rec).id])
-            tx.executeSql('delete from project_project_app where id =  ?', [deletedRecords.rows.item(delete_rec).id])
-        }
-    });
 }
 
 /* Name: create_contacts
@@ -167,6 +116,122 @@ function create_contacts(contacts, instance_id) {
             }
         }
     })
+}
+
+/* Name: get_all_projects
+* This function to fetch existing projects from database
+* instance_id -> to fetch projects related to the instance
+* last_modified -> to fetch projects which are updated or created after this datetime
+*/
+
+function get_all_projects(instance_id, last_modified) {
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var list_of_projects = [];
+    db.transaction(function (tx) {
+      var projects = tx.executeSql('select * from project_project_app where account_id = ? AND (last_modified > ? OR odoo_record_id is NULL)', [instance_id, last_modified])
+        for (var project = 0; project < projects.rows.length; project++) {
+            var parent_project_id = tx.executeSql('select id, odoo_record_id from project_project_app where id = ?', [projects.rows.item(project).parent_id])
+            list_of_projects.push({'local_record_id': projects.rows.item(project).id,
+                            'name': projects.rows.item(project).name,
+                            'parent_id': projects.rows.item(project).parent_id?parent_project_id.rows.item(0).odoo_record_id: false,
+                            'planned_start_date': projects.rows.item(project).planned_start_date,
+                            'planned_end_date': projects.rows.item(project).planned_end_date,
+                            'allocated_hours': projects.rows.item(project).allocated_hours,
+                            'description': projects.rows.item(project).description,
+                            'favorites': projects.rows.item(project).favorites,
+                            'odoo_record_id': projects.rows.item(project).odoo_record_id,
+                            'last_modified': projects.rows.item(project).last_modified,})
+        }
+    });
+    return list_of_projects;
+}
+
+/* Name: set_projects
+* This function will set id to fetched projects
+* created_tasks -> list of projects fetched from Odoo
+* instance_id -> to map projects to this instance
+*/
+
+function set_projects(created_projects, instance_id) {
+    if (created_projects === undefined) {
+        return
+    }
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    db.transaction(function (tx) {
+        for (var created_project = 0; created_project < created_projects.length; created_project++) {
+            tx.executeSql('update project_project_app set odoo_record_id = ?, last_modified = ? where id = ?', [created_projects[created_project].odoo_record_id, new Date().toISOString(), created_projects[created_project].local_record_id])
+        }
+    })
+}
+
+/* Name: create_projects
+* This function will create, update and delete projects which fetched from Odoo
+* In case of project is deleted then it will remove all related data
+* projects -> list of projects fetched from Odoo
+* instance_id -> account Id to map the project with this users table id
+*/
+
+function create_projects(projects, instance_id) {
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+
+    if (projects === undefined) {
+        return
+    }
+    db.transaction(function(tx) {
+        var fetchedProjects = projects.fetchedProjects
+        for (var project = 0; project < fetchedProjects.length; project++) {
+            var result = tx.executeSql('SELECT id, COUNT(*) AS count FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?', [fetchedProjects[project].id, parseInt(instance_id)]);
+            var parent_id = false;
+            if (fetchedProjects[project].parent_id && fetchedProjects[project].parent_id.length) {
+                var parent_query = tx.executeSql('SELECT id, COUNT(*) AS count FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?', [fetchedProjects[project].parent_id[0], parseInt(instance_id)]);
+                if (parent_query.rows.length !== 0) {
+                    parent_id = parent_query.rows.item(0).id
+                }
+            }
+            var planned_start_date = fetchedProjects[project].date_start
+            if (planned_start_date == undefined) {
+                planned_start_date = false;
+            }
+            var planned_end_date = fetchedProjects[project].date
+            if (planned_end_date == undefined) {
+                planned_end_date = false;
+            }
+            var priority = fetchedProjects[project].is_favorite == true ? 1 : 0
+            if (result.rows.item(0).count === 0) {
+                tx.executeSql('INSERT INTO project_project_app \
+                    (name, account_id, odoo_record_id, parent_id, planned_start_date, \
+                    planned_end_date, allocated_hours, favorites, last_modified, last_update_status, description\
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', 
+                    [fetchedProjects[project].name, parseInt(instance_id), fetchedProjects[project].id, parent_id,
+                    planned_start_date, planned_end_date, fetchedProjects[project].allocated_hours,
+                    priority, new Date().toISOString(), fetchedProjects[project].last_update_status, fetchedProjects[project].description]);
+            } else {
+                tx.executeSql('UPDATE project_project_app SET \
+                            account_id = ?, odoo_record_id = ?, name = ?, parent_id = ?, planned_start_date = ?, planned_end_date = ?, \
+                            allocated_hours = ?, favorites = ?, description = ?, last_modified = ?\
+                            where id = ?', 
+                            [parseInt(instance_id), fetchedProjects[project].id, fetchedProjects[project].name, parent_id,
+                            planned_start_date, planned_end_date, fetchedProjects[project].allocated_hours,
+                            priority, fetchedProjects[project].description, new Date().toISOString(), result.rows.item(0).id])
+            }
+
+        }
+        var deletedRecords = []
+        var ids_array = ''
+        if (projects.fetch_all_records) {
+            ids_array = projects.existing_projects.join(", ")
+            deletedRecords = tx.executeSql('select id from project_project_app where account_id = '+ instance_id +' AND odoo_record_id not in ('+ ids_array +')');
+        } else {
+            ids_array = projects.deleted_records.join(", ")
+            deletedRecords = tx.executeSql('select id from project_project_app where account_id = '+ instance_id +' AND odoo_record_id in ('+ ids_array +')');
+        }
+        for (var delete_rec = 0; delete_rec < deletedRecords.rows.length; delete_rec++) {
+            tx.executeSql('delete from account_analytic_line_app where project_id =  ?', [deletedRecords.rows.item(delete_rec).id])
+            tx.executeSql('delete from project_task_app where project_id =  ?', [deletedRecords.rows.item(delete_rec).id])
+            tx.executeSql('update project_project_app set parent_id = NULL where parent_id = ?', [deletedRecords.rows.item(delete_rec).id])
+            tx.executeSql('delete from project_project_app where id =  ?', [deletedRecords.rows.item(delete_rec).id])
+        }
+    });
 }
 
 /* Name: get_all_tasks
@@ -314,15 +379,10 @@ function create_tasks(tasks, instance_id) {
 * instance_id -> to fetch timesheet entries only related to this account
 */
 
-function fetchTimesheets(instance_id) {
+function fetchTimesheets(instance_id, last_modified) {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
     var timesheetEntries = [];
     db.transaction(function (tx) {
-        var result = tx.executeSql('select id, last_modified from users where id = ?', [instance_id]);
-        var last_modified = false;
-        if (result.rows.length) {
-            last_modified = result.rows.item(0).last_modified;
-        }
         var fetchedEntries = tx.executeSql('select * from account_analytic_line_app where account_id = ? AND (last_modified > ? OR odoo_record_id IS NULL)', [instance_id, last_modified])
         for (var record = 0; record < fetchedEntries.rows.length; record++) {
             var selected_project_id = fetchedEntries.rows.item(record).project_id
@@ -341,7 +401,8 @@ function fetchTimesheets(instance_id) {
                              'project_id': projectId.rows.item(0).odoo_record_id, 
                              'task_id': taskId.rows.item(0).odoo_record_id, 
                              'unit_amount': fetchedEntries.rows.item(record).unit_amount, 
-                             'odoo_record_id': fetchedEntries.rows.item(record).odoo_record_id});
+                             'odoo_record_id': fetchedEntries.rows.item(record).odoo_record_id,
+                             'last_modified': fetchedEntries.rows.item(record).last_modified});
         }
     });
     return timesheetEntries;
@@ -375,6 +436,100 @@ function update_timesheet_entries(timesheet_entries, instance_id) {
         }
         for (var delete_rec = 0; delete_rec < deletedRecords.rows.length; delete_rec++) {
             tx.executeSql('delete from account_analytic_line_app where id =  ?', [deletedRecords.rows.item(delete_rec).id])
+        }
+    });
+}
+
+/* Name: set_tasks
+* This function will set id to fetched timesheets
+* created_timesheets -> list of timesheets fetched from Odoo
+* instance_id -> to map timesheets to this instance
+*/
+
+function set_timesheets(created_timesheets, instance_id) {
+    if (created_timesheets === undefined) {
+        return
+    }
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    db.transaction(function (tx) {
+        for (var created_timesheet = 0; created_timesheet < created_timesheets.length; created_timesheet++) {
+            tx.executeSql('update account_analytic_line_app set odoo_record_id = ?, last_modified = ? where id = ?', [created_timesheets[created_timesheet].odoo_record_id, new Date().toISOString(), created_timesheets[created_timesheet].local_record_id])
+        }
+    })
+}
+
+/* Name: create_timesheets
+* This function will create, update and delete timesheets which fetched from Odoo
+* In case of timesheet is deleted then it will remove all related data
+* tasks -> list of timesheets fetched from Odoo
+* instance_id -> account Id to map the timesheets with this users table id
+*/
+
+function create_timesheets(timesheets, instance_id) {
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    if (timesheets === undefined) {
+        return
+    }
+    db.transaction(function(tx) {
+        var fetchedTimesheets = timesheets.fetchedTimesheets
+        for (var timesheet = 0; timesheet < fetchedTimesheets.length; timesheet++) {
+            var result = tx.executeSql('SELECT id, COUNT(*) AS count FROM account_analytic_line_app WHERE odoo_record_id = ? AND account_id = ?', [fetchedTimesheets[timesheet].id, parseInt(instance_id)]);
+            var sub_task_id = false;
+            var task_id = false;
+            if (fetchedTimesheets[timesheet].task_id.length) {
+                var parent_query = tx.executeSql('SELECT id, parent_id, COUNT(*) AS count FROM project_task_app WHERE odoo_record_id = ? AND account_id = ?', [fetchedTimesheets[timesheet].task_id[0], parseInt(instance_id)]);
+                if (parent_query.rows.length !== 0) {
+                    task_id = parent_query.rows.item(0).id
+                    if (parent_query.rows.item(0).parent_id) {
+                        task_id = parent_query.rows.item(0).parent_id
+                        sub_task_id = parent_query.rows.item(0).id
+                    }
+                }
+            }
+            var project_id = false;
+            var sub_project_id = false;
+            if (fetchedTimesheets[timesheet].project_id.length) {
+                var parent_query = tx.executeSql('SELECT id, parent_id, COUNT(*) AS count FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?', [fetchedTimesheets[timesheet].project_id[0], parseInt(instance_id)]);
+                if (parent_query.rows.length !== 0) {
+                    project_id = parent_query.rows.item(0).id
+                    if (parent_query.rows.item(0).parent_id) {
+                        project_id = parent_query.rows.item(0).parent_id
+                        sub_project_id = parent_query.rows.item(0).id
+                    }
+                }
+            }
+            let recordDate = false;
+            if ("date" in fetchedTimesheets[timesheet]) {
+                recordDate = fetchedTimesheets[timesheet].date;
+            } else {
+                recordDate = fetchedTimesheets[timesheet].date_time;
+            }
+            if (result.rows.item(0).count === 0) {
+                tx.executeSql('INSERT INTO account_analytic_line_app \
+                    (account_id, odoo_record_id, record_date, project_id, task_id, name, sub_project_id, sub_task_id, quadrant_id,  \
+                    unit_amount, last_modified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    [parseInt(instance_id), fetchedTimesheets[timesheet].id, recordDate, project_id, task_id, fetchedTimesheets[timesheet].name, sub_project_id,
+                    sub_task_id, fetchedTimesheets[timesheet].quadrant, fetchedTimesheets[timesheet].unit_amount, new Date().toISOString()]);
+            } else {
+                tx.executeSql('UPDATE account_analytic_line_app \
+                    set account_id = ?, odoo_record_id = ?, record_date = ?, project_id = ?, task_id = ?, name = ?, sub_project_id = ?, sub_task_id = ?,  \
+                    unit_amount = ?, last_modified = ? WHERE id = ?',
+                    [parseInt(instance_id), fetchedTimesheets[timesheet].id, recordDate, project_id, task_id, fetchedTimesheets[timesheet].name, sub_project_id,
+                    sub_task_id, fetchedTimesheets[timesheet].unit_amount, new Date().toISOString(), result.rows.item(0).id])
+            }
+
+        }
+        var deletedRecords = []
+        var ids_array = ''
+        if (timesheets.fetch_all_records) {
+            ids_array = timesheets.existing_timesheets.join(", ")
+            deletedRecords = tx.executeSql('select id from account_analytic_line_app where account_id = '+ instance_id +' AND odoo_record_id != 0 AND odoo_record_id not in ('+ ids_array +')');
+        } else {
+            ids_array = timesheets.deleted_records.join(", ")
+            deletedRecords = tx.executeSql('select id from account_analytic_line_app where account_id = '+ instance_id +' AND odoo_record_id != 0 AND odoo_record_id in ('+ ids_array +')');
+        }
+        for (var delete_rec = 0; delete_rec < deletedRecords.rows.length; delete_rec++) {
+            tx.executeSql('delete from account_analytic_line_app where id = ?', [deletedRecords.rows.item(delete_rec).id])
         }
     });
 }

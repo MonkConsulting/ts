@@ -7,7 +7,6 @@ import "../models/Sync.js" as SyncData
 
 Page {
 	id: createAccountPage
-	// id: settings
     title: "Create Account"
 
     header: PageHeader {
@@ -22,23 +21,24 @@ Page {
                     } else {
                         isValidAccount = true;
                         isValidLogin = true;
+                        connectionSuccess = false;
                         python.call("backend.login_odoo", [linkInput.text, usernameInput.text, passwordInput.text, {'input_text': dbInput.text || single_db, 'selected_db': database_combo.currentText, 'isTextInputVisible': isTextInputVisible, 'isTextMenuVisible': isTextMenuVisible}], function (result) {
                             if (result && result['result'] == 'pass') {
                                 let apikey = ""
-                                if(selectedconnectwithId == 1){
+                                if(selectedconnectwithId == 1) {
                                     apikey = passwordInput.text
                                 }
                                 var isDuplicate = SyncData.createAccount(accountNameInput.text, linkInput.text, result['database'], usernameInput.text,selectedconnectwithId,apikey)
                                 if (isDuplicate) {
                                     alreadyExistAccount = true;
-                                }
-                                else {
+                                } else {
                                     isValidLogin = true;
+                                    connectionSuccess = true;
                                     alreadyExistAccount = false;
                                 }
-                            }
-                            else {
+                            } else {
                                 isValidLogin = false;
+                                connectionSuccess = false;
                                 alreadyExistAccount = false;
                             }
                         })
@@ -50,6 +50,7 @@ Page {
 
     property bool isTextInputVisible: false
     property bool isTextMenuVisible: false
+    property bool connectionSuccess: false
     property bool isValidUrl: true
     property bool isValidLogin: true
     property bool isValidAccount: true
@@ -79,13 +80,14 @@ Page {
         ListElement { modelData: "Connect With Api Key"; itemid:0  }
         ListElement { modelData: "Connect With Password"; itemid:1 }
     }
+
     Flickable {
-        id: projectFlickable
+        id: accountPageFlickable
         anchors.fill: parent
         contentHeight: signup_shape.height + 1500
         flickableDirection: Flickable.VerticalFlick
         anchors.top: pageHeader.bottom
-        anchors.topMargin: pageHeader.height
+        anchors.topMargin: pageHeader.height + units.gu(4)
         width: parent.width
         LomiriShape {
             id: signup_shape
@@ -95,25 +97,25 @@ Page {
             radius: "large"
             width: parent.width
             height: parent.height
-
             Row {
-                anchors.horizontalCenter: parent.horizontalCenter
                 id: accountRow
                 anchors.topMargin: 5
                 Column {
+                    leftPadding: units.gu(2)
                     Rectangle {
-                        width: units.gu(40)
-                        height: units.gu(3)
+                        width: units.gu(12)
+                        height: units.gu(4)
                         Label {
                             id: account_name_label
                             text: "Account Name"
-                            anchors.horizontalCenter: parent.horizontalCenter
                             anchors.verticalCenter: parent.verticalCenter
                         }
                     }
+                }
+                Column {
+                    leftPadding: units.gu(1)
                     Rectangle {
-                        width: units.gu(40)
-                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: units.gu(28)
                         height: units.gu(5)
                         TextField {
                             id: accountNameInput
@@ -128,26 +130,25 @@ Page {
             Row {
                 id: linkRow
                 anchors.top: accountRow.bottom
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.topMargin: 5
+                // anchors.horizontalCenter: parent.horizontalCenter
+                anchors.topMargin: units.gu(2)
                 Column {
-                    height: units.gu(10)
+                    leftPadding: units.gu(2)
                     Rectangle {
-                        width: units.gu(40)
-                        // anchors.left: parent.left
-                        // anchors.horizontalCenter: parent.horizontalCenter
-                        height: units.gu(3)
+                        width: units.gu(12)
+                        height: units.gu(4)
                         Label {
                             id: link_label
                             text: "Link"
-                            anchors.horizontalCenter: parent.horizontalCenter
                             anchors.verticalCenter: parent.verticalCenter
-                            //textSize: Label.Large
                         }
                     }
+                }
+                Column {
+                    leftPadding: units.gu(1)
                     Rectangle {
-                        width: units.gu(40)
-                        height: units.gu(5)
+                        width: units.gu(28)
+                        height: units.gu(4)
                         
                         TextField {
                             id: linkInput
@@ -168,7 +169,6 @@ Page {
                                         isTextInputVisible = result.text_field
                                         isTextMenuVisible = result.menu_items
                                         if (isTextMenuVisible) {
-                                            // optionList = result.menu_items
                                             for (var db = 0; db < result.menu_items.length; db++) {
                                                 databaseListModel.append({'name': result.menu_items[db]})
                                             }
@@ -181,7 +181,6 @@ Page {
                                 }
                             }
 
-                            // Function to validate URL
                             function isValidURL(url) {
                                 var pattern = new RegExp('^(https?:\\/\\/)?' + 
                                     '(([a-zA-Z0-9\\-\\.]+)\\.([a-zA-Z]{2,4})|' + 
@@ -192,38 +191,39 @@ Page {
                             }
                         }
                     }
-                    Text {
-                        id: errorMessage
-                        text: isValidUrl ? "" : "Please enter a valid URL"
-                        color: "red"
-                        visible: !isValidUrl
-                    }
-
-
                 }
+            }
+
+            Text {
+                id: errorMessage
+                text: isValidUrl ? "" : "Please enter a valid URL"
+                color: "red"
+                visible: !isValidUrl
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: linkRow.bottom
             }
 
             Row {
                 id: databaseRow
-                anchors.top: linkRow.bottom
-                anchors.topMargin: 5
-                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: isValidUrl ? linkRow.bottom : errorMessage.bottom
+                anchors.topMargin: units.gu(3)
+                visible: isTextInputVisible
                 Column {
-                    visible: isTextInputVisible
+                    leftPadding: units.gu(2)
                     Rectangle {
-                        width: units.gu(40)
+                        width: units.gu(12)
                         height: units.gu(3)
                         Label {
                             id: database_name_label
                             text: "Database"
-                            anchors.horizontalCenter: parent.horizontalCenter
                             anchors.verticalCenter: parent.verticalCenter
                         }
                     }
+                }
+                Column {
+                    leftPadding: units.gu(1)
                     Rectangle {
-                        width: units.gu(40)
-                        // anchors.left: parent.left
-                        // anchors.horizontalCenter: parent.horizontalCenter
+                        width: units.gu(28)
                         height: units.gu(5)
                         TextField {
                             id: dbInput
@@ -233,27 +233,32 @@ Page {
                         }
                     }
                 }
+            }
 
+            Row {
+                id: databaseListRow
+                anchors.top: isValidUrl ? linkRow.bottom : errorMessage.bottom
+                anchors.topMargin: units.gu(3)
+                visible: isTextMenuVisible
                 Column {
-                    visible: isTextMenuVisible
+                    leftPadding: units.gu(2)
                     Rectangle {
-                        width: units.gu(40)
+                        width: units.gu(12)
                         height: units.gu(3)
                         Label {
                             id: database_list_label
                             text: "Database"
-                            anchors.horizontalCenter: parent.horizontalCenter
                             anchors.verticalCenter: parent.verticalCenter
                         }
                     }
+                }
+                Column {
+                    leftPadding: units.gu(1)
                     Rectangle {
-                        width: units.gu(40)
-                        // anchors.left: parent.left
-                        // anchors.horizontalCenter: parent.horizontalCenter
+                        width: units.gu(28)
                         height: units.gu(5)
                         ComboBox {
                             id: database_combo
-                            // editable: true
                             width: parent.width
                             height: parent.height
                             anchors.centerIn: parent.centerIn
@@ -261,20 +266,11 @@ Page {
                             model:  databaseListModel
 
                             onActivated: {
-                                console.log("In onActivated")
-                            }        
+                            }
                             onHighlighted: {
                             }
                             onAccepted: {
-                                console.log("In onAccepted")
-                                if (find(editText) != -1)
-                                {
-                                    // set_project_id(editText) 
-                                    // prepare_task_list(selectedProjectId)
-                                    // console.log("Project ID: " + selectedProjectId)
-                                }
-                            } 
-
+                            }
                         }
                     }
                 }
@@ -282,27 +278,26 @@ Page {
 
             Row {
                 id: usernameRow
-                anchors.top: databaseRow.bottom
-                anchors.topMargin: 5
-                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: isTextMenuVisible ? databaseListRow.bottom :
+                            (isTextInputVisible ? databaseRow.bottom :
+                            (isValidUrl ? linkRow.bottom : errorMessageBottom))
+                anchors.topMargin: units.gu(3)
                 Column {
+                    leftPadding: units.gu(2)
                     Rectangle {
-                        width: units.gu(40)
-                        // anchors.left: parent.left
-                        // anchors.horizontalCenter: parent.horizontalCenter
-                        height: units.gu(3)
+                        width: units.gu(12)
+                        height: units.gu(4)
                          Label {
                             id: username_label
                             text: "Username"
-                            anchors.horizontalCenter: parent.horizontalCenter
                             anchors.verticalCenter: parent.verticalCenter
-                            //textSize: Label.Large
                         }
                     }
+                }
+                Column {
+                    leftPadding: units.gu(1)
                     Rectangle {
-                        width: units.gu(40)
-                        // anchors.left: parent.left
-                        // anchors.horizontalCenter: parent.horizontalCenter
+                        width: units.gu(28)
                         height: units.gu(5)
                         TextField {
                             id: usernameInput
@@ -317,50 +312,56 @@ Page {
             Row {
                 id: connectWithRow
                 anchors.top: usernameRow.bottom
-                anchors.topMargin: 5
-                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.topMargin: units.gu(2)
                 Column {
+                    leftPadding: units.gu(2)
                     Rectangle {
-                        width: units.gu(40)
-                        height: units.gu(3)
+                        width: units.gu(12)
+                        height: units.gu(5)
                          Label {
                             id: connectwith_label
                             text: "Connect With"
-                            anchors.horizontalCenter: parent.horizontalCenter
                             anchors.verticalCenter: parent.verticalCenter
-                            //textSize: Label.Large
                         }
                     }
+                }
+                Column {
+                    leftPadding: units.gu(1)
                     Rectangle {
-                        width: units.gu(40)
+                        width: units.gu(28)
                         height: units.gu(5)
-                        ComboBox {
-                            id: connectWith_combo
+                        LomiriShape {
                             width: parent.width
                             height: parent.height
-                            anchors.centerIn: parent.centerIn
-                            flat: true
-                            model: menuconnectwithModel
+                            ComboBox {
+                                id: connectWith_combo
+                                width: parent.width
+                                height: parent.height
+                                anchors.centerIn: parent.centerIn
+                                flat: true
+                                model: menuconnectwithModel
 
-                            onActivated: {
-                                console.log("In onActivated")
-                            }
-                            onHighlighted: {
-                                // console.log("In onHighlighted")
-                                console.log("Combobox height: " + combo1.height)
-                            }
-                            onAccepted: {
-                                console.log("In onAccepted")
-                                if (find(editText) != -1)
-                                {
+                                onActivated: {
                                     if (connectWith_combo.currentIndex == 0) {
                                         selectedconnectwithId = 1
                                     } else {
                                         selectedconnectwithId = 0
                                     }
                                 }
-                            } 
+                                onHighlighted: {
+                                }
+                                onAccepted: {
+                                    if (find(editText) != -1)
+                                    {
+                                        if (connectWith_combo.currentIndex == 0) {
+                                            selectedconnectwithId = 1
+                                        } else {
+                                            selectedconnectwithId = 0
+                                        }
+                                    }
+                                } 
 
+                            }
                         }
                     }
                 }
@@ -369,47 +370,41 @@ Page {
             Row {
                 id: passwordRow
                 anchors.top: connectWithRow.bottom
-                anchors.topMargin: 5
-                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.topMargin: units.gu(3)
                 Column {
+                    leftPadding: units.gu(2)
                     Rectangle {
-                        width: units.gu(40)
-                        // anchors.left: parent.left
-                        // anchors.horizontalCenter: parent.horizontalCenter
-                        height: units.gu(3)
+                        width: units.gu(12)
+                        height: units.gu(4)
                         Label {
                             id: password_label
                             text: connectWith_combo.currentIndex == 1 ? "Password" : "API Key"
-                            anchors.horizontalCenter: parent.horizontalCenter
                             anchors.verticalCenter: parent.verticalCenter
-                            //textSize: Label.Large
                         }
                     }
-                    Row {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        spacing: 5
-                        Rectangle {
-                            width: units.gu(35)
-                            height: units.gu(5)
-                            TextField {
-                                id: passwordInput
-                                echoMode: isPasswordVisible ? TextInput.Normal : TextInput.Password
-                                placeholderText: connectWith_combo.currentIndex == 1 ? "Password" : "API Key"
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                width: parent.width
-                            }
+                }
+                Column {
+                    leftPadding: units.gu(1)
+                    Rectangle {
+                        width: units.gu(23)
+                        height: units.gu(5)
+                        TextField {
+                            id: passwordInput
+                            echoMode: isPasswordVisible ? TextInput.Normal : TextInput.Password
+                            placeholderText: connectWith_combo.currentIndex == 1 ? "Password" : "API Key"
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            width: parent.width
                         }
-                        Button {
-                            width: units.gu(5)
-                            height: passwordInput.height
-                            Image {
-                                source: isPasswordVisible ? "images/show.png" : "images/hide.png"
-                                anchors.fill: parent
-                                smooth: true
-                            }
-                            onClicked: {
-                                isPasswordVisible = !isPasswordVisible
-                            }
+                    }
+                }
+                Column {
+                    Button {
+                        width: units.gu(5)
+                        height: passwordInput.height
+                        color: "#fff"
+                        iconName: isPasswordVisible ? "view-on" : "view-off"
+                        onClicked: {
+                            isPasswordVisible = !isPasswordVisible
                         }
                     }
                 }
@@ -434,6 +429,15 @@ Page {
             }
 
             Text {
+                id: connectionSuccessMessage
+                text: connectionSuccess ? "Connection Successful! Please navigate to Sync page!" : ""
+                color: "green"
+                visible: connectionSuccess
+                anchors.top: passwordRow.bottom
+                anchors.topMargin: 10
+            }
+
+            Text {
                 id: errorMessageDuplicate
                 text: !alreadyExistAccount ? "" : "Account Already exist!"
                 color: "red"
@@ -443,13 +447,13 @@ Page {
             }
 
             Label {
-                text: selectedconnectwithId == 1 ? "Notes:<br/>Connect with API Key: Your API key will be securely stored on your device, enabling synchronization without requiring a password.<br/><br/>In Odoo, you can generate your API key in the <b>My Profile</b> page under the <b>Account Security</b> tab." : "Notes:<br/>Connect with Password: You will be prompted to enter your password each time synchronization is performed."
+                text: selectedconnectwithId == 1 ? "<br/>Connect with API Key: Your API key will be stored on your device, enabling synchronization without requiring a password.<br/><br/>In Odoo, you can generate your API key in the <b>My Profile</b> page under the <b>Account Security</b> tab." : "<br/>Connect with Password: You will be prompted to enter your password each time synchronization is performed."
                 textFormat: Text.RichText
                 anchors.left: parent.left
                 anchors.top: errorMessageDuplicate.bottom
                 anchors.topMargin: 10
+                anchors.leftMargin: units.gu(2)
                 anchors.right: parent.right
-                horizontalAlignment: Label.AlignHCenter
                 verticalAlignment: Label.AlignVCenter
                 wrapMode: Label.Wrap
             }

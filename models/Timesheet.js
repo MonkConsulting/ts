@@ -17,6 +17,141 @@ function get_accounts_list() {
     return accountlist;
 }
 
+function convertFloatToTime(value) {
+    var hours = Math.floor(value);
+    var minutes = Math.round((value - hours) * 60);
+    return hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0');
+}
+
+/* Name: fetch_timesheets
+* This function will return timesheets based on work state, this function is returning
+* for timesheet list view
+* is_work_state -> in case of work mode is enable
+*/
+
+function fetch_timesheets(is_work_state) {
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var timesheetList = [];
+    db.transaction(function(tx) {
+        if (is_work_state) {
+            var timesheets = tx.executeSql('SELECT * FROM account_analytic_line_app where account_id IS NOT NULL order by last_modified desc');
+        } else {
+            var timesheets = tx.executeSql('SELECT * FROM account_analytic_line_app where parent_id = 0 AND account_id IS NULL');
+        }
+        for (var timesheet = 0; timesheet < timesheets.rows.length; timesheet++) {
+            var quadrantObj = {0: "Urgent and Important",
+                            1: "Import but not Urgent",
+                            2: "Not Important but Urgent",
+                            3: "Not Important and Not Urgent"};
+            var project = tx.executeSql('select name from project_project_app where id = ?', [timesheets.rows.item(timesheet).project_id])
+            var instance = tx.executeSql('select name from users where id = ?', [timesheets.rows.item(timesheet).account_id])
+            timesheetList.push({'id': timesheets.rows.item(timesheet).id,
+                             'instance': instance.rows.length != 0 ? instance.rows.item(0).name : '',
+                             'spentHours': convertFloatToTime(timesheets.rows.item(timesheet).unit_amount),
+                             'project': project.rows.length != 0 ? project.rows.item(0).name : '',
+                             'quadrant': quadrantObj[timesheets.rows.item(timesheet).quadrant_id] || "Urgent and Important",
+                             'date': timesheets.rows.item(timesheet).record_date});
+        }
+    });
+    return timesheetList;
+}
+
+/* Name: get_timesheet_details
+* This function will return timesheets details in form of object to fill in detail view of timesheet
+* -> record_id -> for which timesheet details needs to be fetched
+*/
+
+function get_timesheet_details(record_id) {
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var timesheet_detail = {};
+    db.transaction(function (tx) {
+        var timesheet = tx.executeSql('SELECT * FROM account_analytic_line_app\
+                                    WHERE id = ?', [record_id]);
+        if (timesheet.rows.length) {
+            timesheet_detail = {'instance_id': timesheet.rows.item(0).account_id,
+                                'project_id': timesheet.rows.item(0).project_id,
+                                'sub_project_id': timesheet.rows.item(0).sub_project_id,
+                                'task_id': timesheet.rows.item(0).task_id,
+                                'sub_task_id': timesheet.rows.item(0).sub_task_id,
+                                'description': timesheet.rows.item(0).name,
+                                'spentHours': convertFloatToTime(timesheet.rows.item(0).unit_amount),
+                                'quadrant_id': timesheet.rows.item(0).quadrant_id,
+                                'record_date': formatDate(new Date(timesheet.rows.item(0).record_date))};
+        }
+    });
+    function formatDate(date) {
+        var month = date.getMonth() + 1; 
+        var day = date.getDate();
+        var year = date.getFullYear();
+        return month + '/' + day + '/' + year;
+    }
+    return timesheet_detail;
+}
+
+/* Name: createUpdateTimesheet
+* This function will return whether record is saved successfully or not
+* -> timesheet_data -> Object of latest data
+* -> record_id -> to update record
+*/
+
+function createUpdateTimesheet(timesheet_data, record_id) {
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var timesheetObj = {};
+    db.transaction(function (tx) {
+        try {
+            if (recordid == 0) {
+                tx.executeSql('INSERT INTO account_analytic_line_app \
+                            (account_id, name, project_id, sub_project_id, task_id, \
+                            sub_task_id, unit_amount, quadrant_id, last_modified)\
+                            Values (?, ?, ?, ?, ?, ?, ?, ?, ?)', 
+                            [timesheet_data.account_id, timesheet_data.name, timesheet_data.project_id,
+                            timesheet_data.sub_project_id, timesheet_data.task_id, timesheet_data.sub_task_id, convertDurationToFloat(timesheet_data.unit_amount),
+                            timesheet_data.quadrant_id, new Date().toISOString()])
+            } else {
+                tx.executeSql('UPDATE account_analytic_line_app SET \
+                            account_id = ?, name = ?, project_id = ?, sub_project_id = ?, task_id = ?, \
+                            sub_task_id = ?, unit_amount = ?, quadrant_id = ?, last_modified = ?\
+                            where id = ?', 
+                            [timesheet_data.account_id, timesheet_data.name, timesheet_data.project_id,
+                            timesheet_data.sub_project_id, timesheet_data.task_id, timesheet_data.sub_task_id, convertDurationToFloat(timesheet_data.unit_amount),
+                            timesheet_data.quadrant_id, new Date().toISOString(), recordid])
+            }
+            timesheetObj['is_success'] = true;
+            timesheetObj['message'] = 'Record is saved Successfully!';
+        } catch (error) {
+            timesheetObj['is_success'] = false;
+            timesheetObj['message'] = 'Record could not be saved!\n' + error;
+        }
+    });
+    return timesheetObj;
+}
+
+/* Name: convertFloatToTime
+* This function will return HH:MM format time based on float value
+* -> value -> float value to convert HH:MM
+*/
+
+function convertFloatToTime(value) {
+    var hours = Math.floor(value);
+    var minutes = Math.round((value - hours) * 60);
+    return hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0');
+}
+
+/* Name: convertDurationToFloat
+* This function will return float value from HH:MM format
+* -> value -> HH:MM format to convert float value
+*/
+
+function convertDurationToFloat(value) {
+    let vals = value.split(":");
+    let hours = parseFloat(vals[0]);
+    let minutes = parseFloat(vals[1]);
+    let days = Math.floor(hours / 24);
+    hours = hours % 24;
+    let convertedMinutes = minutes / 60.0;
+    return hours + convertedMinutes;
+}
+
 /* Name: fetch_projects
 * This function will return projects based on Odoo account and work state
 * instance_id -> id of users table
@@ -123,7 +258,6 @@ function fetch_sub_tasks(task_id, is_work_state) {
         if (is_work_state) {
             var sub_tasks = tx.executeSql('SELECT * FROM project_task_app\
                                          where parent_id = ?', [task_id]);
-            console.log('\n\n fetch_sub_tasks >>>>>>>>>>>>>>>>>', task_id)
         } else {
             var sub_tasks = tx.executeSql('SELECT * FROM project_task_app\
                                          where account_id IS NULL AND parent_id = ?',

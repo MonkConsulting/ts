@@ -57,9 +57,7 @@ Page{
         anchors.top: parent.top
         anchors.topMargin: units.gu(1)
         anchors.left: parent.left
-        anchors.leftMargin: units.gu(1)
         anchors.right: parent.right
-        anchors.rightMargin: units.gu(1)
         anchors.bottom: parent.bottom
         anchors.bottomMargin: units.gu(1)
         color: "#ffffff"
@@ -67,8 +65,6 @@ Page{
             anchors.fill: parent
             anchors.top: pageHeader.bottom
             anchors.topMargin: units.gu(5)
-            border.color: "#CCCCCC"
-            border.width: 1
             Flickable {
                 id: listView
                 anchors.fill: parent
@@ -120,7 +116,10 @@ Page{
                                     
                                     Column {
                                         spacing: 5 
-                                        anchors.centerIn:  parent  
+                                        // anchors.centerIn:  parent  
+                                        anchors.left: imgmodulename.right
+                                        anchors.verticalCenter:  parent.verticalCenter
+                                        anchors.leftMargin: units.gu(2)
 
                                         Text {
                                             text: model.name
@@ -152,7 +151,6 @@ Page{
                                             
                                             SyncData.deleteAccount(model.user_id)
                                             accountListModel.remove(index)
-                                            // recordModel.remove(index)
                                         }
                                     }
                                 }
