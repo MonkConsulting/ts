@@ -17,6 +17,66 @@ function get_accounts_list() {
     return accountlist;
 }
 
+function convertFloatToTime(value) {
+    var hours = Math.floor(value);
+    var minutes = Math.round((value - hours) * 60);
+    return hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0');
+}
+
+/* Name: fetch_timesheets
+* This function will return timesheets based on work state, this function is returning
+* for timesheet list view
+* is_work_state -> in case of work mode is enable
+*/
+
+function fetch_timesheets(is_work_state) {
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var timesheetList = [];
+    db.transaction(function(tx) {
+        if (is_work_state) {
+            var timesheets = tx.executeSql('SELECT * FROM account_analytic_line_app where account_id IS NOT NULL order by last_modified desc');
+        } else {
+            var timesheets = tx.executeSql('SELECT * FROM account_analytic_line_app where parent_id = 0 AND account_id IS NULL');
+        }
+        for (var timesheet = 0; timesheet < timesheets.rows.length; timesheet++) {
+            var quadrantObj = {0: "Urgent and Important",
+                            1: "Import but not Urgent",
+                            2: "Not Important but Urgent",
+                            3: "Not Important and Not Urgent"};
+            var project = tx.executeSql('select name from project_project_app where id = ?', [timesheets.rows.item(timesheet).project_id])
+            var instance = tx.executeSql('select name from users where id = ?', [timesheets.rows.item(timesheet).account_id])
+            timesheetList.push({'id': timesheets.rows.item(timesheet).id,
+                             'instance': instance.rows.length != 0 ? instance.rows.item(0).name : '',
+                             'spentHours': convertFloatToTime(timesheets.rows.item(timesheet).unit_amount),
+                             'project': project.rows.length != 0 ? project.rows.item(0).name : '',
+                             'quadrant': quadrantObj[timesheets.rows.item(timesheet).quadrant_id] || "Urgent and Important",
+                             'date': timesheets.rows.item(timesheet).record_date});
+        }
+    });
+    return timesheetList;
+}
+
+function get_timesheet_details(record_id) {
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var timesheet_detail = {};
+    db.transaction(function (tx) {
+        var timesheet = tx.executeSql('SELECT * FROM account_analytic_line_app\
+                                    WHERE id = ?', [record_id]);
+        if (timesheet.rows.length) {
+            timesheet_detail = {'instance_id': timesheet.rows.item(0).account_id,
+                                'project_id': timesheet.rows.item(0).project_id,
+                                'sub_project_id': timesheet.rows.item(0).sub_project_id,
+                                'task_id': timesheet.rows.item(0).task_id,
+                                'sub_task_id': timesheet.rows.item(0).sub_task_id,
+                                'description': timesheet.rows.item(0).name,
+                                'spentHours': timesheet.rows.item(0).unit_amount,
+                                'quadrant_id': timesheet.rows.item(0).quadrant_id,
+                                'record_date': timesheet.rows.item(0).record_date};
+        }
+    });
+    return timesheet_detail;
+}
+
 /* Name: fetch_projects
 * This function will return projects based on Odoo account and work state
 * instance_id -> id of users table

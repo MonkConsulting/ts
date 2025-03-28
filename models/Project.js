@@ -7,7 +7,7 @@
 
 function fetch_projects_list(is_work_state) {
     var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-    listData = [];
+    var listData = [];
 
     db.transaction(function(tx) {
         if (is_work_state) {
@@ -54,7 +54,7 @@ function fetch_projects_list(is_work_state) {
                 name: result.rows.item(project).name,
                 favorites: result.rows.item(project).favorites,
                 status: result.rows.item(project).last_update_status,
-                allocated_hours: result.rows.item(project).allocated_hours,
+                allocated_hours: convertFloatToTime(result.rows.item(project).allocated_hours),
                 planned_end_date: plannedEndDate,
                 children: children_list,
                 color_pallet: result.rows.item(project).color_pallet
@@ -63,6 +63,71 @@ function fetch_projects_list(is_work_state) {
         }
     });
     return listData;
+}
+
+function convertFloatToTime(value) {
+    var hours = Math.floor(value);
+    var minutes = Math.round((value - hours) * 60);
+    return hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0');
+}
+
+function convertDurationToFloat(value) {
+    let vals = value.split(":");
+    let hours = parseFloat(vals[0]);
+    let minutes = parseFloat(vals[1]);
+    let days = Math.floor(hours / 24);
+    hours = hours % 24;
+    let convertedMinutes = minutes / 60.0;
+    return hours + convertedMinutes;
+}
+
+function createUpdateProject(project_data, record_id) {
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var messageObj = {};
+    db.transaction(function (tx) {
+        try {
+            if (recordid == 0) {
+                tx.executeSql('INSERT INTO project_project_app \
+                            (account_id, name, parent_id, planned_start_date, planned_end_date, \
+                            allocated_hours, favorites, description, last_modified, color_pallet)\
+                            Values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', 
+                            [project_data.account_id, project_data.name, project_data.parent_id,
+                            project_data.planned_start_date, project_data.planned_end_date, convertDurationToFloat(project_data.allocated_hours),
+                            project_data.favorites, project_data.description, new Date().toISOString(), project_data.color])
+            } else {
+                tx.executeSql('UPDATE project_project_app SET \
+                            account_id = ?, name = ?, parent_id = ?, planned_start_date = ?, planned_end_date = ?, \
+                            allocated_hours = ?, favorites = ?, description = ?, last_modified = ?, color_pallet = ?\
+                            where id = ?', 
+                            [project_data.account_id, project_data.name, project_data.parent_id,
+                            project_data.planned_start_date, project_data.planned_end_date, convertDurationToFloat(project_data.allocated_hours),
+                            project_data.favorites, project_data.description, new Date().toISOString(), project_data.color, recordid])
+            }
+            messageObj['is_success'] = true;
+            messageObj['message'] = 'Record is saved Successfully!';
+        } catch (error) {
+            messageObj['is_success'] = false;
+            messageObj['message'] = 'Record could not be saved!\n' + error;
+        }
+    });
+    return messageObj;
+}
+
+function fetch_parent_project_list(instance_id, is_work_state) {
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var parent_project_list = [];
+    db.transaction(function (tx) {
+        if (is_work_state) {
+            var parent_projects = tx.executeSql('select * from project_project_app where account_id = ? AND parent_id = 0', [instance_id]);
+        } else {
+            var parent_projects = tx.executeSql('select * from project_project_app where account_id IS NULL AND parent_id = 0');
+        }
+        for (var project = 0; project < parent_projects.rows.length; project++) {
+            parent_project_list.push({'id': parent_projects.rows.item(project).id,
+                                    'name': parent_projects.rows.item(project).name});
+        }
+    });
+    return parent_project_list;
 }
 
 /* Name: get_project_detail
@@ -92,7 +157,7 @@ function get_project_detail(project_id, is_work_state) {
                 project_detail_obj['start_date'] = "mm/dd/yy";
             }
             if(rowData.planned_end_date != 0) {
-                var rowDate = new Date(rowData.planned_end_date || "");  
+                var rowDate = new Date(rowData.planned_end_date || "");
                 var formattedDate = formatDate(rowDate);
                 project_detail_obj['end_date'] = formattedDate;
             }else{
@@ -106,7 +171,7 @@ function get_project_detail(project_id, is_work_state) {
                 project_detail_obj['account_name'] = account.rows.length > 0 ? account.rows.item(0).name || "" : "";
             }
             project_detail_obj['name'] = rowData.name;
-            project_detail_obj['allocated_hours'] = rowData.allocated_hours;
+            project_detail_obj['allocated_hours'] = convertFloatToTime(rowData.allocated_hours);
             project_detail_obj['selected_color'] = rowData.color_pallet != null ? rowData.color_pallet : '#FFFFFF';
             project_detail_obj['parent_project_name'] = parent_project.rows.length > 0 ? parent_project.rows.item(0).name || "" : "";
             project_detail_obj['parent_id'] = rowData.parent_id;
@@ -134,3 +199,4 @@ function get_project_detail(project_id, is_work_state) {
     }
     return project_detail_obj;
 }
+

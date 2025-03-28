@@ -480,6 +480,298 @@ def create_activities(
     return records_list
 
 
+def create_update_projects(
+    selected_url, username, password, database_dict, projects, last_modified=False
+):
+    """To Synchronize projects."""
+    response = login_odoo(selected_url, username, password, database_dict)
+    models = xmlrpc.client.ServerProxy(
+        "{}/xmlrpc/2/object".format(selected_url),
+    )
+    records_sync = []
+    res_model = "project.project"
+    database = response.get("database")
+    odoo_uid = response.get("uid")
+
+    domain = []
+    if last_modified:
+        formatted_date = datetime.strptime(
+            last_modified[:-1],
+            "%Y-%m-%dT%H:%M:%S.%f",
+        )
+        domain.append(
+            ["write_date", ">=", formatted_date.strftime("%Y-%m-%d %H:%M:%S")]
+        )
+    fetched_projects = models.execute_kw(
+        database,
+        odoo_uid,
+        password,
+        res_model,
+        "search_read",
+        [domain],
+        {"order": "parent_id"},
+    )
+    for project in projects:
+
+        def get_format_date(date):
+            if date is not None and date != "mm/dd/yy" and not isinstance(date, (int, float)):
+                try:
+                    return datetime.strptime(date, "%m/%d/%Y").strftime("%Y-%m-%d")
+                except ValueError:
+                    datetime.strptime(date, "%Y-%m-%d")
+                    return date
+            return False
+        prepared_record = {
+            "name": project.get("name"),
+            "parent_id": int(project.get("parent_id")),
+            "date_start": get_format_date(project.get("planned_start_date")),
+            "date": get_format_date(project.get("planned_end_date")),
+            "is_favorite": True if project.get('favorites') == 1 else False,
+            "description": project.get("description"),
+            "allocated_hours": project.get("allocated_hours"),
+        }
+        odoo_record_id = project.get("odoo_record_id")
+        if not isinstance(odoo_record_id, (int, float)):
+            if project.get('favorites') == 1:
+                prepared_record.update({'favorite_user_ids': [(6, 0, [response.get('uid')])]})
+                prepared_record.pop('is_favorite')
+            try:
+                record_id = models.execute_kw(
+                    database,
+                    odoo_uid,
+                    password,
+                    res_model,
+                    "create",
+                    [prepared_record],
+                )
+            except Exception as e:
+                prepared_record.pop("date_start")
+                try:
+                    record_id = models.execute_kw(
+                        database,
+                        odoo_uid,
+                        password,
+                        res_model,
+                        "create",
+                        [prepared_record],
+                    )
+                except Exception:
+                    record_id = False
+                    pass
+            records_sync.append(
+                {
+                    "local_record_id": project.get("local_record_id"),
+                    "odoo_record_id": record_id,
+                }
+            )
+        else:
+            matched_list = list(
+                filter(
+                    lambda ml: ml.get("id") == int(odoo_record_id),
+                    fetched_projects,
+                )
+            )
+            project_last_date = datetime.strptime(
+                project.get("last_modified"), "%Y-%m-%dT%H:%M:%S.%fZ"
+            )
+            if matched_list and matched_list[0].get(
+                "write_date"
+            ) > project_last_date.strftime("%Y-%m-%d %H:%M:%S"):
+                pass
+            else:
+                try:
+                    models.execute_kw(
+                        database,
+                        odoo_uid,
+                        password,
+                        res_model,
+                        "write",
+                        [int(odoo_record_id), prepared_record],
+                    )
+                except Exception as e:
+                    prepared_record.pop("date_start")
+                    try:
+                        models.execute_kw(
+                            database,
+                            odoo_uid,
+                            password,
+                            res_model,
+                            "write",
+                            [int(odoo_record_id), prepared_record],
+                        )
+                    except Exception:
+                        pass
+
+            records_sync.append(
+                {
+                    "local_record_id": project.get("local_record_id"),
+                    "odoo_record_id": int(odoo_record_id),
+                }
+            )
+    existing_projects = []
+    fetch_all_records = False
+    deleted_records = get_audit_logs(
+        database, odoo_uid, password, res_model, models, last_modified
+    )
+    if not deleted_records:
+        fetch_all_records = True
+        existing_projects = models.execute_kw(
+            database, odoo_uid, password, res_model, "search", [[]]
+        )
+
+    return {
+        "settled_projects": records_sync,
+        "updated_projects": {
+            "fetchedProjects": fetched_projects,
+            "existing_projects": existing_projects,
+            "fetch_all_records": fetch_all_records,
+            "deleted_records": deleted_records,
+        },
+    }
+
+
+def create_update_timesheets(
+    selected_url, username, password, database_dict, timesheet_entries, last_modified=False
+):
+    """To Synchronize timesheets."""
+    response = login_odoo(selected_url, username, password, database_dict)
+    models = xmlrpc.client.ServerProxy(
+        "{}/xmlrpc/2/object".format(selected_url),
+    )
+    records_sync = []
+    res_model = "account.analytic.line"
+    database = response.get("database")
+    odoo_uid = response.get("uid")
+
+    domain = [('user_id', '=', response.get('uid'))]
+    if last_modified:
+        formatted_date = datetime.strptime(
+            last_modified[:-1],
+            "%Y-%m-%dT%H:%M:%S.%f",
+        )
+        domain.append(
+            ["write_date", ">=", formatted_date.strftime("%Y-%m-%d %H:%M:%S")]
+        )
+    fetched_timesheets = models.execute_kw(
+        database,
+        odoo_uid,
+        password,
+        res_model,
+        "search_read",
+        [domain],
+        {},
+    )
+
+    try:
+        model_id = get_model_id(
+            database,
+            odoo_uid,
+            password,
+            res_model,
+            models,
+        )
+        field_ids = models.execute_kw(
+            database,
+            odoo_uid,
+            password,
+            "ir.model.fields",
+            "search_read",
+            [[["model_id", "=", model_id]]],
+            {"fields": ["name"]},
+        )
+    except Exception:
+        field_ids = []
+    fields_list = list(map(lambda field: field.get("name"), field_ids))
+    date_field = "date" if "date_time" not in fields_list else "date_time"
+    for timesheet in timesheet_entries:
+        date_length = timesheet.get("record_date").split('-')
+        record_date = timesheet.get("record_date")
+        if date_length == 1:
+            record_date = datetime.strptime(
+                timesheet.get("record_date"), "%m/%d/%Y"
+            ).strftime("%Y-%m-%d")
+
+        timesheet_dict = {
+            date_field: record_date,
+            "project_id": int(timesheet.get("project_id")),
+            "task_id": int(timesheet.get("task_id")),
+            "name": timesheet.get("name"),
+            "unit_amount": timesheet.get("unit_amount"),
+        }
+        odoo_record_id = timesheet.get("odoo_record_id")
+        if not isinstance(odoo_record_id, (int, float)):
+            try:
+                record_id = models.execute_kw(
+                    database,
+                    odoo_uid,
+                    password,
+                    res_model,
+                    "create",
+                    [prepared_record],
+                )
+            except Exception:
+                record_id = False
+                pass
+            records_sync.append(
+                {
+                    "local_record_id": timesheet.get("local_record_id"),
+                    "odoo_record_id": record_id,
+                }
+            )
+        else:
+            matched_list = list(
+                filter(
+                    lambda ml: ml.get("id") == int(odoo_record_id),
+                    fetched_timesheets,
+                )
+            )
+            timesheet_last_date = datetime.strptime(
+                timesheet.get("last_modified"), "%Y-%m-%dT%H:%M:%S.%fZ"
+            )
+            if matched_list and matched_list[0].get(
+                "write_date"
+            ) > timesheet_last_date.strftime("%Y-%m-%d %H:%M:%S"):
+                pass
+            else:
+                try:
+                    models.execute_kw(
+                        database,
+                        odoo_uid,
+                        password,
+                        res_model,
+                        "write",
+                        [int(odoo_record_id), prepared_record],
+                    )
+                except Exception:
+                    pass
+
+            records_sync.append(
+                {
+                    "local_record_id": task.get("local_record_id"),
+                    "odoo_record_id": int(odoo_record_id),
+                }
+            )
+    existing_timesheets = []
+    fetch_all_records = False
+    deleted_records = get_audit_logs(
+        database, odoo_uid, password, res_model, models, last_modified
+    )
+    if not deleted_records:
+        fetch_all_records = True
+        existing_timesheets = models.execute_kw(
+            database, odoo_uid, password, res_model, "search", [[]]
+        )
+    return {
+        "settled_timesheets": records_sync,
+        "updated_timesheets": {
+            "fetchedTimesheets": fetched_timesheets,
+            "existing_timesheets": existing_timesheets,
+            "fetch_all_records": fetch_all_records,
+            "deleted_records": deleted_records,
+        },
+    }
+
+
 def create_update_tasks(
     selected_url, username, password, database_dict, tasks, last_modified=False
 ):

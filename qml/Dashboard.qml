@@ -73,11 +73,23 @@ import "../models/DemoData.js" as DemoData
                         }
                     },
                     Action {
+                        iconName: "clock"
+                        text: "Timesheets"
+                        onTriggered:{
+//                            myComponent.myFlag = true
+                            apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Timesheet_Page.qml"))
+                            console.log("Calling setCurrentPage Primarypage is " + apLayout.primaryPage)
+                            page = 3
+                            apLayout.setCurrentPage(page)
+
+                        }
+                    },
+                    Action {
                         iconName: "view-list-symbolic"
                         text: "Tasks"
                         onTriggered:{
                             apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Task_Page.qml"))
-                            page = 3
+                            page = 4
                             apLayout.setCurrentPage(page)
                         }
                     },
@@ -86,7 +98,7 @@ import "../models/DemoData.js" as DemoData
                         text: "Projects"
                         onTriggered:{
                             apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Project_Page.qml"))
-                            page = 4
+                            page = 5
                             apLayout.setCurrentPage(page)
                         }
                     },
@@ -95,7 +107,7 @@ import "../models/DemoData.js" as DemoData
                         text: "Sync"
                         onTriggered:{
                             apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Sync_Page.qml"))
-                            page = 5
+                            page = 6
                             apLayout.setCurrentPage(page)
                         }
                     },
@@ -104,7 +116,7 @@ import "../models/DemoData.js" as DemoData
                         text: "Settings"
                         onTriggered:{
                             apLayout.addPageToCurrentColumn(mainPage, Qt.resolvedUrl("Settings_Page.qml"))
-                            page = 6
+                            page = 7
                             apLayout.setCurrentPage(page)
                         }
                     }

@@ -74,9 +74,9 @@ Page{
         anchors.top: parent.top
         anchors.topMargin: units.gu(3)
         anchors.left: parent.left
-        anchors.leftMargin: units.gu(3)
+        // anchors.leftMargin: units.gu(1)
         anchors.right: parent.right
-        anchors.rightMargin: units.gu(1)
+        // anchors.rightMargin: units.gu(1)
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 0
         color: "#ffffff"
@@ -87,8 +87,8 @@ Page{
             anchors.fill: parent
             // anchors.top: searchId.bottom  
             anchors.topMargin: units.gu(2)
-            border.color: "#CCCCCC"
-            border.width: 1
+            // border.color: "#CCCCCC"
+            // border.width: 1
 
             Flickable {
                 id: listView
@@ -129,6 +129,7 @@ Page{
                                         radius: 80
                                         border.color: "#0056a0"
                                         border.width: 2
+                                        anchors.leftMargin: units.gu(1)
                                         // anchors.rightMargin: 10
                                         
                                         anchors.verticalCenter:  parent.verticalCenter 
@@ -145,8 +146,11 @@ Page{
 
                                     Column {
                                         spacing: 5 
+                                        anchors.left: imgmodulename.right
+                                        anchors.verticalCenter:  parent.verticalCenter 
+                                        anchors.leftMargin: units.gu(2)
                                         // width: parent.width - 280
-                                        anchors.centerIn:  parent
+                                        // anchors.centerIn:  parent
 
                                         Text {
                                             text: model.name
@@ -164,21 +168,10 @@ Page{
                                     }
 
                                     Button {
-                                        width:units.gu(2)
-                                        height:units.gu(2)
-                                        // width: isDesktop() ? 40 : 90
-                                        // height: isDesktop() ? 40 : 90
-
-                                        // background: Rectangle {
-                                        //     color: "transparent"
-                                        //     radius: 10
-                                        //     border.color: "transparent"
-                                        // }
-                                        Image {
-                                            source: "images/reload.png"
-                                            anchors.fill: parent
-                                            smooth: true
-                                        }
+                                        width:units.gu(5)
+                                        height:units.gu(5)
+                                        iconName: "sync"
+                                        color: "#fff"
                                         anchors.right:  parent.right
                                         anchors.rightMargin:  20
                                         anchors.verticalCenter: parent.verticalCenter
@@ -189,13 +182,15 @@ Page{
                                                 loadingMessage = 'Synchronization for ' + model.name + '!' 
                                                 var filled_password = model.api_key
                                                 var last_user_update = SyncData.getLastModified(model.user_id)
-                                                python.call("backend.fetch_projects", [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, last_user_update] , function(projects) {
-                                                    if (projects === undefined) {
+                                                var fetchedAllProjects = SyncData.get_all_projects(model.user_id, last_user_update)
+                                                python.call('backend.create_update_projects', [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, fetchedAllProjects, last_user_update], function (project_data) {
+                                                    if (project_data === undefined) {
                                                         loading = false;
                                                         failed_sync = true;
                                                         return
                                                     }
-                                                    SyncData.create_projects(projects, model.user_id);
+                                                    SyncData.set_projects(project_data.settled_projects, model.user_id);
+                                                    SyncData.create_projects(project_data.updated_projects, model.user_id);
                                                     python.call("backend.fetch_contacts", [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, last_user_update] , function(contacts) {
                                                         SyncData.create_contacts(contacts, model.user_id)
                                                         var fetchedAllTasks = SyncData.get_all_tasks(model.user_id, last_user_update)
@@ -203,9 +198,10 @@ Page{
                                                             SyncData.set_tasks(obj_data.settled_tasks, model.user_id);
                                                             SyncData.create_tasks(obj_data.updated_tasks, model.user_id);
                                                             var timesheets = SyncData.fetchTimesheets(model.user_id)
-                                                            python.call("backend.create_timesheets", [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, timesheets], function (res) {
-                                                                SyncData.update_timesheet_entries(res, model.user_id)
-                                                            })
+                                                            python.call("backend.create_update_timesheets", [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, timesheets], function (sheet_res) {
+                                                                SyncData.set_timesheets(sheet_res.settled_timesheets, model.user_id);
+                                                                SyncData.create_timesheets(sheet_res.updated_timesheets, model.user_id);
+                                                            });
                                                             python.call('backend.fetch_activity_type', [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, last_user_update], function(activity_types) {
                                                                 SyncData.create_activity_types(activity_types, model.user_id)
                                                                 var fetchedallActivities = SyncData.fetchAllActivities(model.user_id)
@@ -218,16 +214,16 @@ Page{
                                                                     SyncData.done_activities(activities_dict.done_activities, model.user_id);
                                                                     loading = false;
                                                                     SyncData.update_instance_date(model.user_id)
-                                                                })
-                                                            })
+                                                                });
+                                                            });
                                                             var activities = SyncData.fetchActivities(model.user_id)
                                                             python.call("backend.create_activities", [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, activities], function (res) {
                                                                 SyncData.update_activity_entries(res)
-                                                            })
-                                                        })
+                                                            });
+                                                        });
                                                         passwordInput.text = ""
                                                         passwordDialog.close();
-                                                    })
+                                                    });
                                                 })
                                             } else {
                                                 passwordDialog.open()
@@ -257,11 +253,8 @@ Page{
                                                 Button {
                                                     height: passwordInput.height
                                                     width:passwordInput.height
-                                                    Image {
-                                                        source: isPasswordVisible ? "images/show.png" : "images/hide.png"
-                                                        anchors.fill: parent
-                                                        smooth: true
-                                                    }
+                                                    color: "#fff"
+                                                    iconName: isPasswordVisible ? "view-on" : "view-off"
                                                     onClicked: {
                                                         isPasswordVisible = !isPasswordVisible
                                                     }
@@ -275,13 +268,15 @@ Page{
                                             loadingMessage = 'Synchronization for ' + model.name + '!' 
                                             var filled_password = passwordInput.text
                                             var last_user_update = SyncData.getLastModified(model.user_id)
-                                            python.call("backend.fetch_projects", [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, last_user_update] , function(projects) {
-                                                if (projects === undefined) {
+                                            var fetchedAllProjects = SyncData.get_all_projects(model.user_id, last_user_update)
+                                            python.call('backend.create_update_projects', [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, fetchedAllProjects, last_user_update], function (project_data) {
+                                                if (project_data === undefined) {
                                                     loading = false;
                                                     failed_sync = true;
                                                     return
                                                 }
-                                                SyncData.create_projects(projects, model.user_id);
+                                                SyncData.set_projects(project_data.settled_projects, model.user_id);
+                                                SyncData.create_projects(project_data.updated_projects, model.user_id);
                                                 python.call("backend.fetch_contacts", [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, last_user_update] , function(contacts) {
                                                     SyncData.create_contacts(contacts, model.user_id)
                                                     var fetchedAllTasks = SyncData.get_all_tasks(model.user_id, last_user_update)
@@ -289,8 +284,11 @@ Page{
                                                         SyncData.set_tasks(obj_data.settled_tasks, model.user_id);
                                                         SyncData.create_tasks(obj_data.updated_tasks, model.user_id);
                                                         var timesheets = SyncData.fetchTimesheets(model.user_id)
-                                                        python.call("backend.create_timesheets", [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, timesheets], function (res) {
-                                                            SyncData.update_timesheet_entries(res, model.user_id)
+                                                        // python.call("backend.create_timesheets", [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, timesheets], function (res) {
+                                                            python.call("backend.create_update_timesheets", [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, timesheets], function (sheet_res) {
+                                                                // SyncData.update_timesheet_entries(res, model.user_id)
+                                                                SyncData.set_timesheets(sheet_res.settled_timesheets, model.user_id);
+                                                                SyncData.create_timesheets(sheet_res.updated_timesheets, model.user_id);
                                                         })
                                                         python.call('backend.fetch_activity_type', [model.link, model.username, filled_password, {'isTextInputVisible': true, 'input_text': model.database}, last_user_update], function(activity_types) {
                                                             SyncData.create_activity_types(activity_types, model.user_id)
