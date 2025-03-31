@@ -156,7 +156,8 @@ Page {
     Flickable {
         id: timesheetsDetailsPageFlickable
         anchors.fill: parent
-        contentHeight: timesheetsDetailsLomiriShape.height + 1000
+        contentHeight: timesheetsDetailsLomiriShape.height
+         // + 1000
         flickableDirection: Flickable.VerticalFlick
         anchors.top: saveMessageTimesheetText.bottom
         anchors.topMargin: header.height + units.gu(4)
@@ -167,10 +168,10 @@ Page {
             anchors.top: saveMessageTimesheetText.bottom
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
+            // anchors.verticalCenter: parent.verticalCenter
             radius: "large"
             width: parent.width
-            height: parent.height
+            height: timesheetsDetails.height
 
             Row{
                 id: instanceRow

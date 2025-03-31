@@ -480,6 +480,30 @@ def create_activities(
     return records_list
 
 
+def get_format_date(date):
+    # List of possible date formats
+    date_formats = [
+        "%A, %d-%B-%Y",  # Example: Friday, 28-March-2025
+        "%Y/%m/%d",  # Example: 2024/10/24
+        "%A, %d-%b-%Y",  # Handling abbreviated month names if needed
+    ]
+    if (
+        date is not None
+        and date != "mm/dd/yy"
+        and not isinstance(date, (int, float))
+    ):
+        for fmt in date_formats:
+            try:
+                # Try parsing with each format
+                dt = datetime.strptime(date, fmt)
+                return dt.strftime("%Y-%m-%d")
+            except ValueError:
+                continue
+
+    # If no format matches
+    return False
+
+
 def create_update_projects(
     selected_url,
     username,
@@ -517,22 +541,6 @@ def create_update_projects(
         {"order": "parent_id desc"},
     )
     for project in projects:
-
-        def get_format_date(date):
-            if (
-                date is not None
-                and date != "mm/dd/yy"
-                and not isinstance(date, (int, float))
-            ):
-                try:
-                    return datetime.strptime(date, "%m/%d/%Y").strftime(
-                        "%Y-%m-%d"
-                    )
-                except ValueError:
-                    datetime.strptime(date, "%Y-%m-%d")
-                    return date
-            return False
-
         prepared_record = {
             "name": project.get("name"),
             "parent_id": int(project.get("parent_id")),
@@ -829,21 +837,6 @@ def create_update_tasks(
             and task.get("sub_project_id") != 0
         ):
             project_id = task.get("sub_project_id")
-
-        def get_format_date(date):
-            if (
-                date is not None
-                and date != "mm/dd/yy"
-                and not isinstance(date, (int, float))
-            ):
-                try:
-                    return datetime.strptime(date, "%m/%d/%Y").strftime(
-                        "%Y-%m-%d"
-                    )
-                except ValueError:
-                    datetime.strptime(date, "%Y-%m-%d")
-                    return date
-            return False
 
         prepared_record = {
             "name": task.get("name"),
