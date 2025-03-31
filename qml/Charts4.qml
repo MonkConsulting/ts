@@ -37,10 +37,10 @@ import "../models/Main.js" as Model
                     var count = 0;
                     var count2 = Object.keys(task_data).length;
                     console.log("Count2 is: " + count2)
-                    for (count = 0; count < count2; count++)
+/*                    for (count = 0; count < count2; count++)
                         {
                             console.log("Task Timecat: " + task_timecat[count]);
-                    }
+                    }*/
                     mySeries2.append("Time", task_timecat);
                     mySeries2.axisX.categories =  task;
                 }

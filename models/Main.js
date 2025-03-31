@@ -62,7 +62,7 @@ function get_projects_spent_hours() {
     for (var fetch = 0; fetch < spent_hours.length; fetch++) {
         var project = get_project_name(spent_hours[fetch].project_id)
         project_details[project] = spent_hours[fetch].total;
-        console.log("In get_projects_spent_hours, project is: " + project)
+//        console.log("In get_projects_spent_hours, project is: " + project)
     }
     return project_details;
 }

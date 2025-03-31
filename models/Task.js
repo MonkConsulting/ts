@@ -4,7 +4,7 @@
 
 
     function savetaskData(data) {
-        var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+        var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
         db.transaction(function (tx) {
             var result = tx.executeSql('INSERT INTO project_task_app (account_id, name, project_id, parent_id, start_date, end_date, deadline, favorites, initial_planned_hours, description, user_id,sub_project_id, last_modified) \
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [data.selectedAccountUserId, data.nameInput, data.selectedProjectId, 
@@ -53,6 +53,9 @@ function fetch_tasks_lists(recordid) {
             var accunt_id = tx.executeSql('SELECT name FROM users WHERE id = ?',[result.rows.item(i).account_id]);
             var accountName = accunt_id.rows.length > 0 ? accunt_id.rows.item(0).name || "" : "";
 
+            var project_name = tx.executeSql('SELECT name FROM project_project_app WHERE id = ?', [result.rows.item(i).project_id]);
+            var project = project_name.rows.length > 0 ? project_name.rows.item(0).name || "" : "";
+            
 
             var id = result.rows.item(i).id
             var spentHoursQuery = tx.executeSql('SELECT unit_amount FROM account_analytic_line_app WHERE task_id = ?', [id]);
@@ -91,7 +94,7 @@ function fetch_tasks_lists(recordid) {
                 'account_id': result.rows.item(i).account_id, 'parent_id': result.rows.item(i).parent_id, 
                 'description': result.rows.item(i).description, 'start_date':result.rows.item(i).start_date,
                 'end_date':result.rows.item(i).end_date, 'deadline':result.rows.item(i).deadline, 
-                'user_id': result.rows.item(i).user_id, 'project_id': result.rows.item(i).project_id});
+                'user_id': result.rows.item(i).user_id, 'project_id': result.rows.item(i).project_id, 'project': project});
 
 
                 filtertasklistData.push({'id': result.rows.item(i).id, 'name': result.rows.item(i).name, 
@@ -111,15 +114,36 @@ function fetch_task_details(taskrec){
     db.transaction(function(tx) {    
         var project = tx.executeSql('SELECT name FROM project_project_app WHERE id = ?', taskrec[0].project_id);
         var parentname = tx.executeSql('SELECT name FROM project_task_app WHERE id = ?', taskrec[0].parent_id);
+        if(parentname.rows.item(0) === undefined)
+            console.log("Parentname is undefined")
         if(workpersonaSwitchState){
             var account = tx.executeSql('SELECT name FROM users WHERE id = ?', taskrec[0].account_id);
             var user = tx.executeSql('SELECT name FROM res_users_app WHERE id = ?', taskrec[0].user_id);
         }
-        console.log("get_task_details: project: " + project.rows.item(0).name)
-        console.log("get_task_details: parentname: " + user.rows.item(0).name)
+//        console.log("get_task_details: project: " + project.rows.item(0).name)
+//        console.log("get_task_details: parentname: " + user.rows.item(0).name)
 //        console.log("get_task_details: user: " + user.rows.item(0).name)
 //        taskdata.push({'project': project.rows.item(0).name, 'parentname': parentname.rows.item(0).name, 'user': user.rows.item(0).name})
-        taskdata.push({'project': project.rows.item(0).name, 'user': user.rows.item(0).name})
+        
+
+        if (parentname.rows.item(0) != undefined)
+        {
+            console.log("Parentname is not null")
+            var parent_name = parentname.rows.item(0).name
+        }
+        else{
+           var parent_name = ""
+
+        }
+        if (user.rows.item(0) != undefined)
+        {
+            var user_name = user.rows.item(0).name
+       }
+        else{
+            var user_name = ""
+        }
+            taskdata.push({'project': project.rows.item(0).name, 'user': user_name, 'parentname': parent_name})
+            console.log("get_task_details: user: " + taskdata[0].user + " Project: " + taskdata[0].project)
 })
     return taskdata    
 }
@@ -181,7 +205,7 @@ function getAssigneeList(){
     db.transaction(function(tx) {
             var result1 = tx.executeSql('SELECT * FROM res_users_app');
             for (var i = 0; i < result1.rows.length; i++) {
-                console.log("getAssigneeList: " + result1.rows.item(i).name)
+//                console.log("getAssigneeList: " + result1.rows.item(i).name)
                 assigneelist.push({'id': result1.rows.item(i).id, 'name': result1.rows.item(i).name})
             }
         })

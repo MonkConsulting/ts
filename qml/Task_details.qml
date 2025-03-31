@@ -23,6 +23,7 @@ import QtCharts 2.0
 import QtQuick.Window 2.2
 import Qt.labs.settings 1.0
 import "../models/Task.js" as Task
+import "../models/Timesheet.js" as Timesheet
 
 
 Page{
@@ -40,9 +41,23 @@ Page{
                         text: "Edit"
                         onTriggered:{
                             console.log("Edit Task clicked");
-                            console.log("Account ID: " + tasks[0].account_id)
                             isReadOnly = !isReadOnly
+                            if(!isReadOnly){
+                                var searchdata = task_field.editText
+                                prepare_task_list(selectedProjectId)
+                                var myIndex = get_id(taskModel, searchdata)
+                                task_field.currentIndex = myIndex
 
+                                var searchdata = assigneeCombo.editText
+                                prepare_assignee_list()
+                                var myIndex = get_id(assigneeModel, searchdata)
+                                console.log("Account ID: " + tasks[0].account_id + " myIndex: " + myIndex)
+                                assigneeCombo.currentIndex = myIndex
+                                var searchdata = projectCombo.editText
+                                prepare_project_list()
+                                var myIndex = get_id(projectModel, searchdata)
+                                projectCombo.currentIndex = myIndex
+                            }
                         }
                     },
                     Action {
@@ -74,29 +89,47 @@ Page{
     property var user: "" */
     property int selectedAccountUserId: 0
     property int selectedProjectId: 0 
+    property int selectedassigneesUserId: 0
     property int selectedparentId: 0
+    property int selectedInstanceId: 0
+    property int selectedTaskId: 0 
     property int favorites: 0
+    property var prevproject: ""
+    property var prevInstanceId: 0
+    property var prevassignee: ""
+    property var prevtask: ""
 
 
+
+    function get_id(model, criteria) {
+        console.log("get_id criteria: " + criteria + " model.count: " + model.count)
+        for(var i = 0; i < model.count; ++i){ 
+            console.log("get_id criteria: " + criteria + " model.name: " + model.get(i).name.substring(0, model.get(i).name.indexOf("[")) )          
+            if (model.get(i).name.substring(0, model.get(i).name.indexOf("[")) === criteria) 
+                return i
+        }
+        return -1
+}
+    
     function get_task_list(recordid){
             console.log("In get_task_list()");
             var tasklist = Task.fetch_tasks_lists(recordid);
             console.log("Tasks: " + tasklist[0].name);
+            console.log("Tasks: " + tasklist[0].user_id)
             return tasklist
        }
 
 
     function save_task_data(){
         var selectedProjectId = tasks[0].project_id
-        var selectedAccountUserId = tasks[0].account_id
-        var selectedassigneesUserId = tasks[0].userId
-        console.log("Account ID: " + selectedAccountUserId)
+//        var selectedassigneesUserId = tasks[0].user_id
+        console.log("Account ID: " + selectedassigneesUserId)
         const editData = {
-            selectedAccountUserId: selectedAccountUserId,
+            selectedAccountUserId: selectedassigneesUserId,
             nameInput: task_text.text,
             selectedProjectId: selectedProjectId,
             editselectedSubProjectId: 0,
-            selectedparentId: tasks[0].parent_Id,
+            selectedparentId: selectedparentId,
             startdateInput: start_text.text,
             enddateInput: end_text.text,
             deadlineInput: deadline_text.text,
@@ -111,11 +144,120 @@ Page{
  
     }
 
-    ListModel {
-        id: taskModel
+    function prepare_assignee_list() {
+        var assignees = Task.getAssigneeList()
+        console.log("In prepare_assignee_list()  ")      
+        assigneeModel.clear();
+        assigneeModel1.clear();
+        for (var assignee = 0; assignee < assignees.length; assignee++) {
+            assigneeModel1.append({'id': assignees[assignee].id, 'name': assignees[assignee].name})
+            assigneeModel.append({'name': assignees[assignee].name + "[" + assignees[assignee].id + "]"})
+        }       
+/*        for (var assignee = 0; assignee < assigneeModel.count; assignee++) {
+            console.log("AssigneeModel1 " + "id: " + assigneeModel1.get(assignee).id + " Assignee: " + assigneeModel1.get(assignee).name)
+            console.log("assigneeModel " + " Asignee: " + assigneeModel.get(assignee).name)
+        } */
+    }
+
+    function prepare_project_list() {
+        var projects = Timesheet.fetch_projects(selectedInstanceId, workpersonaSwitchState)
+        console.log("In prepare_project_list()  " + selectedInstanceId)      
+        projectModel.clear();
+        projectModel1.clear();
+        for (var project = 0; project < projects.length; project++) {
+            projectModel1.append({'id': projects[project].id, 'name': projects[project].name, 'projectHasSubProject': projects[project].projectHasSubProject})
+            projectModel.append({'name': projects[project].name + "[" + projects[project].id + "]"})
+        }       
+        for (var project = 0; project < projectModel.count; project++) {
+            console.log("ProjectModel1 " + "id: " + projectModel1.get(project).id + " Project: " + projectModel1.get(project).name)
+            console.log("ProjectModel " + " Project: " + projectModel.get(project).name)
+        } 
     }
     
 
+    function prepare_task_list(project_id) {
+        var tasks = Timesheet.fetch_tasks_list(project_id, 0, workpersonaSwitchState)
+        taskModel.clear();
+        taskModel1.clear();
+        selectedTaskId = 0;
+//        console.log("Passed Project ID: " + project_id + " SubProjectID: " + selectedsubProjectId + " Tasks Found: " + tasks.length)
+        for (var task = 0; task < tasks.length; task++) {
+            taskModel1.append({'id': tasks[task].id, 'name': tasks[task].name, 'taskHasSubTask': tasks[task].taskHasSubTask})
+            taskModel.append({'name': tasks[task].name + "[" + tasks[task].id + "]"})
+        } 
+    }
+
+    function set_assignee_id(assignee_name) {
+        for (var assignee = 0; assignee < assigneeModel.count; assignee++) {
+            if(assigneeModel1.get(assignee).name === assignee_name) {
+                console.log("set_assignee_id " + "id: " + assigneeModel1.get(assignee).id + " Assignee: " + assigneeModel1.get(assignee).name)
+                selectedassigneesUserId = assigneeModel1.get(assignee).id   
+            }
+ 
+        }         
+    }
+
+    function set_project_id(project_name) {
+        for (var project = 0; project < project_name.length; ++project) {
+            if (project_name.substring(project, project + 1) === "[") {
+            selectedProjectId = parseInt(project_name.substring(project + 1, ((project_name.length)-1)))
+            break
+            }  
+        }  
+        const name =    project_name.split("[")
+        for (var project = 0; project < projectModel1.count; project++) {
+            var index = prevproject.indexOf("[")
+            console.log("Index of [ " + index)
+        }
+        if (prevproject != name[0]){
+            console.log("prevproject = " + prevproject + " name = " + name[0])
+            task_field.currentIndex = -1
+        }
+        prevproject = name[0]
+        console.log("Set Project Id: Name = " + name[0])
+        console.log("selectedProjectId = " + selectedProjectId)    
+    }
+
+    function set_task_id(task_name) {
+        console.log("set_task_id called task_name: " + task_name)
+        for (var task = 0; task < task_name.length; task++) {
+            if(task_name.substring(task, task + 1) === "[") {
+                selectedparentId = parseInt(task_name.substring(task + 1, ((task_name.length)-1)))
+            }
+        }
+        const name =    task_name.split("[")
+
+        if (prevtask != name[0]){
+            console.log("prevtask = " + prevtask + " name = " + name[0])
+        }
+        prevtask = name[0]
+
+        console.log("Set Task Id: Name = " + name[0] + " selectedparentId: " + selectedparentId)
+        console.log("selectedparentId = " + selectedparentId)    
+    }
+
+    function set_instance_id(instance_name) {
+        for (var instance = 0; instance < instanceModel.count; instance++) {
+            if(instanceModel1.get(instance).name === instance_name) {
+                console.log("set_instance_id " + "id: " + instanceModel1.get(instance).id + " Instance: " + instanceModel1.get(instance).name)
+                selectedInstanceId = instanceModel1.get(instance).id            
+            }
+
+        }         
+    }
+
+
+    ListModel {
+        id: taskModel1
+    }    
+    
+    ListModel {
+        id: assigneeModel1
+    }
+
+    ListModel {
+        id: projectModel1
+    }    
 
     LomiriShape {
         id: rect1
@@ -134,9 +276,10 @@ Page{
                 topPadding: 10
                 Column{
                         leftPadding: units.gu(2)
-                        Rectangle {
+                        LomiriShape {
                             width: units.gu(10)
                             height: units.gu(5)
+                            aspect: LomiriShape.Flat 
                              Label {
                                 id: instance_label                            
                                 text: "Instance"
@@ -168,10 +311,11 @@ Page{
                 topPadding: 10
                 Column{
                         leftPadding: units.gu(2)
-                        Rectangle {
+                        LomiriShape {
                             width: units.gu(10)
                             height: units.gu(5)
-                             Label {
+                            aspect: LomiriShape.Flat 
+                            Label {
                                 id: task_label                            
                                 text: "Task Name"
                                 anchors.left: parent.left
@@ -201,9 +345,10 @@ Page{
                 topPadding: 10
                 Column{
                         leftPadding: units.gu(2)
-                        Rectangle {
+                        LomiriShape {
                             width: units.gu(10)
                             height: units.gu(5)
+                            aspect: LomiriShape.Flat 
                             Label {
                                 id: assignee_label                             
                                 text: "Assignee"
@@ -215,13 +360,42 @@ Page{
                 }
                 Column{
                     leftPadding: units.gu(3)
-                    TextField {
-                            id: assignee_text
-                            readOnly: isReadOnly
+                        LomiriShape{                        
                             width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
-                            text: taskdata[0].user
+                            height: 60
+                            
+                            ComboBox {
+                                    id: assigneeCombo
+                                    enabled: !isReadOnly
+                                    editable: true
+                                    editText: taskdata[0].user
+                                    width: parent.width
+                                    height: parent.height
+                                    anchors.centerIn: parent.centerIn
+                                    flat: true
+                                    model:  ListModel {
+                                                id: assigneeModel
+                                            }  
 
-                        }
+                                    onActivated: {
+                                        console.log("In onActivated")
+                                        set_assignee_id(editText.substring(0, editText.indexOf("["))) 
+                                        console.log("Assignee ID: " + selectedassigneesUserId + " edittext: " + editText)                        
+                                    }        
+                                    onHighlighted: {
+                                    }
+                                    onAccepted: {
+                                        console.log("In onAccepted")
+                                        if (find(editText) != -1)
+                                        {
+                                         console.log("In onActivated")
+                                        set_assignee_id(editText.substring(0, editText.indexOf("["))) 
+                                        console.log("Assignee ID: " + selectedassigneesUserId + " edittext: " + editText)                        
+                                       }
+                                    } 
+
+                            }
+                        } 
                 }       
         }
 
@@ -233,9 +407,10 @@ Page{
                 Column{
                     id: myCol8
                         leftPadding: units.gu(2)
-                        Rectangle {
+                        LomiriShape {
                             width: units.gu(10)
                             height: units.gu(5)
+                            aspect: LomiriShape.Flat 
                             Label {
                                 id: description_label                             
                                 text: "Description"
@@ -248,9 +423,11 @@ Page{
                 Column{
                     id: myCol9
                     leftPadding: units.gu(3)
-                    TextField {
+                    TextArea {
                         id: description_text
                         readOnly: isReadOnly
+                        autoSize: true
+                        maximumLineCount: 0
                         width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
                         anchors.centerIn: parent.centerIn
                         text: tasks[0].description
@@ -266,9 +443,10 @@ Page{
                 topPadding: 10
                 Column{
                         leftPadding: units.gu(2)
-                        Rectangle {
+                        LomiriShape {
                             width: units.gu(10)
                             height: units.gu(5)
+                            aspect: LomiriShape.Flat 
                             Label {
                                 id: project_label                             
                                 text: "Project"
@@ -280,13 +458,45 @@ Page{
                 }
                 Column{
                     leftPadding: units.gu(3)
-                    TextField {
-                        id: project_text
-                        readOnly: isReadOnly
+                    LomiriShape{                        
                         width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
-                        text: taskdata[0].project
+                        height: 60
+                    ComboBox {
+                            id: projectCombo
+                            editable: true
+                            editText: taskdata[0].project
+                            width: parent.width
+                            height: parent.height
+                            anchors.centerIn: parent.centerIn
+                            flat: true
+                            model:  ListModel {
+                                        id: projectModel
+                                    }  
 
-                    }
+                            onActivated: {
+                                console.log("In onActivated")
+                                if (prevproject != editText.substring(0, editText.indexOf("[")))
+                                {
+                                    set_project_id(editText) 
+                                    prepare_task_list(selectedProjectId)
+                                    console.log("Project ID: " + selectedProjectId + " edittext: " + editText)
+                                }                        
+                            }        
+                            onHighlighted: {
+                            }
+                            onAccepted: {
+                                console.log("In onAccepted")
+                                if (find(editText) != -1)
+                                {
+                                    prevproject = editText
+                                    set_project_id(editText) 
+                                    prepare_task_list(selectedProjectId)
+                                    console.log("Project ID: " + selectedProjectId)                        
+                                }
+                            } 
+
+                        }
+                }  
                 }
     
         }
@@ -300,9 +510,10 @@ Page{
                Column{
                     id: myCol10
                         leftPadding: units.gu(2)
-                        Rectangle {
+                        LomiriShape {
                             width: units.gu(10)
                             height: units.gu(5)
+                            aspect: LomiriShape.Flat 
                             Label {
                                 id: parent_label                             
                                 text: "Parent Task"
@@ -315,17 +526,45 @@ Page{
                 Column{
                     id: myCol11
                     leftPadding: units.gu(3)                       
-                    width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
-                    height: 40
-                    TextField {
-                        id: parent_text
-                        readOnly: isReadOnly
+                    LomiriShape{                        
                         width: Screen.desktopAvailableWidth < units.gu(250) ? units.gu(30) : units.gu(60)
-                        anchors.centerIn: parent.centerIn
-                        text: taskdata[0].parentname ? taskdata[0].parentname : ""
+                        height: 60
+                        ComboBox {
+                            id: task_field
+                            editable: true
+                            editText: taskdata[0].parentname
+                            width: parent.width
+                            height: parent.height
+                            anchors.centerIn: parent.centerIn
+                            flat: true
 
-                    }
-                }       
+                            model:  ListModel {
+                                        id: taskModel
+                                    }  
+
+                            onActivated: {
+                                console.log("In onActivated")
+                                if (prevtask != editText.substring(0, editText.indexOf("[")))
+                                {
+                                    set_task_id(editText) 
+                                    console.log("Task ID: " + selectedTaskId)  
+                                } 
+                            }        
+                            onHighlighted: {
+                            }
+                            onAccepted: {
+                                console.log("In onAccepted")
+                                if (find(editText) != -1){
+                                    set_task_id(editText) 
+                                    console.log("Task ID: " + selectedTaskId)                        
+
+                                    }
+
+                            } 
+
+                        }
+                    }  
+            }
         }
 
 
@@ -337,9 +576,10 @@ Page{
                 topPadding: 10
                 Column{
                     leftPadding: units.gu(2)
-                    Rectangle {
+                    LomiriShape {
                         width: units.gu(10)
                         height: units.gu(5)
+                        aspect: LomiriShape.Flat 
                         Label {
                             id: hours_label                             
                             text: "Planned Hours"
@@ -369,9 +609,10 @@ Page{
                 topPadding: 10
                 Column{
                     leftPadding: units.gu(2)
-                    Rectangle {
+                    LomiriShape {
                         width: units.gu(10)
                         height: units.gu(5)
+                        aspect: LomiriShape.Flat 
                         Label {
                             id: start_label                             
                             text: "Start Date"
@@ -433,9 +674,10 @@ Page{
                 topPadding: 10
                 Column{
                     leftPadding: units.gu(2)
-                    Rectangle {
+                    LomiriShape {
                         width: units.gu(10)
                         height: units.gu(5)
+                        aspect: LomiriShape.Flat 
                         Label {
                             id: end_label                             
                             text: "End Date"
@@ -498,9 +740,10 @@ Page{
                 topPadding: 10
                 Column{
                     leftPadding: units.gu(2)
-                    Rectangle {
+                    LomiriShape {
                         width: units.gu(10)
                         height: units.gu(5)
+                        aspect: LomiriShape.Flat 
                         Label {
                             id: deadline_label                             
                             text: "Deadline"
@@ -563,9 +806,10 @@ Page{
                 topPadding: 10
                 Column{
                     leftPadding: units.gu(2)
-                    Rectangle {
+                    LomiriShape {
                         width: units.gu(10)
                         height: units.gu(5)
+                        aspect: LomiriShape.Flat 
                         Label {
                             id: priority_label                             
                             text: "Priority"
@@ -663,14 +907,21 @@ Page{
 
         Component.onCompleted: {
             tasks = get_task_list(recordid);
+//            prepare_project_list();
             console.log("From Task Page " + apLayout.columns);
             console.log("From Task Page ID " + recordid);
             console.log("From Task Page  tasks: " + tasks[0].id);
+            console.log("From Task Page  Account ID: " + tasks[0].account_id + " Account Name: " + tasks[0].accountName)
             taskdata = Task.fetch_task_details(tasks);
-            console.log("Taskdata: " + taskdata[0].project)
+            console.log("Taskdata: " + taskdata[0].project + " User: " + taskdata[0].user + " Parentname: " + taskdata[0].parentname)
             favorites =   tasks[0].favorites;
             console.log("Description is: " + tasks[0].description);
             console.log("OnComplete Favorites is: " + tasks[0].favorites);
+            selectedInstanceId = tasks[0].account_id
+            selectedProjectId = tasks[0].project_id
+            selectedparentId = (tasks[0].parent_id === null) ? 0 : tasks[0].parent_id
+            selectedassigneesUserId = tasks[0].account_id
+
             tasks[0].description = tasks[0].description.replace(/<[^>]+>/g, " ") 
                     .replace(/<p>;/g,"")   
                     .replace(/&nbsp;/g, "")       
