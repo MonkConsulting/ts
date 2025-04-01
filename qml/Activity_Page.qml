@@ -59,6 +59,14 @@ Page{
         }
 
 
+    function get_activityOn_Status(searchstr){
+            var activities = Activity.filterStatus(searchstr)
+            activityListModel.clear();
+            for (var activity = 0; activity < tasks.length; activity++) {
+                activityListModel.append({'id': activities[activity].id, 'summary': activities[activity].summary, 
+                'due_date': activities[activity].due_date})            } 
+        }
+
 
     ListModel {
         id: activityListModel
@@ -77,12 +85,13 @@ Page{
                 height: units.gu(10)
                 Row {
                     height: units.gu(10)
+                    leftPadding: units.gu(1)
                     spacing: 10
                     Column{
-                        width: units.gu(40)
+                        width: units.gu(35)
                         height: units.gu(10)
 /*                        Label{ 
-                           id: tasklabel 
+                        id: tasklabel 
                             text: "Activity: "}*/
                         Text { 
                             width: units.gu(20)
@@ -110,7 +119,7 @@ Page{
                 MouseArea {
                     anchors.fill: parent
                     onClicked: {
-    					activitylist.currentIndex = index
+                        activitylist.currentIndex = index
                         apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activity_details.qml"),{"recordid":id});
                     }
                 }   
@@ -131,8 +140,8 @@ Page{
                     console.log("currentIndex changed")
                 }            
 
-           Component.onCompleted: {
-                      get_activity_list(0)
+        Component.onCompleted: {
+                    get_activity_list(0)
 
 
             }

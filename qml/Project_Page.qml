@@ -30,7 +30,8 @@ Page{
         id: projectheader
         title: project.title
         ActionBar {
-            numberOfSlots: 1
+            id: menuitem
+            numberOfSlots: 2
             anchors.right: parent.right
             actions: [
                 Action {
@@ -41,9 +42,33 @@ Page{
                         // apLayout.addPageToCurrentColumn(project, Qt.resolvedUrl("Project_Create.qml"))
                         apLayout.addPageToNextColumn(project, Qt.resolvedUrl("Project_details.qml"),{"recordid":0});
                     }
+                },
+                Action {
+                    iconName: "search"
+                    text: "Search"
+                    onTriggered:{
+                        console.log("Search clicked");
+                        nameFilter.visible = !nameFilter.visible
+
+                    }
                 }
             ]
         }
+        TextField {
+            id: nameFilter
+            anchors.right: menuitem.left
+            anchors.verticalCenter: parent.verticalCenter
+            visible: false
+            placeholderText: qsTr("Search by name...")
+            onTextChanged: {
+                if (nameFilter.text === ""){
+                    fetch_projects_list()
+                }
+                else{
+                    filter_projects_list(nameFilter.text)
+                }
+            }
+        }        
     }
 
     property var workpersonaSwitchState: true;
@@ -62,6 +87,22 @@ Page{
         // listData = projectsList;
         // projectListView.model = projectsList;
     }
+
+    function filter_projects_list(filterstr) {
+        var projectsList = Project.filter_projects_list(workpersonaSwitchState, filterstr);
+        projectModel.clear();
+        for (var project_record = 0; project_record < projectsList.length; project_record++) {
+            projectModel.append({'id': projectsList[project_record].id,
+                                'name': projectsList[project_record].name,
+                                'deadline': projectsList[project_record].planned_end_date,
+                                'allocatedHours': projectsList[project_record].allocated_hours,
+                                'favorites': projectsList[project_record].favorites,
+                                'color_pallet': projectsList[project_record].color_pallet || '#FFFFFF'})
+        }
+        // listData = projectsList;
+        // projectListView.model = projectsList;
+    }
+
 
     ListModel {
         id: projectModel
@@ -98,7 +139,7 @@ Page{
                             }
                         }
                         Text {
-                            anchors.left:projecttext.left
+//                            anchors.left:projecttext.left
                             text: allocatedHours
                             leftPadding: units.gu(3)
                         }

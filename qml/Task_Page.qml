@@ -14,10 +14,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import QtQuick 2.7
+import QtQuick 2.9
 import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
 import QtQuick.Window 2.2
+import QtQml.Models 2.3
 import "../models/Timesheet.js" as Model
 import "../models/Project.js" as Project
 import "../models/Task.js" as Task
@@ -49,14 +50,29 @@ Page{
                             text: "Search"
                             onTriggered:{
                                 console.log("Search clicked");
-                                tasklist.currentIndex = 5
+                                nameFilter.visible = !nameFilter.visible
 
                             }
                         }
 
                     ]
                 }
+                TextField {
+                    id: nameFilter
+                    anchors.centerIn: parent
+                    visible: false
+                    placeholderText: qsTr("Search by name...")
+                    onTextChanged: {
+                        if (nameFilter.text === ""){
+                            get_task_list(0)
+                        }
+                        else{
+                            filter_task_list(nameFilter.text)
+                        }
+                    }
+                }
         }
+
 
     
     function get_task_list(recordid){
@@ -81,11 +97,33 @@ Page{
             } 
         }
 
+    function filter_task_list(searchstr){
+            var tasks = Task.get_filtered_tasklist(searchstr)
+            var deadline
+            taskModel.clear();
+            for (var task = 0; task < tasks.length; task++) {
+                if(tasks[task].deadline === 0){
+                    deadline = "" 
+                }
+                else{
+                    deadline = String(tasks[task].deadline)
+                }
+                taskModel.append({'id': tasks[task].id, 'name': tasks[task].name, 
+                'taskHasSubTask': tasks[task].taskHasSubTask, 'favorites':tasks[task].favorites, 
+                'spentHours': tasks[task].spentHours, 'allocated_hours': tasks[task].allocated_hours, 
+                'state': tasks[task].state, 'parentTask': tasks[task].parentTask, 
+                'accountName': tasks[task].accountName, 'deadline': deadline, 
+                'project_id':tasks[task].project_id, 'project': tasks[task].project})
+            } 
+        }
+
+
 
 
     ListModel {
         id: taskModel
     }
+
 
     LomiriShape {
         anchors.top: taskheader.bottom
@@ -128,7 +166,6 @@ Page{
                         width: units.gu(5)
                         height: units.gu(10)
                         Label { 
-//                            anchors.left:tasktext.left
                             text: spentHours }
                     }
 
@@ -160,11 +197,15 @@ Page{
                     anchors.fill: parent
                     onClicked: {
     					tasklist.currentIndex = index
+//                        apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Task_details.qml"),{"recordid":id});
+                    }
+                    onDoubleClicked: {
+    					tasklist.currentIndex = index
                         apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Task_details.qml"),{"recordid":id});
                     }
                 }   
                 Keys.onPressed: {
-                    console.log("list: " + event.key + " : " + event.text)
+//                    console.log("list: " + event.key + " : " + event.text)
                     if (event.key === Qt.Key_Return)
                         apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Task_details.qml"),{"recordid":id});
                      if (event.key === Qt.Key_Down)
@@ -176,6 +217,7 @@ Page{
 
         LomiriListView {
             id: tasklist
+            focus: true
             anchors.fill: parent
 //            anchors.top: taskheader.bottom
             model: taskModel
@@ -196,8 +238,7 @@ Page{
                 }            
 
            Component.onCompleted: {
-                    get_task_list(0)
-
+                get_task_list(0)
             }
         }
     }

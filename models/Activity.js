@@ -6,6 +6,8 @@ function queryActivityData(type, recordid) {
     var workpersonaSwitchState = true;
     var filterActivityListData = [];
     var activitylist = [];
+    var name = "";
+    var notes = "";
     db.transaction(function (tx) {
         activityListModel.clear();
         if(workpersonaSwitchState) {
@@ -47,7 +49,8 @@ function queryActivityData(type, recordid) {
             activitylist.push({'summary': existing_activities.rows.item(activity).summary, 
                 'due_date': existing_activities.rows.item(activity).due_date, 
                 'id': existing_activities.rows.item(activity).id, 'account_id': existing_activities.rows.item(activity).account_id, 
-                'accountName': accountName, 'activity_type_id': existing_activities.rows.item(activity).activity_type_id})
+                'accountName': accountName, 'activity_type_id': existing_activities.rows.item(activity).activity_type_id,
+                'notes': notes, 'name': name})
             filterActivityListData.push({'summary': existing_activities.rows.item(activity).summary, 'due_date': existing_activities.rows.item(activity).due_date, 'id': existing_activities.rows.item(activity).id})
         }
     })
@@ -97,3 +100,24 @@ function editActivityData(data) {
     });
 }
 
+function filterStatus(type) {
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    db.transaction(function (tx) {
+        filterActivityListData = [];
+        if(workpersonaSwitchState) {
+            var existing_activities = tx.executeSql('select * from mail_activity_app where account_id is not NULL order by last_modified desc')
+            if (type == 'pending') {
+                existing_activities = tx.executeSql('select * from mail_activity_app where account_id is not NULL AND state != "done" order by last_modified desc')
+            } else if (type == 'done') {
+                existing_activities = tx.executeSql('select * from mail_activity_app where account_id is not NULL AND state = "done" order by last_modified desc')
+            }
+        } else {
+            var existing_activities = tx.executeSql('SELECT * FROM mail_activity_app where account_id IS NULL');
+        }
+
+        for (var activity = 0; activity < existing_activities.rows.length; activity++) {
+            filterActivityListData.push({'summary': existing_activities.rows.item(activity).summary, 'due_date': existing_activities.rows.item(activity).due_date, 'id': existing_activities.rows.item(activity).id})
+        }
+    })
+    return filterActivityListData;
+}
