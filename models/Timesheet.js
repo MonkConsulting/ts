@@ -34,13 +34,13 @@ function fetch_timesheets(is_work_state) {
     var timesheetList = [];
     db.transaction(function(tx) {
         if (is_work_state) {
-            var timesheets = tx.executeSql('SELECT * FROM account_analytic_line_app where account_id IS NOT NULL order by last_modified desc');
+            var timesheets = tx.executeSql('SELECT * FROM account_analytic_line_app where account_id IS NOT NULL order by id desc');
         } else {
             var timesheets = tx.executeSql('SELECT * FROM account_analytic_line_app where parent_id = 0 AND account_id IS NULL');
         }
         for (var timesheet = 0; timesheet < timesheets.rows.length; timesheet++) {
             var quadrantObj = {0: "Urgent and Important",
-                            1: "Import but not Urgent",
+                            1: "Important but not Urgent",
                             2: "Not Important but Urgent",
                             3: "Not Important and Not Urgent"};
             var project = tx.executeSql('select name from project_project_app where id = ?', [timesheets.rows.item(timesheet).project_id])
@@ -297,9 +297,9 @@ function create_timesheet(data) {
         db.transaction(function(tx) {
             var unitAmount = 0;
             if (data.isManualTimeRecord) {
-                unitAmount = convert_time(data.manualSpentHours);
+                unitAmount = convertDurationToFloat(data.manualSpentHours);
             } else {
-                unitAmount = convert_time(data.spenthours);
+                unitAmount = convertDurationToFloat(data.spenthours);
             }
             tx.executeSql('INSERT INTO account_analytic_line_app \
                 (account_id, record_date, project_id, task_id, name, sub_project_id, sub_task_id, quadrant_id,  \
